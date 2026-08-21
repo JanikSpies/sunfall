@@ -59,8 +59,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		delete(game.Players, player.ID)
 		game.mu.Unlock()
 
-		close(player.Send)
-
 		log.Println("Player disconnected:", player.ID)
 	}()
 

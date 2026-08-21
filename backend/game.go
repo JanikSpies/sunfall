@@ -73,6 +73,15 @@ func (g *Game) Update(dt float64) {
 		if player.Y > MapHalfSize {
 			player.Y = MapHalfSize
 		}
+
+		dx := player.X - g.Sun.X
+		dy := player.Y - g.Sun.Y
+
+		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+		if distance <= g.Sun.Radius {
+			player.Alive = false
+		}
 	}
 }
 

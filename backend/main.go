@@ -54,7 +54,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn: conn,
 		Send: make(chan []byte, 32),
 	}
-	go writeLoop(&player)
+	go player.writeLoop()
 
 	game.mu.Lock()
 	game.Players[player.ID] = &player
@@ -64,6 +64,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		game.mu.Lock()
 		delete(game.Players, player.ID)
 		game.mu.Unlock()
+
+		close(player.Send)
 
 		log.Println("Player disconnected:", player.ID)
 	}()
@@ -77,11 +79,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	binary.BigEndian.PutUint64(buf[5:13], math.Float64bits(player.X))
 	binary.BigEndian.PutUint64(buf[13:21], math.Float64bits(player.Y))
 
-	err = conn.Write(
-		context.Background(),
-		websocket.MessageBinary,
-		buf,
-	)
+	player.Send <- buf
 	if err != nil {
 		log.Println("Write error:", err)
 		return

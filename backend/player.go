@@ -21,14 +21,14 @@ type Player struct {
 	Send chan []byte
 }
 
-func writeLoop(player *Player) {
-	for data := range player.Send {
+func (p *Player) writeLoop() {
+	for data := range p.Send {
 		ctx, cancel := context.WithTimeout(
 			context.Background(),
 			100*time.Millisecond,
 		)
 
-		err := player.Conn.Write(
+		err := p.Conn.Write(
 			ctx,
 			websocket.MessageBinary,
 			data,

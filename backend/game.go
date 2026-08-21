@@ -9,7 +9,11 @@ import (
 
 const (
 	PlayerSpeed         = 200.0
-	MapHalfSize float32 = 2000.0
+	MapHalfSize float32 = 2000
+
+	MinEnergyGain float32 = 1
+	MaxEnergyGain float32 = 10
+	EnergyRange   float32 = 1000
 )
 
 type Game struct {
@@ -82,6 +86,15 @@ func (g *Game) Update(dt float64) {
 		dy := player.Y - g.Sun.Y
 
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+		if distance < EnergyRange {
+			factor := 1 - (distance / EnergyRange)
+
+			gainPerSecond := MinEnergyGain +
+				(MaxEnergyGain-MinEnergyGain)*factor
+
+			player.Energy += gainPerSecond * float32(dt)
+		}
 
 		if distance <= g.Sun.Radius {
 			player.Alive = false

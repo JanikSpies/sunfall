@@ -6,7 +6,10 @@ import (
 	"sync"
 )
 
-const PlayerSpeed = 200.0
+const (
+	PlayerSpeed         = 200.0
+	MapHalfSize float32 = 2000.0
+)
 
 type Game struct {
 	mu sync.RWMutex
@@ -47,6 +50,20 @@ func (g *Game) Update(dt float64) {
 
 		player.X += float32(inputX * PlayerSpeed * dt)
 		player.Y += float32(inputY * PlayerSpeed * dt)
+
+		if player.X < -MapHalfSize {
+			player.X = -MapHalfSize
+		}
+		if player.X > MapHalfSize {
+			player.X = MapHalfSize
+		}
+
+		if player.Y < -MapHalfSize {
+			player.Y = -MapHalfSize
+		}
+		if player.Y > MapHalfSize {
+			player.Y = MapHalfSize
+		}
 	}
 }
 

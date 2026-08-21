@@ -1,4 +1,11 @@
 services:
+  dev_backend:
+    build:
+      context: backend
+      target: prod
+    ports:
+      - "8080:8080"
+
   dev_frontend:
     build:
       context: frontend

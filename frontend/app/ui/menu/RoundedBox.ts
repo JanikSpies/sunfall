@@ -1,4 +1,4 @@
-import { Container, NineSliceSprite, Texture } from "pixi.js";
+import {Container, NineSliceSprite, Texture} from "pixi.js";
 
 const defaultRoundedBoxOptions = {
   color: 0xffffff,

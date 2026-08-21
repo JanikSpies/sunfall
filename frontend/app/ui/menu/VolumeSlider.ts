@@ -1,7 +1,7 @@
-import { Slider } from "@pixi/ui";
-import { Graphics } from "pixi.js";
+import {Slider} from "@pixi/ui";
+import {Graphics} from "pixi.js";
 
-import { Label } from "./Label";
+import {Label} from "./Label";
 
 /**
  * A volume slider component to be used in the Settings popup.

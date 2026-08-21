@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useRef} from "react";
+import {CreationEngine} from "@/engine/engine";
 
 export default function GameCanvas() {
     const startedRef = useRef(false);
@@ -9,7 +10,7 @@ export default function GameCanvas() {
         if (startedRef.current) return;
         startedRef.current = true;
 
-        let engine: never;
+        let engine: CreationEngine | undefined;
 
         const startEngine = async () => {
             const [{CreationEngine}, {setEngine}, {userSettings}, {LoadScreen}, {MainScreen}] =
@@ -30,13 +31,13 @@ export default function GameCanvas() {
                 background: "#09090b",
                 antialias: true,
                 resizeTo: window,
-                resizeOptions: { minWidth: 768, minHeight: 1024, letterbox: false },
+                resizeOptions: {minWidth: 768, minHeight: 1024, letterbox: false},
             });
 
             userSettings.init();
 
             try {
-                engine.navigation.setBackground(LoadScreen);
+                await engine.navigation.showScreen(LoadScreen);
                 await engine.navigation.showScreen(MainScreen);
             } catch (error) {
                 console.warn("Unable to start the bundled Pixi screens; using fallback scene.", error);

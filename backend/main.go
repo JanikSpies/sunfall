@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -42,10 +41,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
+	spawnX, spawnY := game.RandomSpawnPosition()
 	player := Player{
 		ID:   game.NextPlayerID(),
-		X:    float32(rand.Float64()*1000 - 500),
-		Y:    float32(rand.Float64()*1000 - 500),
+		X:    spawnX,
+		Y:    spawnY,
 		Conn: conn,
 		Send: make(chan []byte, 32),
 	}

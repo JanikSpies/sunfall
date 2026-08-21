@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"math"
+	"math/rand"
 	"sync"
 )
 
@@ -122,6 +123,22 @@ func (g *Game) BroadcastWorldState() {
 		case player.Send <- data:
 		default:
 			// Player is too slow; skip this update.
+		}
+	}
+}
+
+func (g *Game) RandomSpawnPosition() (float32, float32) {
+	for {
+		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
+		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
+
+		dx := x - g.Sun.X
+		dy := y - g.Sun.Y
+
+		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+		if distance > g.Sun.Radius+200 {
+			return x, y
 		}
 	}
 }

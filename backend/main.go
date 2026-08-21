@@ -44,8 +44,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	player := Player{
 		ID:   game.NextPlayerID(),
-		X:    rand.Float64()*1000 - 500,
-		Y:    rand.Float64()*1000 - 500,
+		X:    float32(rand.Float64()*1000 - 500),
+		Y:    float32(rand.Float64()*1000 - 500),
 		Conn: conn,
 		Send: make(chan []byte, 32),
 	}

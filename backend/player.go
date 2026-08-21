@@ -10,8 +10,8 @@ import (
 type Player struct {
 	ID uint32
 
-	X float64
-	Y float64
+	X float32
+	Y float32
 
 	InputX int8
 	InputY int8

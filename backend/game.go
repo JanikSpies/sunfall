@@ -45,8 +45,8 @@ func (g *Game) Update(dt float64) {
 			inputY /= length
 		}
 
-		player.X += inputX * PlayerSpeed * dt
-		player.Y += inputY * PlayerSpeed * dt
+		player.X += float32(inputX * PlayerSpeed * dt)
+		player.Y += float32(inputY * PlayerSpeed * dt)
 	}
 }
 
@@ -56,7 +56,7 @@ func (g *Game) BuildWorldState() []byte {
 
 	playerCount := len(g.Players)
 
-	buf := make([]byte, 3+(playerCount*20))
+	buf := make([]byte, 3+(playerCount*12))
 
 	buf[0] = PacketWorldState
 	binary.BigEndian.PutUint16(buf[1:3], uint16(playerCount))
@@ -70,17 +70,17 @@ func (g *Game) BuildWorldState() []byte {
 		)
 		offset += 4
 
-		binary.BigEndian.PutUint64(
-			buf[offset:offset+8],
-			math.Float64bits(player.X),
+		binary.BigEndian.PutUint32(
+			buf[offset:offset+4],
+			math.Float32bits(player.X),
 		)
-		offset += 8
+		offset += 4
 
-		binary.BigEndian.PutUint64(
-			buf[offset:offset+8],
-			math.Float64bits(player.Y),
+		binary.BigEndian.PutUint32(
+			buf[offset:offset+4],
+			math.Float32bits(player.Y),
 		)
-		offset += 8
+		offset += 4
 	}
 
 	return buf

@@ -98,7 +98,13 @@ func (g *Game) BuildWorldState() []byte {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	playerCount := len(g.Players)
+	playerCount := 0
+
+	for _, player := range g.Players {
+		if player.Alive {
+			playerCount++
+		}
+	}
 
 	buf := make([]byte, 3+(playerCount*12))
 
@@ -108,6 +114,10 @@ func (g *Game) BuildWorldState() []byte {
 	offset := 3
 
 	for _, player := range g.Players {
+		if !player.Alive {
+			continue
+		}
+
 		binary.BigEndian.PutUint32(
 			buf[offset:offset+4],
 			player.ID,

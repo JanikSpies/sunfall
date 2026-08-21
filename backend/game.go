@@ -85,6 +85,11 @@ func (g *Game) Update(dt float64) {
 
 		if distance <= g.Sun.Radius {
 			player.Alive = false
+
+			select {
+			case player.Send <- buildDeathPacket():
+			default:
+			}
 		}
 	}
 }

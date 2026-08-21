@@ -9,6 +9,7 @@ const (
 	PacketConnected  byte = 1
 	PacketInput      byte = 2
 	PacketWorldState byte = 3
+	PacketDeath      byte = 4
 )
 
 func buildConnectedPacket(player *Player) []byte {
@@ -32,4 +33,8 @@ func buildConnectedPacket(player *Player) []byte {
 	)
 
 	return buf
+}
+
+func buildDeathPacket() []byte {
+	return []byte{PacketDeath}
 }

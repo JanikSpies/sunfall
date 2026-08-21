@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"sync"
+	"time"
 
 	"github.com/coder/websocket"
 )
@@ -94,16 +95,32 @@ func (g *Game) BroadcastWorldState() {
 	data := g.BuildWorldState()
 
 	g.mu.RLock()
-	defer g.mu.RUnlock()
+
+	players := make([]*Player, 0, len(g.Players))
 
 	for _, player := range g.Players {
-		err := player.Conn.Write(
-			context.Background(),
-			websocket.MessageBinary,
-			data,
-		)
-		if err != nil {
-			log.Println("Write error for player", player.ID, err)
-		}
+		players = append(players, player)
+	}
+
+	g.mu.RUnlock()
+
+	for _, player := range players {
+		go func(p *Player) {
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				100*time.Millisecond,
+			)
+			defer cancel()
+
+			err := p.Conn.Write(
+				ctx,
+				websocket.MessageBinary,
+				data,
+			)
+
+			if err != nil {
+				log.Println("Write error:", p.ID, err)
+			}
+		}(player)
 	}
 }

@@ -1,8 +1,8 @@
-import { FancyButton } from "@pixi/ui";
+import {FancyButton} from "@pixi/ui";
 
-import { engine } from "../getEngine";
+import {engine} from "../../getEngine";
 
-import { Label } from "./Label";
+import {Label} from "./Label";
 
 const defaultButtonOptions = {
   text: "",

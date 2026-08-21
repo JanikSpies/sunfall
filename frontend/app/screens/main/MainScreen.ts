@@ -1,15 +1,15 @@
-import { FancyButton } from "@pixi/ui";
-import { animate } from "motion";
-import type { AnimationPlaybackControls } from "motion/react";
-import type { Ticker } from "pixi.js";
-import { Container } from "pixi.js";
+import {FancyButton} from "@pixi/ui";
+import {animate} from "motion";
+import type {AnimationPlaybackControls} from "motion/react";
+import type {Ticker} from "pixi.js";
+import {Container} from "pixi.js";
 
-import { engine } from "../../getEngine";
-import { PausePopup } from "../../popups/PausePopup";
-import { SettingsPopup } from "../../popups/SettingsPopup";
-import { Button } from "../../ui/Button";
+import {engine} from "../../getEngine";
+import {PausePopup} from "../../popups/PausePopup";
+import {SettingsPopup} from "../../popups/SettingsPopup";
+import {Button} from "../../ui/menu/Button";
 
-import { Bouncer } from "./Bouncer";
+import {Bouncer} from "./Bouncer";
 
 /** The screen that holds the app */
 export class MainScreen extends Container {

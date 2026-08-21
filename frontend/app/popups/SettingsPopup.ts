@@ -1,14 +1,14 @@
-import { List } from "@pixi/ui";
-import { animate } from "motion";
-import type { Text } from "pixi.js";
-import { BlurFilter, Container, Sprite, Texture } from "pixi.js";
+import {List} from "@pixi/ui";
+import {animate} from "motion";
+import type {Text} from "pixi.js";
+import {BlurFilter, Container, Sprite, Texture} from "pixi.js";
 
-import { engine } from "../getEngine";
-import { Button } from "../ui/Button";
-import { Label } from "../ui/Label";
-import { RoundedBox } from "../ui/RoundedBox";
-import { VolumeSlider } from "../ui/VolumeSlider";
-import { userSettings } from "../utils/userSettings";
+import {engine} from "../getEngine";
+import {Button} from "../ui/menu/Button";
+import {Label} from "../ui/menu/Label";
+import {RoundedBox} from "../ui/menu/RoundedBox";
+import {VolumeSlider} from "../ui/menu/VolumeSlider";
+import {userSettings} from "../utils/userSettings";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 

@@ -53,7 +53,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	buf := make([]byte, 21)
 
-	buf[0] = 1
+	buf[0] = PacketConnected
 
 	binary.BigEndian.PutUint32(
 		buf[1:5],

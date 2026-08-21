@@ -16,11 +16,11 @@ services:
       - VALIDATION=http
       - EXTRA_DOMAINS=$LE_EXTRA_HOSTS # ie. api.awesomeproject.janikspies.ch,test.awesomeproject.janikspies.ch
     volumes:
-      - /home/ubuntu/le-config:/config
-      - /home/ubuntu/data/testing/static:/data/testing/static:ro
-      - /home/ubuntu/data/testing/media:/data/testing/media:ro
-      - /home/ubuntu/data/prod/static:/data/prod/static:ro
-      - /home/ubuntu/data/prod/media:/data/prod/media:ro
+      - /data/le-config:/config
+      - /data/test/static:/data/test/static:ro
+      - /data/test/media:/data/test/media:ro
+      - /data/prod/static:/data/prod/static:ro
+      - /data/prod/media:/data/prod/media:ro
     ports:
       - target: 80
         published: 80

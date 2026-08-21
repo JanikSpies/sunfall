@@ -1,5 +1,7 @@
 FROM golang:1.27-alpine AS build
 
+RUN adduser -D -u 1000 sunfall
+
 WORKDIR /app
 
 COPY go.mod go.sum ./
@@ -13,9 +15,16 @@ FROM build AS test
 
 RUN go test -v ./...
 
-FROM gcr.io/distroless/static-debian12:nonroot AS prod
+FROM scratch AS prod
+
+WORKDIR /app
+
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
 
 COPY --from=build /sunfall /sunfall
+
+USER sunfall
 
 EXPOSE 8080
 

@@ -1,6 +1,87 @@
+networks:
+  project_network:
+    driver: overlay
+
 services:
-  backend:
+  letsencrypt:
+    image: linuxserver/swag:version-1.9.0@sha256:6a05c1b96d7a47f19c676ce84088b6aa90ac7d810f5b5dcb0ffa301931095604
+    environment:
+      - PUID=1000
+      - PGID=8000
+      - TZ=Europe/Zurich
+      - URL=$LE_HOST # Change it to your host
+      - STAGING=false # Set to true when testing/setup
+      - SUBDOMAINS=
+      - DHLEVEL=2048 # For quick testing. Better if 4096
+      - VALIDATION=dns
+      - SUBDOMAINS=wildcard
+      - DNSPLUGIN=linode
+      - EXTRA_DOMAINS=$LE_EXTRA_HOSTS # ie. api.awesomeproject.janikspies.ch,test.awesomeproject.janikspies.ch
+    volumes:
+      - /data/le-config:/config
+      - /data/test/static:/data/test/static:ro
+      - /data/test/media:/data/test/media:ro
+      - /data/prod/static:/data/prod/static:ro
+      - /data/prod/media:/data/prod/media:ro
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    networks:
+      - project_network
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      mode: global
+
+  prod_backend: &prod_backend
+    image: ${IMAGE_PATH_BACKEND}
     build:
       context: backend
+    env_file:
+      - backend/.env
+    networks:
+      - project_network
+    deploy:
+      mode: replicated
+      replicas: 2 # To allow updates without interruption of service
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  prod_frontend:
+    image: ${IMAGE_PATH_FRONTEND}
+    build:
+      context: frontend
+      target: production
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - frontend/.env
     ports:
-      - "8080:8080"
+      - "3000:3000"
+    command: "npm start"
+    networks:
+      - project_network
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+volumes:
+  prod-backend-shared:

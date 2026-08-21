@@ -14,6 +14,8 @@ const (
 	MinEnergyGain float32 = 1
 	MaxEnergyGain float32 = 10
 	EnergyRange   float32 = 1000
+
+	KnockbackDecay float32 = 6
 )
 
 type Game struct {
@@ -68,8 +70,11 @@ func (g *Game) Update(dt float64) {
 		player.VX = float32(inputX * PlayerSpeed)
 		player.VY = float32(inputY * PlayerSpeed)
 
-		player.X += player.VX * float32(dt)
-		player.Y += player.VY * float32(dt)
+		player.X += (player.VX + player.KnockbackX) * float32(dt)
+		player.Y += (player.VY + player.KnockbackY) * float32(dt)
+
+		player.KnockbackX -= player.KnockbackX * KnockbackDecay * float32(dt)
+		player.KnockbackY -= player.KnockbackY * KnockbackDecay * float32(dt)
 
 		if player.X < -MapHalfSize {
 			player.X = -MapHalfSize
@@ -109,6 +114,8 @@ func (g *Game) Update(dt float64) {
 			case player.Send <- buildDeathPacket():
 			default:
 			}
+
+			continue
 		}
 	}
 
@@ -131,15 +138,18 @@ func (g *Game) Update(dt float64) {
 			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 			minDistance := a.Radius + b.Radius
 
-			if distance >= minDistance || distance == 0 {
+			if distance >= minDistance {
 				continue
 			}
 
-			overlap := minDistance - distance
+			if distance == 0 {
+				continue
+			}
 
 			nx := dx / distance
 			ny := dy / distance
 
+			overlap := minDistance - distance
 			push := overlap / 2
 
 			a.X -= nx * push
@@ -150,11 +160,11 @@ func (g *Game) Update(dt float64) {
 
 			bounceStrength := float32(250)
 
-			a.VX -= nx * bounceStrength
-			a.VY -= ny * bounceStrength
+			a.KnockbackX -= nx * bounceStrength
+			a.KnockbackY -= ny * bounceStrength
 
-			b.VX += nx * bounceStrength
-			b.VY += ny * bounceStrength
+			b.KnockbackX += nx * bounceStrength
+			b.KnockbackY += ny * bounceStrength
 		}
 	}
 }

@@ -54,21 +54,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	buf := make([]byte, 21)
 
 	buf[0] = PacketConnected
-
-	binary.BigEndian.PutUint32(
-		buf[1:5],
-		player.ID,
-	)
-
-	binary.BigEndian.PutUint64(
-		buf[5:13],
-		math.Float64bits(player.X),
-	)
-
-	binary.BigEndian.PutUint64(
-		buf[13:21],
-		math.Float64bits(player.Y),
-	)
+	binary.BigEndian.PutUint32(buf[1:5], player.ID)
+	binary.BigEndian.PutUint64(buf[5:13], math.Float64bits(player.X))
+	binary.BigEndian.PutUint64(buf[13:21], math.Float64bits(player.Y))
 
 	err = conn.Write(
 		context.Background(),
@@ -81,11 +69,29 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for {
-		_, message, err := conn.Read(context.Background())
+		messageType, data, err := conn.Read(context.Background())
 		if err != nil {
 			return
 		}
 
-		log.Println("Received:", string(message))
+		if messageType != websocket.MessageBinary {
+			continue
+		}
+
+		if len(data) < 1 {
+			continue
+		}
+
+		switch data[0] {
+		case PacketInput:
+			if len(data) != 3 {
+				continue
+			}
+
+			inputX := int8(data[1])
+			inputY := int8(data[2])
+
+			log.Println("Player", player.ID, "input:", inputX, inputY)
+		}
 	}
 }

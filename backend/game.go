@@ -65,8 +65,11 @@ func (g *Game) Update(dt float64) {
 			inputY /= length
 		}
 
-		player.X += float32(inputX * PlayerSpeed * dt)
-		player.Y += float32(inputY * PlayerSpeed * dt)
+		player.VX = float32(inputX * PlayerSpeed)
+		player.VY = float32(inputY * PlayerSpeed)
+
+		player.X += player.VX * float32(dt)
+		player.Y += player.VY * float32(dt)
 
 		if player.X < -MapHalfSize {
 			player.X = -MapHalfSize
@@ -144,6 +147,14 @@ func (g *Game) Update(dt float64) {
 
 			b.X += nx * push
 			b.Y += ny * push
+
+			bounceStrength := float32(250)
+
+			a.VX -= nx * bounceStrength
+			a.VY -= ny * bounceStrength
+
+			b.VX += nx * bounceStrength
+			b.VY += ny * bounceStrength
 		}
 	}
 }

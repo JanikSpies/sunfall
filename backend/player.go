@@ -13,6 +13,9 @@ type Player struct {
 	X float32
 	Y float32
 
+	VX float32
+	VY float32
+
 	InputX int8
 	InputY int8
 

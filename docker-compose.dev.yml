@@ -1,0 +1,13 @@
+services:
+  dev_frontend:
+    build:
+      context: frontend
+      target: dev
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+

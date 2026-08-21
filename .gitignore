@@ -1,0 +1,12 @@
+.env
+/le-config/**
+!/le-config/**/
+!/le-config/**/.gitkeep
+
+/data/**
+!/data/**/
+!/data/**/.gitkeep
+
+.idea/
+
+.DS_Store

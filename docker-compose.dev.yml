@@ -11,3 +11,12 @@ services:
     ports:
       - "3000:3000"
 
+  dev_proxy:
+    image: macbre/nginx-brotli:1.19.6-http3@sha256:a2b9e34b969be3880ce33a02448e16b27a1e22282bfe0933b23cae465b2c2ea3
+    ports:
+      - "80:80"
+    volumes:
+      - ./dev-config/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./dev-config/proxy.conf:/etc/nginx/proxy.conf:ro
+    restart: unless-stopped
+

@@ -1,14 +1,9 @@
 package main
 
 import (
-	"context"
 	"encoding/binary"
-	"log"
 	"math"
 	"sync"
-	"time"
-
-	"github.com/coder/websocket"
 )
 
 const PlayerSpeed = 200.0
@@ -95,32 +90,13 @@ func (g *Game) BroadcastWorldState() {
 	data := g.BuildWorldState()
 
 	g.mu.RLock()
-
-	players := make([]*Player, 0, len(g.Players))
+	defer g.mu.RUnlock()
 
 	for _, player := range g.Players {
-		players = append(players, player)
-	}
-
-	g.mu.RUnlock()
-
-	for _, player := range players {
-		go func(p *Player) {
-			ctx, cancel := context.WithTimeout(
-				context.Background(),
-				100*time.Millisecond,
-			)
-			defer cancel()
-
-			err := p.Conn.Write(
-				ctx,
-				websocket.MessageBinary,
-				data,
-			)
-
-			if err != nil {
-				log.Println("Write error:", p.ID, err)
-			}
-		}(player)
+		select {
+		case player.Send <- data:
+		default:
+			// Player is too slow; skip this update.
+		}
 	}
 }

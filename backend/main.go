@@ -52,7 +52,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		X:    rand.Float64()*1000 - 500,
 		Y:    rand.Float64()*1000 - 500,
 		Conn: conn,
+		Send: make(chan []byte, 32),
 	}
+	go writeLoop(&player)
+
 	game.mu.Lock()
 	game.Players[player.ID] = &player
 	game.mu.Unlock()

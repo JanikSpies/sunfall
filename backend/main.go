@@ -47,9 +47,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer conn.CloseNow()
 
 	player := Player{
-		ID: game.NextPlayerID(),
-		X:  rand.Float64()*1000 - 500,
-		Y:  rand.Float64()*1000 - 500,
+		ID:   game.NextPlayerID(),
+		X:    rand.Float64()*1000 - 500,
+		Y:    rand.Float64()*1000 - 500,
+		Conn: conn,
 	}
 	game.mu.Lock()
 	game.Players[player.ID] = &player

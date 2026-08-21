@@ -1,5 +1,7 @@
 package main
 
+import "github.com/coder/websocket"
+
 type Player struct {
 	ID uint32
 
@@ -8,4 +10,6 @@ type Player struct {
 
 	InputX int8
 	InputY int8
+
+	Conn *websocket.Conn
 }

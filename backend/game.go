@@ -99,7 +99,7 @@ func (g *Game) Update(dt float64) {
 		player.SizeLevel = sizeLevelForEnergy(player.Energy)
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
-		if distance <= g.Sun.Radius {
+		if distance <= g.Sun.Radius+player.Radius {
 			player.Alive = false
 
 			select {

@@ -47,6 +47,10 @@ func (g *Game) Update(dt float64) {
 	defer g.mu.Unlock()
 
 	for _, player := range g.Players {
+		if !player.Alive {
+			continue
+		}
+
 		inputX := float64(player.InputX) / 127.0
 		inputY := float64(player.InputY) / 127.0
 

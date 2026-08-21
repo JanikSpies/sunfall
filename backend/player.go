@@ -18,6 +18,7 @@ type Player struct {
 
 	Alive     bool
 	Energy    float32
+	Radius    float32
 	SizeLevel uint8
 
 	Conn *websocket.Conn

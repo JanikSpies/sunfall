@@ -1,0 +1,55 @@
+# This deploys the project. it installs dependencies in frontend and backend and runs the run.sh script as prod
+name: Deployment
+
+on:
+  workflow_run:
+    workflows: ["Build"]
+    types:
+      - completed
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    steps:
+      - name: Pre-cleanup workspace
+        run: |
+          echo "Fixing permissions and cleaning up workspace..."
+          # Reset permissions for the workspace
+          sudo chown -R ubuntu:ubuntu /home/ubuntu/actions-runner/_work
+
+      - uses: actions/checkout@v4
+
+      - name: Create Dynamic .env Files
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+        run: |
+          bash .scripts/create_env.sh
+
+      - name: Deploy Automatically
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' }}
+        run: |
+          echo "Proceeding with deployment."
+          sudo bash .scripts/run.sh prod
+          echo "Cleaning up Docker trash..."
+          sudo docker image prune -af
+          sudo docker builder prune -af
+
+      - name: Manual Approval Required
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.conclusion != 'success' }}
+        run: |
+          echo "Testing CI did not complete successfully. Deployment requires manual triggering."
+          exit 1
+
+      - name: Deploy Manually
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "Manually triggered deployment."
+          sudo bash .scripts/run.sh prod
+          echo "Cleaning up Docker trash..."
+          sudo docker image prune -af
+          sudo docker builder prune -af

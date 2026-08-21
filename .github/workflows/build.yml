@@ -1,0 +1,60 @@
+# This builds the frontend and backend docker images
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set ENV variables
+        run: |
+          echo "IMAGE_NAME_BACKEND=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-backend" >> $GITHUB_ENV
+          echo "IMAGE_NAME_FRONTEND=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-frontend" >> $GITHUB_ENV
+
+      - name: Create Dynamic .env File
+        env:
+          SECRETS_JSON: ${{ toJSON(secrets) }}
+          VARS_JSON: ${{ toJSON(vars) }}
+        run: |
+          bash .scripts/create_env.sh frontend
+
+      - name: Build image backend
+        run: |
+          docker build ./backend --file ./backend/Dockerfile --tag $IMAGE_NAME_BACKEND --label "runnumber=${GITHUB_RUN_ID}"
+
+      - name: Build image frontend
+        run: |
+          docker build ./frontend --file ./frontend/Dockerfile --tag $IMAGE_NAME_FRONTEND --label "runnumber=${GITHUB_RUN_ID}" --target production
+
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push images
+        run: |
+          IMAGE_ID_BACKEND=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_BACKEND
+          IMAGE_ID_BACKEND=$(echo $IMAGE_ID_BACKEND | tr '[A-Z]' '[a-z]')
+          IMAGE_ID_FRONTEND=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_FRONTEND
+          IMAGE_ID_FRONTEND=$(echo $IMAGE_ID_FRONTEND | tr '[A-Z]' '[a-z]')
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "main" ] && VERSION=latest
+          echo IMAGE_ID_BACKEND=$IMAGE_ID_BACKEND
+          echo IMAGE_ID_FRONTEND=$IMAGE_ID_FRONTEND
+          echo VERSION=$VERSION
+          docker tag $IMAGE_NAME_BACKEND $IMAGE_ID_BACKEND:$VERSION
+          docker push $IMAGE_ID_BACKEND:$VERSION
+          docker tag $IMAGE_NAME_FRONTEND $IMAGE_ID_FRONTEND:$VERSION
+          docker push $IMAGE_ID_FRONTEND:$VERSION
+
+      - name: Log out of registry
+        run: docker logout ghcr.io

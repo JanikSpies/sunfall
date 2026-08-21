@@ -16,11 +16,19 @@ type Game struct {
 
 	Players      map[uint32]*Player
 	nextPlayerID uint32
+
+	Sun Sun
 }
 
 func NewGame() *Game {
 	return &Game{
 		Players: make(map[uint32]*Player),
+
+		Sun: Sun{
+			X:      0,
+			Y:      0,
+			Radius: 150,
+		},
 	}
 }
 

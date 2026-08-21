@@ -1,25 +1,54 @@
 package main
 
-import "time"
+import (
+	"context"
+	"log"
+	"net/http"
 
-const targetFPS = 60
+	"github.com/coder/websocket"
+)
 
 func main() {
-	run()
+	http.HandleFunc("/ws", handleWebSocket)
+
+	log.Println("Server running on :8080")
+
+	err := http.ListenAndServe(":8080", nil)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func run() {
-	ticker := time.NewTicker(time.Second / targetFPS)
-	defer ticker.Stop()
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.Accept(w, r, nil)
+	if err != nil {
+		log.Println("WebSocket error:", err)
+		return
+	}
+	defer conn.CloseNow()
 
-	last := time.Now()
-	for range ticker.C {
-		now := time.Now()
-		delta := now.Sub(last).Seconds()
-		last = now
+	log.Println("Player connected:")
 
-		// update(delta)
-		// render()
-		println(delta)
+	buf := make([]byte, 17)
+
+	buf[0] = 1
+
+	err = conn.Write(
+		context.Background(),
+		websocket.MessageBinary,
+		buf,
+	)
+	if err != nil {
+		log.Println("Write error:", err)
+		return
+	}
+
+	for {
+		_, message, err := conn.Read(context.Background())
+		if err != nil {
+			return
+		}
+
+		log.Println("Received:", string(message))
 	}
 }

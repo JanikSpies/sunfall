@@ -16,8 +16,9 @@ type Player struct {
 	InputX int8
 	InputY int8
 
-	Alive  bool
-	Energy float32
+	Alive     bool
+	Energy    float32
+	SizeLevel uint8
 
 	Conn *websocket.Conn
 	Send chan []byte

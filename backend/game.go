@@ -96,6 +96,8 @@ func (g *Game) Update(dt float64) {
 			player.Energy += gainPerSecond * float32(dt)
 		}
 
+		player.SizeLevel = sizeLevelForEnergy(player.Energy)
+
 		if distance <= g.Sun.Radius {
 			player.Alive = false
 
@@ -181,5 +183,20 @@ func (g *Game) RandomSpawnPosition() (float32, float32) {
 		if distance > g.Sun.Radius+200 {
 			return x, y
 		}
+	}
+}
+
+func sizeLevelForEnergy(energy float32) uint8 {
+	switch {
+	case energy >= 1000:
+		return 5
+	case energy >= 600:
+		return 4
+	case energy >= 350:
+		return 3
+	case energy >= 200:
+		return 2
+	default:
+		return 1
 	}
 }

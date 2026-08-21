@@ -2,9 +2,7 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"log"
-	"math"
 	"math/rand"
 	"net/http"
 	"time"
@@ -33,10 +31,7 @@ func main() {
 
 	log.Println("Server running on :8080")
 
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -54,7 +49,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn: conn,
 		Send: make(chan []byte, 32),
 	}
-	go player.writeLoop()
 
 	game.mu.Lock()
 	game.Players[player.ID] = &player
@@ -72,18 +66,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Player connected:", player.ID)
 
-	buf := make([]byte, 21)
+	go player.writeLoop()
 
-	buf[0] = PacketConnected
-	binary.BigEndian.PutUint32(buf[1:5], player.ID)
-	binary.BigEndian.PutUint64(buf[5:13], math.Float64bits(player.X))
-	binary.BigEndian.PutUint64(buf[13:21], math.Float64bits(player.Y))
-
-	player.Send <- buf
-	if err != nil {
-		log.Println("Write error:", err)
-		return
-	}
+	player.Send <- buildConnectedPacket(&player)
 
 	for {
 		messageType, data, err := conn.Read(context.Background())
@@ -112,7 +97,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			player.InputX = inputX
 			player.InputY = inputY
 			game.mu.Unlock()
-			log.Println("Player", player.ID, "input:", inputX, inputY)
 		}
 	}
 }

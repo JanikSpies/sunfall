@@ -1,6 +1,9 @@
 package main
 
-import "sync"
+import (
+	"math"
+	"sync"
+)
 
 const PlayerSpeed = 200.0
 
@@ -33,6 +36,13 @@ func (g *Game) Update(dt float64) {
 	for _, player := range g.Players {
 		inputX := float64(player.InputX) / 127.0
 		inputY := float64(player.InputY) / 127.0
+
+		length := math.Hypot(inputX, inputY)
+
+		if length > 1 {
+			inputX /= length
+			inputY /= length
+		}
 
 		player.X += inputX * PlayerSpeed * dt
 		player.Y += inputY * PlayerSpeed * dt

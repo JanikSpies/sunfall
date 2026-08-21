@@ -89,12 +89,16 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 
-			inputX := int8(data[1])
-			inputY := int8(data[2])
-
 			game.mu.Lock()
-			player.InputX = inputX
-			player.InputY = inputY
+
+			if !player.Alive {
+				game.mu.Unlock()
+				continue
+			}
+
+			player.InputX = int8(data[1])
+			player.InputY = int8(data[2])
+
 			game.mu.Unlock()
 		}
 	}

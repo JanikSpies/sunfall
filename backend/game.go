@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
+	"log"
 	"math"
 	"sync"
+
+	"github.com/coder/websocket"
 )
 
 const PlayerSpeed = 200.0
@@ -84,4 +88,22 @@ func (g *Game) BuildWorldState() []byte {
 	}
 
 	return buf
+}
+
+func (g *Game) BroadcastWorldState() {
+	data := g.BuildWorldState()
+
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	for _, player := range g.Players {
+		err := player.Conn.Write(
+			context.Background(),
+			websocket.MessageBinary,
+			data,
+		)
+		if err != nil {
+			log.Println("Write error for player", player.ID, err)
+		}
+	}
 }

@@ -25,6 +25,7 @@ func main() {
 			last = now
 
 			game.Update(dt)
+			game.BroadcastWorldState()
 		}
 	}()
 

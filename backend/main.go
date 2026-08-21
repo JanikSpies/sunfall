@@ -18,8 +18,13 @@ func main() {
 	ticker := time.NewTicker(time.Second / 30)
 
 	go func() {
-		for range ticker.C {
-			game.Update()
+		last := time.Now()
+
+		for now := range ticker.C {
+			dt := now.Sub(last).Seconds()
+			last = now
+
+			game.Update(dt)
 		}
 	}()
 

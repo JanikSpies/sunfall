@@ -2,6 +2,8 @@ package main
 
 import "sync"
 
+const PlayerSpeed = 200.0
+
 type Game struct {
 	mu sync.RWMutex
 
@@ -24,12 +26,15 @@ func (g *Game) NextPlayerID() uint32 {
 	return g.nextPlayerID
 }
 
-func (g *Game) Update() {
+func (g *Game) Update(dt float64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	for _, player := range g.Players {
-		player.X += float64(player.InputX) * 0.01
-		player.Y += float64(player.InputY) * 0.01
+		inputX := float64(player.InputX) / 127.0
+		inputY := float64(player.InputY) / 127.0
+
+		player.X += inputX * PlayerSpeed * dt
+		player.Y += inputY * PlayerSpeed * dt
 	}
 }

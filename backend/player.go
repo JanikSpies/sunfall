@@ -5,4 +5,7 @@ type Player struct {
 
 	X float64
 	Y float64
+
+	InputX int8
+	InputY int8
 }

@@ -2,11 +2,16 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"log"
+	"math"
+	"math/rand"
 	"net/http"
 
 	"github.com/coder/websocket"
 )
+
+var game = NewGame()
 
 func main() {
 	http.HandleFunc("/ws", handleWebSocket)
@@ -27,11 +32,43 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
-	log.Println("Player connected:")
+	player := Player{
+		ID: game.NextPlayerID(),
+		X:  rand.Float64()*1000 - 500,
+		Y:  rand.Float64()*1000 - 500,
+	}
+	game.mu.Lock()
+	game.Players[player.ID] = &player
+	game.mu.Unlock()
 
-	buf := make([]byte, 17)
+	defer func() {
+		game.mu.Lock()
+		delete(game.Players, player.ID)
+		game.mu.Unlock()
+
+		log.Println("Player disconnected:", player.ID)
+	}()
+
+	log.Println("Player connected:", player.ID)
+
+	buf := make([]byte, 21)
 
 	buf[0] = 1
+
+	binary.BigEndian.PutUint32(
+		buf[1:5],
+		player.ID,
+	)
+
+	binary.BigEndian.PutUint64(
+		buf[5:13],
+		math.Float64bits(player.X),
+	)
+
+	binary.BigEndian.PutUint64(
+		buf[13:21],
+		math.Float64bits(player.Y),
+	)
 
 	err = conn.Write(
 		context.Background(),

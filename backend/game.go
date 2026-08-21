@@ -23,3 +23,13 @@ func (g *Game) NextPlayerID() uint32 {
 
 	return g.nextPlayerID
 }
+
+func (g *Game) Update() {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for _, player := range g.Players {
+		player.X += float64(player.InputX) * 0.01
+		player.Y += float64(player.InputY) * 0.01
+	}
+}

@@ -7,6 +7,7 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/coder/websocket"
 )
@@ -14,6 +15,14 @@ import (
 var game = NewGame()
 
 func main() {
+	ticker := time.NewTicker(time.Second / 30)
+
+	go func() {
+		for range ticker.C {
+			game.Update()
+		}
+	}()
+
 	http.HandleFunc("/ws", handleWebSocket)
 
 	log.Println("Server running on :8080")

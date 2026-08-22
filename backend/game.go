@@ -11,6 +11,8 @@ import (
 type MatchPhase uint8
 
 const (
+	MaxPlayers = 1000
+
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
 
@@ -42,8 +44,9 @@ type Game struct {
 
 	Sun Sun
 
-	MatchTime float32
-	Phase     MatchPhase
+	FinishedTime float32
+	MatchTime    float32
+	Phase        MatchPhase
 }
 
 func NewGame() *Game {
@@ -256,6 +259,17 @@ func (g *Game) Update(dt float64) {
 	if g.Phase == PhaseBlackHole && aliveCount == 0 {
 		g.Phase = PhaseFinished
 	}
+
+	if g.Phase == PhaseFinished {
+		g.FinishedTime += float32(dt)
+
+		if g.FinishedTime >= 5 {
+			g.FinishedTime = 0
+			g.ResetMatch()
+		}
+
+		return
+	}
 }
 
 func (g *Game) BuildWorldState() []byte {
@@ -357,6 +371,10 @@ func (g *Game) handlePlayerCollisions() {
 		for j := i + 1; j < len(players); j++ {
 			a := players[i]
 			b := players[j]
+
+			if !a.Alive || !b.Alive {
+				continue
+			}
 
 			dx := b.X - a.X
 			dy := b.Y - a.Y
@@ -474,4 +492,47 @@ func (g *Game) BroadcastMatchState() {
 		default:
 		}
 	}
+}
+
+func (g *Game) ResetMatch() {
+	g.MatchTime = 0
+	g.Phase = PhaseSupernova
+	g.FinishedTime = 0
+
+	g.Sun.Radius = g.Sun.StartRadius
+	g.Sun.BlackHoleRadius = 80
+
+	for _, player := range g.Players {
+		spawnX, spawnY := g.RandomSpawnPosition()
+
+		player.X = spawnX
+		player.Y = spawnY
+
+		player.VX = 0
+		player.VY = 0
+		player.KnockbackX = 0
+		player.KnockbackY = 0
+
+		player.Energy = 100
+		player.SizeLevel = 1
+		player.Radius = 16
+		player.Alive = true
+
+		player.InputX = 0
+		player.InputY = 0
+		player.DashRequested = false
+		player.DashCooldown = 0
+
+		select {
+		case player.Send <- buildMatchResetPacket():
+		default:
+		}
+	}
+}
+
+func (g *Game) RemovePlayer(id uint32) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	delete(g.Players, id)
 }

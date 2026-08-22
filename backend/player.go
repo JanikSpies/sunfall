@@ -31,25 +31,32 @@ type Player struct {
 
 	Conn *websocket.Conn
 	Send chan []byte
+	Done chan struct{}
 }
 
 func (p *Player) writeLoop() {
-	for data := range p.Send {
-		ctx, cancel := context.WithTimeout(
-			context.Background(),
-			100*time.Millisecond,
-		)
-
-		err := p.Conn.Write(
-			ctx,
-			websocket.MessageBinary,
-			data,
-		)
-
-		cancel()
-
-		if err != nil {
+	for {
+		select {
+		case <-p.Done:
 			return
+
+		case data := <-p.Send:
+			ctx, cancel := context.WithTimeout(
+				context.Background(),
+				100*time.Millisecond,
+			)
+
+			err := p.Conn.Write(
+				ctx,
+				websocket.MessageBinary,
+				data,
+			)
+
+			cancel()
+
+			if err != nil {
+				return
+			}
 		}
 	}
 }

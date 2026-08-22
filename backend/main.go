@@ -54,6 +54,15 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
+	game.mu.RLock()
+	full := len(game.Players) >= MaxPlayers
+	game.mu.RUnlock()
+
+	if full {
+		conn.Close(websocket.StatusTryAgainLater, "server full")
+		return
+	}
+
 	spawnX, spawnY := game.RandomSpawnPosition()
 	player := Player{
 		ID:        game.NextPlayerID(),
@@ -65,6 +74,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		SizeLevel: 1,
 		Conn:      conn,
 		Send:      make(chan []byte, 32),
+
+		Done: make(chan struct{}),
 	}
 
 	game.mu.Lock()
@@ -72,9 +83,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	game.mu.Unlock()
 
 	defer func() {
-		game.mu.Lock()
-		delete(game.Players, player.ID)
-		game.mu.Unlock()
+		game.RemovePlayer(player.ID)
+		close(player.Done)
 
 		log.Println("Player disconnected:", player.ID)
 	}()
@@ -84,6 +94,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go player.writeLoop()
 
 	player.Send <- buildConnectedPacket(&player)
+
+	game.mu.RLock()
+	matchState := buildMatchStatePacket(game)
+	game.mu.RUnlock()
+
+	player.Send <- matchState
 
 	for {
 		messageType, data, err := conn.Read(context.Background())
@@ -124,6 +140,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 
 			game.mu.Unlock()
+		case PacketPing:
+			select {
+			case player.Send <- []byte{PacketPong}:
+			default:
+			}
 		}
 	}
 }

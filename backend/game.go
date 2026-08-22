@@ -587,11 +587,17 @@ func (g *Game) ResetMatch() {
 	}
 }
 
-func (g *Game) RemovePlayer(id uint16) {
+func (g *Game) RemovePlayer(id uint16) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	if _, exists := g.Players[id]; !exists {
+		return false
+	}
+
 	delete(g.Players, id)
+
+	return true
 }
 
 func (g *Game) AddPlayer(player *Player) bool {

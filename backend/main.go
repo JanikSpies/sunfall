@@ -82,10 +82,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	game.mu.Unlock()
 
 	defer func() {
-		game.RemovePlayer(player.ID)
+		if game.RemovePlayer(player.ID) {
+			log.Println("Player disconnected:", player.ID)
+		}
 		player.CloseDone()
-
-		log.Println("Player disconnected:", player.ID)
 	}()
 
 	log.Println("Player connected:", player.ID)

@@ -62,6 +62,7 @@ func (g *Game) BroadcastWorldState() {
 	for _, recipient := range recipients {
 		viewerIndex, exists := snapshot.ByID[recipient.ID]
 		if !exists {
+			recipient.ClearPendingWorldState()
 			continue
 		}
 

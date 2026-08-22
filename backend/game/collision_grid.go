@@ -20,7 +20,7 @@ func NewCollisionGrid() *CollisionGrid {
 
 func (grid *CollisionGrid) Reset() {
 	for _, coord := range grid.occupied {
-		grid.buckets[coord] = grid.buckets[coord][:0]
+		delete(grid.buckets, coord)
 	}
 
 	grid.occupied = grid.occupied[:0]

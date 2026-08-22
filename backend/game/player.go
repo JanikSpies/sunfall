@@ -111,6 +111,17 @@ func (p *Player) QueueLatestWorldState(data []byte) {
 	}
 }
 
+func (p *Player) ClearPendingWorldState() {
+	if p.WorldState == nil {
+		return
+	}
+
+	select {
+	case <-p.WorldState:
+	default:
+	}
+}
+
 func (p *Player) QueueLifecyclePacket(data []byte) {
 	select {
 	case p.Lifecycle <- data:

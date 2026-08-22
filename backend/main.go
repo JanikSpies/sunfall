@@ -120,7 +120,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	go player.WriteLoop()
 
 	player.QueueLifecyclePacket(world.BuildConnectedPacket(&player))
-	player.QueueLifecyclePacket(world.BuildWorldConfigPacket())
 	player.QueueLifecyclePacket(world.BuildMatchStatePacket())
 
 	for {

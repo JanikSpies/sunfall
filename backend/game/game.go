@@ -18,7 +18,6 @@ const (
 	CollisionCellSize   float32 = 128
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
-	WorldSeed           uint32  = 12345
 
 	NeutralEnergyDistance      float32 = 100
 	MaxEnergyGain              float32 = 10

@@ -16,10 +16,6 @@ func (g *Game) BuildConnectedPacket(player *Player) []byte {
 	return buildConnectedPacket(player)
 }
 
-func (g *Game) BuildWorldConfigPacket() []byte {
-	return buildWorldConfigPacket()
-}
-
 func (g *Game) BroadcastWorldState() {
 	g.mu.RLock()
 	snapshot := g.snapshot

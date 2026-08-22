@@ -6,16 +6,15 @@ import (
 )
 
 const (
-	PacketPing        byte = 1
-	PacketPong        byte = 2
-	PacketConnected   byte = 3
-	PacketInput       byte = 4
-	PacketWorldState  byte = 5
-	PacketDeath       byte = 6
-	PacketWorldConfig byte = 7
-	PacketRadar       byte = 8
-	PacketMatchState  byte = 9
-	PacketMatchReset  byte = 10
+	PacketPing       byte = 1
+	PacketPong       byte = 2
+	PacketConnected  byte = 3
+	PacketInput      byte = 4
+	PacketWorldState byte = 5
+	PacketDeath      byte = 6
+	PacketRadar      byte = 8
+	PacketMatchState byte = 9
+	PacketMatchReset byte = 10
 )
 
 type DeathReason uint8
@@ -35,17 +34,6 @@ func buildConnectedPacket(player *Player) []byte {
 	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(player.X))
 	binary.BigEndian.PutUint32(buf[7:11], math.Float32bits(player.Y))
 	binary.BigEndian.PutUint32(buf[11:15], math.Float32bits(player.Rotation))
-
-	return buf
-}
-
-func buildWorldConfigPacket() []byte {
-	buf := make([]byte, 13)
-	buf[0] = PacketWorldConfig
-
-	binary.BigEndian.PutUint32(buf[1:5], math.Float32bits(VisibilityChunkSize))
-	binary.BigEndian.PutUint32(buf[5:9], WorldSeed)
-	binary.BigEndian.PutUint32(buf[9:13], math.Float32bits(VisibilityRadius))
 
 	return buf
 }

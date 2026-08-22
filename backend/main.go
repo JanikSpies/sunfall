@@ -83,7 +83,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		game.RemovePlayer(player.ID)
-		close(player.Done)
+		player.CloseDone()
 
 		log.Println("Player disconnected:", player.ID)
 	}()

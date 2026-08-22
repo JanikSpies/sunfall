@@ -660,17 +660,21 @@ func (g *Game) RemoveTimedOutPlayers() {
 		if now.Sub(player.LastPing) > PingTimeout {
 			delete(g.Players, id)
 
-			select {
-			case <-player.Done:
-				// already closed
-			default:
-				close(player.Done)
-			}
+			player.CloseDone()
 
 			player.Conn.Close(
 				websocket.StatusGoingAway,
 				"ping timeout",
 			)
 		}
+	}
+}
+
+func (p *Player) CloseDone() {
+	select {
+	case <-p.Done:
+		// already closed
+	default:
+		close(p.Done)
 	}
 }

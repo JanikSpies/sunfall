@@ -83,6 +83,20 @@
               "tps": true
             }
           }
+        },
+        {
+          "alias": [
+            "main/spaceship_stage_1.svg",
+            "spaceship_stage_1.svg"
+          ],
+          "src": [
+            "spaceship_stage_1.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
         }
       ]
     },

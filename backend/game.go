@@ -20,6 +20,8 @@ const (
 	DashEnergyCost       float32 = 25
 	DashForce            float32 = 700
 	KnockbackDecay       float32 = 6
+
+	MatchDuration float32 = 10 * 60
 )
 
 type Game struct {
@@ -29,6 +31,8 @@ type Game struct {
 	nextPlayerID uint32
 
 	Sun Sun
+
+	MatchTime float32
 }
 
 func NewGame() *Game {
@@ -36,9 +40,11 @@ func NewGame() *Game {
 		Players: make(map[uint32]*Player),
 
 		Sun: Sun{
-			X:      0,
-			Y:      0,
-			Radius: 150,
+			X:           0,
+			Y:           0,
+			Radius:      150,
+			StartRadius: 150,
+			EndRadius:   700,
 		},
 	}
 }
@@ -55,6 +61,17 @@ func (g *Game) NextPlayerID() uint32 {
 func (g *Game) Update(dt float64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+
+	g.MatchTime += float32(dt)
+	progress := g.MatchTime / MatchDuration
+
+	if progress > 1 {
+		progress = 1
+	}
+
+	g.Sun.Radius =
+		g.Sun.StartRadius +
+			(g.Sun.EndRadius-g.Sun.StartRadius)*progress
 
 	for _, player := range g.Players {
 		if !player.Alive {

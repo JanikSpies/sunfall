@@ -245,33 +245,3 @@ func (g *Game) RandomSpawnPosition() (float32, float32) {
 		}
 	}
 }
-
-func sizeLevelForEnergy(energy float32) uint8 {
-	switch {
-	case energy >= 1000:
-		return 5
-	case energy >= 600:
-		return 4
-	case energy >= 350:
-		return 3
-	case energy >= 200:
-		return 2
-	default:
-		return 1
-	}
-}
-
-func radiusForSizeLevel(level uint8) float32 {
-	switch level {
-	case 5:
-		return 40
-	case 4:
-		return 34
-	case 3:
-		return 28
-	case 2:
-		return 22
-	default:
-		return 16
-	}
-}

@@ -67,11 +67,11 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) NextPlayerID() uint16 {
+func (g *Game) NextPlayerID() (uint16, bool) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	for {
+	for i := 0; i < 65535; i++ {
 		g.nextPlayerID++
 
 		if g.nextPlayerID == 0 {
@@ -79,9 +79,11 @@ func (g *Game) NextPlayerID() uint16 {
 		}
 
 		if _, exists := g.Players[g.nextPlayerID]; !exists {
-			return g.nextPlayerID
+			return g.nextPlayerID, true
 		}
 	}
+
+	return 0, false
 }
 
 func (g *Game) Update(dt float64) {

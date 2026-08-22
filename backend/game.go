@@ -16,6 +16,7 @@ const (
 	EnergyRange   float32 = 1000
 
 	DashEnergyCost float32 = 25
+	DashForce      float32 = 700
 	KnockbackDecay float32 = 6
 )
 
@@ -59,7 +60,18 @@ func (g *Game) Update(dt float64) {
 		}
 
 		if player.DashRequested {
-			if player.Energy >= DashEnergyCost {
+			inputX := float32(player.InputX) / 127.0
+			inputY := float32(player.InputY) / 127.0
+
+			length := float32(math.Sqrt(float64(inputX*inputX + inputY*inputY)))
+
+			if player.Energy >= DashEnergyCost && length > 0 {
+				inputX /= length
+				inputY /= length
+
+				player.KnockbackX += inputX * DashForce
+				player.KnockbackY += inputY * DashForce
+
 				player.Energy -= DashEnergyCost
 			}
 

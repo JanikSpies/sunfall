@@ -36,15 +36,16 @@ func resolvePlayerCollision(a, b *Player) {
 	}
 
 	overlap := minDistance - distance
-	push := overlap / 2
+	totalRadius := a.Radius + b.Radius
+	aPush := overlap * (b.Radius / totalRadius)
+	bPush := overlap * (a.Radius / totalRadius)
 
-	a.X -= nx * push
-	a.Y -= ny * push
-	b.X += nx * push
-	b.Y += ny * push
+	a.X -= nx * aPush
+	a.Y -= ny * aPush
+	b.X += nx * bPush
+	b.Y += ny * bPush
 
 	const baseBounce float32 = 250
-	totalRadius := a.Radius + b.Radius
 	aForce := baseBounce * (b.Radius / totalRadius)
 	bForce := baseBounce * (a.Radius / totalRadius)
 

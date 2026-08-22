@@ -158,7 +158,7 @@ func sizeLevelForEnergy(energy float32) uint8 {
 func radiusForSizeLevel(level uint8) float32 {
 	switch level {
 	case 5:
-		return 40
+		return MaxPlayerRadius
 	case 4:
 		return 34
 	case 3:

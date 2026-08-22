@@ -7,6 +7,12 @@ var collisionNeighborOffsets = [...]CellCoord{
 	{X: 1, Y: 1},
 }
 
+func init() {
+	if CollisionCellSize <= 2*MaxPlayerRadius {
+		panic("CollisionCellSize must exceed 2*MaxPlayerRadius or ForEachCandidate can miss collisions across non-adjacent cells")
+	}
+}
+
 type CollisionGrid struct {
 	buckets  map[CellCoord][]*Player
 	occupied []CellCoord

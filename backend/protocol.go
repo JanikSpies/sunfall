@@ -12,7 +12,6 @@ const (
 	PacketInput      byte = 4
 	PacketWorldState byte = 5
 	PacketDeath      byte = 6
-	PacketDash       byte = 7
 	PacketRadar      byte = 8
 	PacketMatchState byte = 9
 	PacketMatchReset byte = 10

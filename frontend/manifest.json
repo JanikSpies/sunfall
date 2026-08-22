@@ -86,11 +86,87 @@
         },
         {
           "alias": [
+            "main/game/spaceship_stage_1.svg",
             "main/spaceship_stage_1.svg",
             "spaceship_stage_1.svg"
           ],
           "src": [
-            "spaceship_stage_1.svg"
+            "main/game/spaceship_stage_1.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/spaceship_stage_2.svg",
+            "main/spaceship_stage_2.svg",
+            "spaceship_stage_2.svg"
+          ],
+          "src": [
+            "main/game/spaceship_stage_2.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/spaceship_stage_3.svg",
+            "main/spaceship_stage_3.svg",
+            "spaceship_stage_3.svg"
+          ],
+          "src": [
+            "main/game/spaceship_stage_3.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/spaceship_stage_4.svg",
+            "main/spaceship_stage_4.svg",
+            "spaceship_stage_4.svg"
+          ],
+          "src": [
+            "main/game/spaceship_stage_4.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-inner-circle.svg",
+            "main/sun-inner-circle.svg",
+            "sun-inner-circle.svg"
+          ],
+          "src": [
+            "main/game/sun-inner-circle.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-outer-circle.svg",
+            "main/sun-outer-circle.svg",
+            "sun-outer-circle.svg"
+          ],
+          "src": [
+            "main/game/sun-outer-circle.svg"
           ],
           "data": {
             "tags": {

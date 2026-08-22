@@ -50,7 +50,6 @@ services:
       - project_network
     deploy:
       mode: replicated
-      replicas: 2 # To allow updates without interruption of service
       restart_policy:
         condition: on-failure
         delay: 5s

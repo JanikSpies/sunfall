@@ -15,9 +15,10 @@ const (
 	MaxEnergyGain float32 = 10
 	EnergyRange   float32 = 1000
 
-	DashEnergyCost float32 = 25
-	DashForce      float32 = 700
-	KnockbackDecay float32 = 6
+	DashCooldownDuration float32 = 0.75
+	DashEnergyCost       float32 = 25
+	DashForce            float32 = 700
+	KnockbackDecay       float32 = 6
 )
 
 type Game struct {
@@ -59,13 +60,21 @@ func (g *Game) Update(dt float64) {
 			continue
 		}
 
+		if player.DashCooldown > 0 {
+			player.DashCooldown -= float32(dt)
+
+			if player.DashCooldown < 0 {
+				player.DashCooldown = 0
+			}
+		}
+
 		if player.DashRequested {
 			inputX := float32(player.InputX) / 127.0
 			inputY := float32(player.InputY) / 127.0
 
 			length := float32(math.Sqrt(float64(inputX*inputX + inputY*inputY)))
 
-			if player.Energy >= DashEnergyCost && length > 0 {
+			if player.Energy >= DashEnergyCost && player.DashCooldown == 0 && length > 0 {
 				inputX /= length
 				inputY /= length
 
@@ -73,6 +82,7 @@ func (g *Game) Update(dt float64) {
 				player.KnockbackY += inputY * DashForce
 
 				player.Energy -= DashEnergyCost
+				player.DashCooldown = DashCooldownDuration
 			}
 
 			player.DashRequested = false

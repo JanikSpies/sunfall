@@ -23,6 +23,7 @@ type Player struct {
 	InputY int8
 
 	Alive         bool
+	DashCooldown  float32
 	DashRequested bool
 	Energy        float32
 	Radius        float32

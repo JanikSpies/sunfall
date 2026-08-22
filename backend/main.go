@@ -114,16 +114,22 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		switch data[0] {
 		case game.PacketInput:
-			if len(data) != 3 {
+			inputX, inputY, dash, ok := game.ParseInputPacket(data)
+			if !ok {
 				continue
 			}
 
 			world.SetPlayerInput(
 				&player,
-				int8(data[1]),
-				int8(data[2]),
+				inputX,
+				inputY,
+				dash,
 			)
 		case game.PacketPing:
+			if len(data) != 1 {
+				continue
+			}
+
 			player.MarkPing()
 
 			select {

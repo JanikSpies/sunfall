@@ -28,6 +28,7 @@ type Player struct {
 	DashRequested bool
 	Energy        float32
 	Radius        float32
+	Rotation      float32
 	SizeLevel     uint8
 
 	Conn     *websocket.Conn

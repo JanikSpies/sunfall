@@ -1,6 +1,11 @@
 package game
 
-func (g *Game) SetPlayerInput(player *Player, inputX, inputY int8) {
+func (g *Game) SetPlayerInput(
+	player *Player,
+	inputX int8,
+	inputY int8,
+	dash bool,
+) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -10,15 +15,8 @@ func (g *Game) SetPlayerInput(player *Player, inputX, inputY int8) {
 
 	player.InputX = inputX
 	player.InputY = inputY
-}
 
-func (g *Game) RequestDash(player *Player) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	if !player.Alive {
-		return
+	if dash {
+		player.DashRequested = true
 	}
-
-	player.DashRequested = true
 }

@@ -77,3 +77,28 @@ func buildMatchStatePacket(world *Game) []byte {
 func buildMatchResetPacket() []byte {
 	return []byte{PacketMatchReset}
 }
+
+func ParseInputPacket(data []byte) (inputX int8, inputY int8, dash bool, ok bool) {
+	if len(data) != 4 {
+		return 0, 0, false, false
+	}
+
+	inputX = int8(data[1])
+	inputY = int8(data[2])
+
+	if inputX == -128 {
+		inputX = -127
+	}
+
+	if inputY == -128 {
+		inputY = -127
+	}
+
+	if data[3] > 1 {
+		return 0, 0, false, false
+	}
+
+	dash = data[3] == 1
+
+	return inputX, inputY, dash, true
+}

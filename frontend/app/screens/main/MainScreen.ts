@@ -1,8 +1,8 @@
 import {FancyButton} from "@pixi/ui";
 import {animate} from "motion";
 import type {AnimationPlaybackControls} from "motion/react";
-import type {Ticker} from "pixi.js";
-import {Container} from "pixi.js";
+import type {FederatedPointerEvent, Ticker} from "pixi.js";
+import {Container, Rectangle} from "pixi.js";
 
 import {engine} from "../../getEngine";
 import {PausePopup} from "../../popups/PausePopup";
@@ -22,6 +22,8 @@ export class MainScreen extends Container {
 
     constructor() {
         super();
+
+        this.eventMode = "static";
 
         this.mainContainer = new Container();
         this.addChild(this.mainContainer);
@@ -62,6 +64,14 @@ export class MainScreen extends Container {
 
         this.rocket = new Rocket();
         this.mainContainer.addChild(this.rocket);
+
+        this.on("pointermove", this.handlePointerMove, this);
+    }
+
+    private handlePointerMove(event: FederatedPointerEvent) {
+        if (this.paused) return;
+        const localPos = this.mainContainer.toLocal(event.global);
+        this.rocket.setTarget(localPos.x, localPos.y);
     }
 
     /** Prepare the screen just before showing */
@@ -69,9 +79,9 @@ export class MainScreen extends Container {
     }
 
     /** Update the screen */
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    public update(_time: Ticker) {
+    public update(time: Ticker) {
         if (this.paused) return;
+        this.rocket.update(time);
     }
 
     /** Pause gameplay - automatically fired when a popup is presented */
@@ -88,6 +98,7 @@ export class MainScreen extends Container {
 
     /** Fully reset */
     public reset() {
+        this.rocket.reset();
     }
 
     /** Resize the screen, fired whenever window size changes */
@@ -101,6 +112,8 @@ export class MainScreen extends Container {
         this.pauseButton.y = 30;
         this.settingsButton.x = width - 30;
         this.settingsButton.y = 30;
+
+        this.hitArea = new Rectangle(0, 0, width, height);
     }
 
     /** Show screen with animations */

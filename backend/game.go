@@ -71,9 +71,17 @@ func (g *Game) NextPlayerID() uint16 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	g.nextPlayerID++
+	for {
+		g.nextPlayerID++
 
-	return g.nextPlayerID
+		if g.nextPlayerID == 0 {
+			g.nextPlayerID = 1
+		}
+
+		if _, exists := g.Players[g.nextPlayerID]; !exists {
+			return g.nextPlayerID
+		}
+	}
 }
 
 func (g *Game) Update(dt float64) {

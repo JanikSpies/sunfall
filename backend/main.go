@@ -66,10 +66,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Energy:    100,
 		Radius:    16,
 		SizeLevel: 1,
-		Conn:      conn,
-		Send:      make(chan []byte, 32),
-		Done:      make(chan struct{}),
-		LastPing:  time.Now(),
+
+		Conn:     conn,
+		Done:     make(chan struct{}),
+		LastPing: time.Now(),
+		Send:     make(chan []byte, 32),
 	}
 	if !game.AddPlayer(&player) {
 		conn.Close(websocket.StatusTryAgainLater, "server full")

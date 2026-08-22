@@ -140,6 +140,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 
 			game.mu.Unlock()
+		case PacketPing:
+			select {
+			case player.Send <- []byte{PacketPong}:
+			default:
+			}
 		}
 	}
 }

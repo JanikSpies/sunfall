@@ -14,6 +14,8 @@ const (
 	PacketRadar      byte = 6
 	PacketMatchState byte = 7
 	PacketMatchReset byte = 8
+	PacketPing            = 9
+	PacketPong            = 10
 )
 
 func buildConnectedPacket(player *Player) []byte {

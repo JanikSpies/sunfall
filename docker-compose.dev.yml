@@ -3,6 +3,8 @@ services:
     build:
       context: backend
       target: prod
+    environment:
+      WS_ALLOWED_ORIGINS: "localhost,localhost:3000,127.0.0.1,127.0.0.1:3000"
     ports:
       - "8080:8080"
 
@@ -26,4 +28,3 @@ services:
       - ./dev-config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./dev-config/proxy.conf:/etc/nginx/proxy.conf:ro
     restart: unless-stopped
-

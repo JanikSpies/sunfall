@@ -2,17 +2,30 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path"
+	"strings"
 	"sunfall/game"
 	"time"
 
 	"github.com/coder/websocket"
 )
 
-var world = game.NewGame()
+var (
+	world            = game.NewGame()
+	websocketOptions websocket.AcceptOptions
+)
 
 func main() {
+	originPatterns, err := parseOriginPatterns(os.Getenv("WS_ALLOWED_ORIGINS"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	websocketOptions.OriginPatterns = originPatterns
+
 	ticker := time.NewTicker(time.Second / 30)
 	go func() {
 		last := time.Now()
@@ -55,11 +68,7 @@ func main() {
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	opts := &websocket.AcceptOptions{
-		InsecureSkipVerify: true,
-	}
-
-	conn, err := websocket.Accept(w, r, opts)
+	conn, err := websocket.Accept(w, r, &websocketOptions)
 	if err != nil {
 		log.Println("WebSocket error:", err)
 		return
@@ -140,4 +149,27 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+func parseOriginPatterns(rawOrigins string) ([]string, error) {
+	var patterns []string
+
+	for rawPattern := range strings.SplitSeq(rawOrigins, ",") {
+		pattern := strings.TrimSpace(rawPattern)
+		if pattern == "" {
+			continue
+		}
+
+		if pattern == "*" {
+			return nil, fmt.Errorf("WS_ALLOWED_ORIGINS must not contain an unrestricted wildcard")
+		}
+
+		if _, err := path.Match(pattern, pattern); err != nil {
+			return nil, fmt.Errorf("invalid WS_ALLOWED_ORIGINS pattern %q: %w", pattern, err)
+		}
+
+		patterns = append(patterns, pattern)
+	}
+
+	return patterns, nil
 }

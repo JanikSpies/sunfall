@@ -29,7 +29,7 @@ export class Rocket extends Container {
     this.addChild(this.arrow);
   }
 
-  /** Apply authoritative server PlayerState to update position, rotation, energy, visual stage, and dash readiness */
+  /** Apply authoritative server PlayerState to update position, rotation, visual stage, and dash readiness */
   public applyPlayerState(state: PlayerState): void {
     this.x = state.x;
     this.y = state.y;

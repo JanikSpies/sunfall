@@ -82,7 +82,9 @@ export class MainScreen extends Container {
         this.unsubscribeGameStore = useGameStore.subscribe((state) => {
             const localId = state.localPlayerId;
             if (localId !== null && state.players[localId]) {
-                this.rocket.applyPlayerState(state.players[localId]);
+                const player = state.players[localId];
+                this.rocket.applyPlayerState(player);
+                this.setEnergy(player.energy);
             }
         });
 
@@ -149,7 +151,9 @@ export class MainScreen extends Container {
         const state = useGameStore.getState();
         const localId = state.localPlayerId;
         if (localId !== null && state.players[localId]) {
-            this.rocket.applyPlayerState(state.players[localId]);
+            const player = state.players[localId];
+            this.rocket.applyPlayerState(player);
+            this.setEnergy(player.energy);
         }
     }
 

@@ -8,5 +8,6 @@ type Sun struct {
 	StartRadius float32
 	EndRadius   float32
 
-	BlackHoleRadius float32
+	BlackHoleRadius    float32
+	BlackHoleMaxRadius float32
 }

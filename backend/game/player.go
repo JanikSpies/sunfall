@@ -27,6 +27,7 @@ type Player struct {
 	Alive             bool
 	DashCooldown      float32
 	DashRequested     bool
+	Dashed            bool
 	Energy            float32
 	EnergyDepletedFor float32
 	Radius            float32

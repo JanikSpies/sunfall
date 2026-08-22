@@ -77,6 +77,10 @@ func (g *Game) Update(dt float64) {
 
 func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
 	if player.DashCooldown > 0 {
+		if player.Dashed {
+			player.Dashed = false
+		}
+
 		player.DashCooldown -= elapsed
 
 		if player.DashCooldown < 0 {
@@ -102,6 +106,7 @@ func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
 		}
 
 		player.DashRequested = false
+		player.Dashed = true
 	}
 
 	inputX := float64(player.InputX) / 127.0

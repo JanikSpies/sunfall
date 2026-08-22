@@ -11,6 +11,7 @@ type PlayerNetState struct {
 	Radius        float32
 	SizeLevel     uint8
 	DashAvailable bool
+	Dashed        bool
 }
 
 type VisibilitySnapshot struct {
@@ -49,6 +50,7 @@ func newVisibilitySnapshot(tick uint32, players map[uint16]*Player) *VisibilityS
 			Radius:        player.Radius,
 			SizeLevel:     player.SizeLevel,
 			DashAvailable: player.DashCooldown <= 0 && player.Energy >= DashEnergyCost,
+			Dashed:        player.Dashed,
 		}
 
 		index := len(snapshot.Players)

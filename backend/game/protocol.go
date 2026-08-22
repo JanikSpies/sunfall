@@ -69,6 +69,11 @@ func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
 			buf[offset] = 1
 		}
 		offset++
+
+		if player.Dashed {
+			buf[offset] = 1
+		}
+		offset++
 	}
 
 	return buf

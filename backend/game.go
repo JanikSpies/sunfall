@@ -659,20 +659,26 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 func (g *Game) RemoveTimedOutPlayers() {
 	now := time.Now()
 
+	var timedOut []*Player
+
 	g.mu.Lock()
-	defer g.mu.Unlock()
 
 	for id, player := range g.Players {
 		if now.Sub(player.LastPing) > PingTimeout {
 			delete(g.Players, id)
-
-			player.CloseDone()
-
-			player.Conn.Close(
-				websocket.StatusGoingAway,
-				"ping timeout",
-			)
+			timedOut = append(timedOut, player)
 		}
+	}
+
+	g.mu.Unlock()
+
+	for _, player := range timedOut {
+		player.CloseDone()
+
+		player.Conn.Close(
+			websocket.StatusGoingAway,
+			"ping timeout",
+		)
 	}
 }
 

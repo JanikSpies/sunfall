@@ -28,8 +28,7 @@ const (
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
-	BlackHolePull       float32 = 500
-	BlackHoleKillRadius float32 = 80
+	BlackHolePull float32 = 500
 )
 
 type Game struct {
@@ -49,11 +48,12 @@ func NewGame() *Game {
 		Players: make(map[uint32]*Player),
 
 		Sun: Sun{
-			X:           0,
-			Y:           0,
-			Radius:      150,
-			StartRadius: 150,
-			EndRadius:   700,
+			X:               0,
+			Y:               0,
+			Radius:          150,
+			StartRadius:     150,
+			EndRadius:       700,
+			BlackHoleRadius: 80,
 		},
 
 		Phase: PhaseSupernova,
@@ -181,7 +181,7 @@ func (g *Game) Update(dt float64) {
 				player.KnockbackY += ny * BlackHolePull * float32(dt)
 			}
 
-			if distance <= BlackHoleKillRadius+player.Radius {
+			if distance <= g.Sun.BlackHoleRadius+player.Radius {
 				player.Alive = false
 
 				select {

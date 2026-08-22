@@ -119,54 +119,7 @@ func (g *Game) Update(dt float64) {
 		}
 	}
 
-	players := make([]*Player, 0, len(g.Players))
-
-	for _, player := range g.Players {
-		if player.Alive {
-			players = append(players, player)
-		}
-	}
-
-	for i := 0; i < len(players); i++ {
-		for j := i + 1; j < len(players); j++ {
-			a := players[i]
-			b := players[j]
-
-			dx := b.X - a.X
-			dy := b.Y - a.Y
-
-			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-			minDistance := a.Radius + b.Radius
-
-			if distance >= minDistance {
-				continue
-			}
-
-			if distance == 0 {
-				continue
-			}
-
-			nx := dx / distance
-			ny := dy / distance
-
-			overlap := minDistance - distance
-			push := overlap / 2
-
-			a.X -= nx * push
-			a.Y -= ny * push
-
-			b.X += nx * push
-			b.Y += ny * push
-
-			bounceStrength := float32(250)
-
-			a.KnockbackX -= nx * bounceStrength
-			a.KnockbackY -= ny * bounceStrength
-
-			b.KnockbackX += nx * bounceStrength
-			b.KnockbackY += ny * bounceStrength
-		}
-	}
+	g.handlePlayerCollisions()
 }
 
 func (g *Game) BuildWorldState() []byte {
@@ -242,6 +195,53 @@ func (g *Game) RandomSpawnPosition() (float32, float32) {
 
 		if distance > g.Sun.Radius+200 {
 			return x, y
+		}
+	}
+}
+
+func (g *Game) handlePlayerCollisions() {
+	players := make([]*Player, 0, len(g.Players))
+
+	for _, player := range g.Players {
+		if player.Alive {
+			players = append(players, player)
+		}
+	}
+
+	for i := 0; i < len(players); i++ {
+		for j := i + 1; j < len(players); j++ {
+			a := players[i]
+			b := players[j]
+
+			dx := b.X - a.X
+			dy := b.Y - a.Y
+
+			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+			minDistance := a.Radius + b.Radius
+
+			if distance >= minDistance || distance == 0 {
+				continue
+			}
+
+			nx := dx / distance
+			ny := dy / distance
+
+			overlap := minDistance - distance
+			push := overlap / 2
+
+			a.X -= nx * push
+			a.Y -= ny * push
+
+			b.X += nx * push
+			b.Y += ny * push
+
+			bounceStrength := float32(250)
+
+			a.KnockbackX -= nx * bounceStrength
+			a.KnockbackY -= ny * bounceStrength
+
+			b.KnockbackX += nx * bounceStrength
+			b.KnockbackY += ny * bounceStrength
 		}
 	}
 }

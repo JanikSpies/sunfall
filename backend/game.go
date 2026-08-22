@@ -200,13 +200,7 @@ func (g *Game) Update(dt float64) {
 			}
 
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {
-				player.Alive = false
-
-				select {
-				case player.Send <- buildDeathPacket():
-				default:
-				}
-
+				g.killPlayer(player)
 				continue
 			}
 		}
@@ -226,13 +220,7 @@ func (g *Game) Update(dt float64) {
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
 		if g.Phase == PhaseSupernova && distance <= g.Sun.Radius+player.Radius {
-			player.Alive = false
-
-			select {
-			case player.Send <- buildDeathPacket():
-			default:
-			}
-
+			g.killPlayer(player)
 			continue
 		}
 	}
@@ -567,7 +555,7 @@ func (g *Game) ResetMatch() {
 	g.Sun.BlackHoleRadius = 80
 
 	for _, player := range g.Players {
-		player.Alive = false
+		g.killPlayer(player)
 	}
 
 	for _, player := range g.Players {
@@ -591,12 +579,7 @@ func (g *Game) ResetMatch() {
 		player.DashRequested = false
 		player.DashCooldown = 0
 
-		player.Alive = true
-
-		select {
-		case player.Send <- buildMatchResetPacket():
-		default:
-		}
+		g.killPlayer(player)
 	}
 }
 
@@ -648,4 +631,17 @@ func (g *Game) AddPlayer(player *Player) bool {
 	g.Players[player.ID] = player
 
 	return true
+}
+
+func (g *Game) killPlayer(player *Player) {
+	if !player.Alive {
+		return
+	}
+
+	player.Alive = false
+
+	select {
+	case player.Send <- buildDeathPacket():
+	default:
+	}
 }

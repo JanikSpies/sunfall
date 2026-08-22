@@ -160,12 +160,11 @@ func (g *Game) gravitationPull(player *Player, elapsed float32) {
 
 		falloff := (SupernovaGravityReach - surfaceDistance) / SupernovaGravityReach
 
-		supernovaGravStrength := g.Sun.Radius * 0.01
+		supernovaGravStrength := g.Sun.Radius * SupernovaGravityStrengthScale
 		pullStrength := supernovaGravStrength * falloff
 
-		// this good effect? or rather use player.VX and player.VY?
-		player.VX += nx * pullStrength * elapsed
-		player.VY += ny * pullStrength * elapsed
+		player.KnockbackX += nx * pullStrength * elapsed
+		player.KnockbackY += ny * pullStrength * elapsed
 
 	}
 	if g.Phase == PhaseBlackHole {
@@ -183,8 +182,8 @@ func (g *Game) gravitationPull(player *Player, elapsed float32) {
 
 		pullStrength := BlackHolePullStart + (BlackHolePullMax-BlackHolePullStart)*pullProgress
 
-		player.VX += nx * pullStrength * elapsed
-		player.VY += ny * pullStrength * elapsed
+		player.KnockbackX += nx * pullStrength * elapsed
+		player.KnockbackY += ny * pullStrength * elapsed
 
 		// die if you collide with black hole
 		if distance <= g.Sun.Radius+player.Radius {

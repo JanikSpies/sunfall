@@ -39,8 +39,8 @@ const (
 type Game struct {
 	mu sync.RWMutex
 
-	Players      map[uint32]*Player
-	nextPlayerID uint32
+	Players      map[uint16]*Player
+	nextPlayerID uint16
 
 	Sun Sun
 
@@ -51,7 +51,7 @@ type Game struct {
 
 func NewGame() *Game {
 	return &Game{
-		Players: make(map[uint32]*Player),
+		Players: make(map[uint16]*Player),
 
 		Sun: Sun{
 			X:                  0,
@@ -67,7 +67,7 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) NextPlayerID() uint32 {
+func (g *Game) NextPlayerID() uint16 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -284,7 +284,7 @@ func (g *Game) BuildWorldState() []byte {
 		}
 	}
 
-	buf := make([]byte, 3+(playerCount*17))
+	buf := make([]byte, 3+(playerCount*15))
 
 	buf[0] = PacketWorldState
 	binary.BigEndian.PutUint16(buf[1:3], uint16(playerCount))
@@ -296,11 +296,11 @@ func (g *Game) BuildWorldState() []byte {
 			continue
 		}
 
-		binary.BigEndian.PutUint32(
-			buf[offset:offset+4],
+		binary.BigEndian.PutUint16(
+			buf[offset:offset+2],
 			player.ID,
 		)
-		offset += 4
+		offset += 2
 
 		binary.BigEndian.PutUint32(
 			buf[offset:offset+4],
@@ -434,7 +434,7 @@ func (g *Game) BuildRadarPacket() []byte {
 		players = players[:10]
 	}
 
-	buf := make([]byte, 2+(len(players)*12))
+	buf := make([]byte, 2+(len(players)*10))
 
 	buf[0] = PacketRadar
 	buf[1] = byte(len(players))
@@ -442,8 +442,11 @@ func (g *Game) BuildRadarPacket() []byte {
 	offset := 2
 
 	for _, player := range players {
-		binary.BigEndian.PutUint32(buf[offset:offset+4], player.ID)
-		offset += 4
+		binary.BigEndian.PutUint16(
+			buf[offset:offset+2],
+			player.ID,
+		)
+		offset += 2
 
 		binary.BigEndian.PutUint32(
 			buf[offset:offset+4],
@@ -530,7 +533,7 @@ func (g *Game) ResetMatch() {
 	}
 }
 
-func (g *Game) RemovePlayer(id uint32) {
+func (g *Game) RemovePlayer(id uint16) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 

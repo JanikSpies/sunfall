@@ -85,6 +85,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	player.Send <- buildConnectedPacket(&player)
 
+	game.mu.RLock()
+	matchState := buildMatchStatePacket(game)
+	game.mu.RUnlock()
+
+	player.Send <- matchState
+
 	for {
 		messageType, data, err := conn.Read(context.Background())
 		if err != nil {

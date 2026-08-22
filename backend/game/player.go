@@ -23,13 +23,14 @@ type Player struct {
 	InputX int8
 	InputY int8
 
-	Alive         bool
-	DashCooldown  float32
-	DashRequested bool
-	Energy        float32
-	Radius        float32
-	Rotation      float32
-	SizeLevel     uint8
+	Alive             bool
+	DashCooldown      float32
+	DashRequested     bool
+	Energy            float32
+	EnergyDepletedFor float32
+	Radius            float32
+	Rotation          float32
+	SizeLevel         uint8
 
 	Conn       *websocket.Conn
 	Disconnect chan struct{}
@@ -48,7 +49,6 @@ func (p *Player) WriteLoop() {
 	for {
 		var data []byte
 
-		// Lifecycle packets take precedence over replaceable state updates.
 		select {
 		case <-p.Done:
 			return

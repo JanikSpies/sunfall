@@ -47,6 +47,7 @@ func (g *Game) startMatchLocked() {
 		player.InputY = 0
 
 		player.Energy = 100
+		player.EnergyDepletedFor = 0
 		player.SizeLevel = 1
 		player.Radius = 16
 

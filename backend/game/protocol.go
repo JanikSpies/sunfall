@@ -21,8 +21,9 @@ const (
 type DeathReason uint8
 
 const (
-	DeathBySun       DeathReason = 1
-	DeathByBlackHole DeathReason = 2
+	DeathBySun             DeathReason = 1
+	DeathByBlackHole       DeathReason = 2
+	DeathByEnergyDepletion DeathReason = 3
 )
 
 func buildConnectedPacket(player *Player) []byte {
@@ -39,13 +40,12 @@ func buildConnectedPacket(player *Player) []byte {
 }
 
 func buildWorldConfigPacket() []byte {
-	buf := make([]byte, 17)
+	buf := make([]byte, 13)
 	buf[0] = PacketWorldConfig
 
-	binary.BigEndian.PutUint32(buf[1:5], math.Float32bits(MapHalfSize))
-	binary.BigEndian.PutUint32(buf[5:9], math.Float32bits(VisibilityChunkSize))
-	binary.BigEndian.PutUint32(buf[9:13], WorldSeed)
-	binary.BigEndian.PutUint32(buf[13:17], math.Float32bits(VisibilityRadius))
+	binary.BigEndian.PutUint32(buf[1:5], math.Float32bits(VisibilityChunkSize))
+	binary.BigEndian.PutUint32(buf[5:9], WorldSeed)
+	binary.BigEndian.PutUint32(buf[9:13], math.Float32bits(VisibilityRadius))
 
 	return buf
 }

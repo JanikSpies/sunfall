@@ -12,16 +12,17 @@ const (
 	PingTimeout = 5 * time.Second
 
 	PlayerSpeed             = 200.0
-	MapHalfSize     float32 = 2000
 	MaxPlayerRadius float32 = 40
+	SpawnRadius     float32 = 2000
 
 	CollisionCellSize   float32 = 128
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 	WorldSeed           uint32  = 12345
 
-	NeutralEnergyDistance         = 100
-	MaxEnergyGain         float32 = 10
+	NeutralEnergyDistance      float32 = 100
+	MaxEnergyGain              float32 = 10
+	EnergyDepletionGracePeriod float32 = 5
 
 	DashCooldownDuration float32 = 0.75
 	DashEnergyCost       float32 = 25

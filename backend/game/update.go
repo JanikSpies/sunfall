@@ -45,15 +45,13 @@ func (g *Game) Update(dt float64) {
 
 		g.updatePlayerMovement(player, elapsed)
 
-		// calculate energy gain/loss based on distance to sun
 		dx := -player.X
 		dy := -player.Y
 
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-		factor := (NeutralEnergyDistance - distance) / NeutralEnergyDistance
-		energyGain := factor * MaxEnergyGain
-
-		player.Energy += energyGain * float32(dt) * elapsed
+		if !g.updatePlayerEnergyLocked(player, distance, elapsed) {
+			continue
+		}
 
 		player.SizeLevel = sizeLevelForEnergy(player.Energy)
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
@@ -65,7 +63,6 @@ func (g *Game) Update(dt float64) {
 	}
 
 	g.handlePlayerCollisions()
-	g.clampPlayersLocked()
 
 	if g.Phase == PhaseBlackHole &&
 		(g.alivePlayerCountLocked() == 0 || g.PhaseElapsed >= BlackHoleDuration) {
@@ -183,27 +180,6 @@ func (g *Game) gravitationPull(player *Player, elapsed float32) {
 		// die if you collide with black hole
 		if distance <= g.Sun.Radius+player.Radius {
 			g.killPlayer(player, DeathByBlackHole)
-		}
-	}
-}
-
-func (g *Game) clampPlayersLocked() {
-	for _, player := range g.Players {
-		if !player.Alive {
-			continue
-		}
-
-		if player.X < -MapHalfSize {
-			player.X = -MapHalfSize
-		}
-		if player.X > MapHalfSize {
-			player.X = MapHalfSize
-		}
-		if player.Y < -MapHalfSize {
-			player.Y = -MapHalfSize
-		}
-		if player.Y > MapHalfSize {
-			player.Y = MapHalfSize
 		}
 	}
 }

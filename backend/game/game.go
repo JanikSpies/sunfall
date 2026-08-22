@@ -9,7 +9,7 @@ type MatchPhase uint8
 
 const (
 	MaxPlayers  = 1000
-	PingTimeout = 15 * time.Second
+	PingTimeout = 5 * time.Second
 
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000

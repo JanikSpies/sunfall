@@ -1,13 +1,11 @@
-import {type ColorSource, Container, Graphics} from "pixi.js";
+import {type ColorSource, Container, Graphics, Sprite, Texture} from "pixi.js";
 
 export interface EnergyBarOptions {
-  width?: number;
-  height?: number;
-  radius?: number;
-  backgroundColor?: ColorSource;
-  backgroundAlpha?: number;
+  scale?: number;
   fillColor?: ColorSource;
   fillAlpha?: number;
+  backgroundColor?: ColorSource;
+  backgroundAlpha?: number;
   borderColor?: ColorSource;
   borderAlpha?: number;
   borderWidth?: number;
@@ -16,19 +14,23 @@ export interface EnergyBarOptions {
 }
 
 /**
- * Visual energy / health bar component rendered with PixiJS Graphics.
+ * Multi-layer HUD Energy Bar component.
+ * Layers from bottom to top:
+ * 1. energy-hud-backdrop (Sprite)
+ * 2. energy fill graphics (Graphics)
+ * 3. energybar track/frame graphics (Graphics)
+ * 4. energy-hud overlay (Sprite)
  */
 export class EnergyBar extends Container {
-  private bgGraphics: Graphics;
-  private fillGraphics: Graphics;
+  public backdropSprite: Sprite;
+  public fillGraphics: Graphics;
+  public barGraphics: Graphics;
+  public hudSprite: Sprite;
 
-  private barWidth: number;
-  private barHeight: number;
-  private radius: number;
-  private backgroundColor: ColorSource;
-  private backgroundAlpha: number;
   private fillColor: ColorSource;
   private fillAlpha: number;
+  private backgroundColor: ColorSource;
+  private backgroundAlpha: number;
   private borderColor: ColorSource;
   private borderAlpha: number;
   private borderWidth: number;
@@ -37,31 +39,60 @@ export class EnergyBar extends Container {
   private _maxValue: number;
   private _progress: number;
 
+  // Slot coordinate space for 300x100 SVG anchored at (0.5, 0.5)
+  public static readonly SLOT_X = -98;
+  public static readonly SLOT_Y = 4;
+  public static readonly SLOT_WIDTH = 186;
+  public static readonly SLOT_HEIGHT = 16;
+  public static readonly SLOT_RADIUS = 8;
+
   constructor(options: EnergyBarOptions = {}) {
     super();
 
-    this.barWidth = options.width ?? 80;
-    this.barHeight = options.height ?? 8;
-    this.radius = options.radius ?? 4;
-    this.backgroundColor = options.backgroundColor ?? 0x0f172a;
-    this.backgroundAlpha = options.backgroundAlpha ?? 0.85;
-    this.fillColor = options.fillColor ?? 0x38bdf8;
+    if (options.scale !== undefined) {
+      this.scale.set(options.scale);
+    }
+
+    this.fillColor = options.fillColor ?? 0x00fffc;
     this.fillAlpha = options.fillAlpha ?? 1.0;
-    this.borderColor = options.borderColor ?? 0x1e293b;
-    this.borderAlpha = options.borderAlpha ?? 0.9;
-    this.borderWidth = options.borderWidth ?? 1.5;
+    this.backgroundColor = options.backgroundColor ?? 0x000000;
+    this.backgroundAlpha = options.backgroundAlpha ?? 0.5;
+    this.borderColor = options.borderColor ?? 0x00fffc;
+    this.borderAlpha = options.borderAlpha ?? 0;
+    this.borderWidth = options.borderWidth ?? 0;
 
     this._maxValue = options.maxValue ?? 100;
     this._value = options.value ?? this._maxValue;
-    this._progress = this._maxValue > 0 ? Math.min(Math.max(this._value / this._maxValue, 0), 1) : 1;
+    this._progress =
+      this._maxValue > 0
+        ? Math.min(Math.max(this._value / this._maxValue, 0), 1)
+        : 1;
 
-    this.bgGraphics = new Graphics();
+    // Layer 4 (Bottom): energy-hud-backdrop.svg
+    this.backdropSprite = new Sprite({
+      texture: Texture.from("energy-hud-backdrop.svg"),
+      anchor: 0.5,
+    });
+
+    // Layer 3 (Middle-lower): Energy fill graphics
     this.fillGraphics = new Graphics();
 
-    this.addChild(this.bgGraphics);
-    this.addChild(this.fillGraphics);
+    // Layer 2 (Middle-upper): Energybar track graphics
+    this.barGraphics = new Graphics();
 
-    this.drawBackground();
+    // Layer 1 (Top): energy-hud.svg
+    this.hudSprite = new Sprite({
+      texture: Texture.from("energy-hud.svg"),
+      anchor: 0.5,
+    });
+
+    // Add children in bottom-to-top rendering order
+    this.addChild(this.backdropSprite);
+    this.addChild(this.fillGraphics);
+    this.addChild(this.barGraphics);
+    this.addChild(this.hudSprite);
+
+    this.drawBar();
     this.drawFill();
   }
 
@@ -77,21 +108,30 @@ export class EnergyBar extends Container {
     return this._maxValue;
   }
 
-  private drawBackground(): void {
-    const halfW = this.barWidth / 2;
-    const halfH = this.barHeight / 2;
+  private drawBar(): void {
+    this.barGraphics.clear();
 
-    this.bgGraphics.clear();
+    if (this.backgroundAlpha > 0) {
+      this.barGraphics
+        .roundRect(
+          EnergyBar.SLOT_X,
+          EnergyBar.SLOT_Y,
+          EnergyBar.SLOT_WIDTH,
+          EnergyBar.SLOT_HEIGHT,
+          EnergyBar.SLOT_RADIUS
+        )
+        .fill({ color: this.backgroundColor, alpha: this.backgroundAlpha });
+    }
 
-    // Background track
-    this.bgGraphics
-      .roundRect(-halfW, -halfH, this.barWidth, this.barHeight, this.radius)
-      .fill({ color: this.backgroundColor, alpha: this.backgroundAlpha });
-
-    // Border
-    if (this.borderWidth > 0) {
-      this.bgGraphics
-        .roundRect(-halfW, -halfH, this.barWidth, this.barHeight, this.radius)
+    if (this.borderWidth > 0 && this.borderAlpha > 0) {
+      this.barGraphics
+        .roundRect(
+          EnergyBar.SLOT_X,
+          EnergyBar.SLOT_Y,
+          EnergyBar.SLOT_WIDTH,
+          EnergyBar.SLOT_HEIGHT,
+          EnergyBar.SLOT_RADIUS
+        )
         .stroke({
           width: this.borderWidth,
           color: this.borderColor,
@@ -107,22 +147,21 @@ export class EnergyBar extends Container {
       return;
     }
 
-    const pad = this.borderWidth;
-    const innerWidth = Math.max(0, this.barWidth - pad * 2);
-    const innerHeight = Math.max(0, this.barHeight - pad * 2);
-    const fillW = innerWidth * this._progress;
-
-    if (fillW <= 0 || innerHeight <= 0) {
-      return;
-    }
-
-    const startX = -this.barWidth / 2 + pad;
-    const startY = -this.barHeight / 2 + pad;
-    const innerRadius = Math.max(0, this.radius - pad * 0.5);
-    const effectiveRadius = Math.min(innerRadius, fillW / 2, innerHeight / 2);
+    const fillW = EnergyBar.SLOT_WIDTH * this._progress;
+    const effectiveRadius = Math.min(
+      EnergyBar.SLOT_RADIUS,
+      fillW / 2,
+      EnergyBar.SLOT_HEIGHT / 2
+    );
 
     this.fillGraphics
-      .roundRect(startX, startY, fillW, innerHeight, effectiveRadius)
+      .roundRect(
+        EnergyBar.SLOT_X,
+        EnergyBar.SLOT_Y,
+        fillW,
+        EnergyBar.SLOT_HEIGHT,
+        effectiveRadius
+      )
       .fill({ color: this.fillColor, alpha: this.fillAlpha });
   }
 

@@ -1,5 +1,4 @@
 import {Container, NineSliceSprite, Point, Sprite, Texture, type Ticker} from "pixi.js";
-import {EnergyBar} from "./EnergyBar";
 import type {PlayerState} from "../../lib/models/PlayerState";
 
 const scale = 0.5;
@@ -7,9 +6,7 @@ const scale = 0.5;
 export class Rocket extends Container {
   private image: NineSliceSprite;
   public arrow: Sprite;
-  public energyBar: EnergyBar;
   public targetPosition: Point = new Point(0, 0);
-  public speed = 4;
   private stage = 1;
   public dashAvailable: boolean = false;
 
@@ -30,22 +27,13 @@ export class Rocket extends Container {
       scale: scale,
     });
     this.addChild(this.arrow);
-
-    this.energyBar = new EnergyBar({
-      width: 80,
-      height: 10,
-      radius: 4,
-    });
-    this.energyBar.position.set(0, this.image.height * 0.5 + 16);
-    this.addChild(this.energyBar);
   }
 
-  /** Apply authoritative server PlayerState to update position, rotation, energy, visual stage, and dash readiness */
+  /** Apply authoritative server PlayerState to update position, rotation, visual stage, and dash readiness */
   public applyPlayerState(state: PlayerState): void {
     this.x = state.x;
     this.y = state.y;
     this.rotation = state.rotation + Math.PI / 2;
-    this.setEnergy(state.energy);
     this.setStage(state.size);
     this.dashAvailable = state.dashAvailable;
   }
@@ -60,7 +48,6 @@ export class Rocket extends Container {
     this.stage = Math.max(1, Math.min(4, Math.floor(stage)));
     this.image.texture = Texture.from(`spaceship_stage_${this.stage}.svg`);
     this.arrow.texture = Texture.from(`sun-pointer-ship-${this.stage}.svg`);
-    this.energyBar.position.set(0, this.image.height * 0.5 + 16);
   }
 
   /** Get current stage */
@@ -86,11 +73,6 @@ export class Rocket extends Container {
     return this.image.height;
   }
 
-  /** Update rocket energy level */
-  public setEnergy(current: number, max?: number) {
-    this.energyBar.setValue(current, max);
-  }
-
   /** Set target aim coordinates relative to the rocket center */
   public setTarget(x: number, y: number) {
     this.targetPosition.set(x, y);
@@ -110,15 +92,14 @@ export class Rocket extends Container {
     void _time;
   }
 
-  /** Reset the rocket position, rotation, target, and energy bar */
+  /** Reset the rocket position, rotation, target, and pointer */
   public reset() {
     this.position.set(0, 0);
     this.targetPosition.set(0, 0);
     this.rotation = 0;
-    this.dashAvailable = true;
-    this.setStage(1);
-    this.energyBar.reset();
     this.setSunPointer(false);
+    this.dashAvailable = false;
+    this.setStage(1);
     this.arrow.rotation = 0;
   }
 }

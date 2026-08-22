@@ -124,6 +124,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 				int8(data[2]),
 			)
 		case game.PacketPing:
+			if len(data) != 1 {
+				continue
+			}
+
 			player.MarkPing()
 
 			select {

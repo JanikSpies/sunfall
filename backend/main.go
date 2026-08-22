@@ -132,14 +132,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			player.InputY = int8(data[2])
 
 			game.mu.Unlock()
-		case PacketDash:
-			game.mu.Lock()
-
-			if player.Alive {
-				player.DashRequested = true
-			}
-
-			game.mu.Unlock()
 		case PacketPing:
 			select {
 			case player.Send <- []byte{PacketPong}:

@@ -11,10 +11,15 @@ import {Sun} from "../../ui/game/Sun";
 import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
 import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
+import { NetworkTransport } from "@/app/lib/network/Transport";
+import { BinaryCodec } from "@/app/lib/network/BinaryCodec";
+import { network } from "@/app/lib/store/gameStore";
 
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
+    private inputState = { x: 100, y: 0, dash: false };
+    
     /** Assets bundles required by this screen */
     public static assetBundles = ["main"];
 
@@ -92,6 +97,28 @@ export class MainScreen extends Container {
 
         this.on("pointermove", this.handlePointerMove, this);
 
+        if (this.isTouchDevice) {
+            this.virtualJoystick = new VirtualJoystick();
+            this.virtualJoystick.onMove = (dx, dy) => {
+                if (this.paused) return;
+                // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
+                this.inputState.x = Math.round(dx * 100);
+                this.inputState.y = Math.round(dy * 100);
+            };
+            this.virtualJoystick.onEnd = () => {
+                this.inputState.x = 0;
+                this.inputState.y = 0;
+            };
+            this.addChild(this.virtualJoystick);
+
+            this.dashButton = new DashButton();
+            this.dashButton.onDash = () => {
+                if (this.paused) return;
+                this.inputState.dash = true; 
+            };
+            this.addChild(this.dashButton);
+        }
+
         window.addEventListener("keydown", this.handleKeyDown);
     }
 
@@ -100,12 +127,24 @@ export class MainScreen extends Container {
         if (e.code === "Space") {
             e.preventDefault();
             this.rocket.dash();
+            this.inputState.dash = true;
         }
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
         if (this.paused || event.pointerType !== "mouse") return;
+        
         const localPos = this.mainContainer.toLocal(event.global);
+        
+        const dx = localPos.x - this.rocket.x;
+        const dy = localPos.y - this.rocket.y;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist > 0.1) { 
+            this.inputState.x = Math.round((dx / dist) * 100);
+            this.inputState.y = Math.round((dy / dist) * 100);
+        }
+
         this.rocket.setTarget(localPos.x, localPos.y);
     }
 
@@ -118,6 +157,21 @@ export class MainScreen extends Container {
         this.gameMap.update(time);
 
         if (this.paused) return;
+
+        if (network) {
+            const inputBuffer = BinaryCodec.encodeInput(
+                this.inputState.x,
+                this.inputState.y,
+                this.inputState.dash
+            );
+            
+            console.log(`Sending Input -> X: ${this.inputState.x}, Y: ${this.inputState.y}, Dash: ${this.inputState.dash}`);
+            
+            network.send(inputBuffer);
+        }
+
+        this.inputState.dash = false; 
+
         this.rocket.update(time);
         this.gameMap.setFocus(this.rocket.x, this.rocket.y);
     }

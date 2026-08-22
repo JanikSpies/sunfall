@@ -26,6 +26,8 @@ const (
 	MatchDuration  float32    = 10 * 60
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2
+
+	BlackHolePull float32 = 500
 )
 
 type Game struct {
@@ -162,6 +164,21 @@ func (g *Game) Update(dt float64) {
 
 		dx := player.X - g.Sun.X
 		dy := player.Y - g.Sun.Y
+
+		if g.Phase == PhaseBlackHole {
+			dx := g.Sun.X - player.X
+			dy := g.Sun.Y - player.Y
+
+			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+			if distance > 0 {
+				nx := dx / distance
+				ny := dy / distance
+
+				player.KnockbackX += nx * BlackHolePull * float32(dt)
+				player.KnockbackY += ny * BlackHolePull * float32(dt)
+			}
+		}
 
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 

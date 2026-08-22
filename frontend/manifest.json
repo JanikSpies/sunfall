@@ -282,6 +282,19 @@
               "m": true
             }
           }
+        },
+        {
+          "alias": [
+            "Science Gothic",
+            "ScienceGothic",
+            "ScienceGothic-VariableFont_CTRS,slnt,wdth,wght.ttf"
+          ],
+          "src": [
+            "ScienceGothic-VariableFont_CTRS,slnt,wdth,wght.ttf"
+          ],
+          "data": {
+            "family": "Science Gothic"
+          }
         }
       ]
     }

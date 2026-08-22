@@ -14,11 +14,12 @@ import {EnergyBar} from "../../ui/game/EnergyBar";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
 import {DeathReason} from "@/app/lib/models/WebSocketTypes";
+import {StartScreen} from "../StartScreen";
 
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
-    private inputState = { x: 100, y: 0, dash: false };
+    private inputState = {x: 100, y: 0, dash: false};
 
     /** Assets bundles required by this screen */
     public static assetBundles = ["main"];
@@ -35,10 +36,11 @@ export class MainScreen extends Container {
     private lastMatchResetSeq = 0;
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
-    private isTouchDevice =  isMobile.phone;
+    private isTouchDevice = isMobile.phone;
     private screenWidth = 0;
     private screenHeight = 0;
     private unsubscribeGameStore?: () => void;
+    private deathTimeoutId: number | null = null;
 
     constructor() {
         super();
@@ -73,7 +75,7 @@ export class MainScreen extends Container {
         );
         this.addChild(this.settingsButton);
 
-        this.timer = new Timer({ text: "00:00" });
+        this.timer = new Timer({text: "00:00"});
         this.addChild(this.timer);
 
         this.energyBar = new EnergyBar();
@@ -87,6 +89,7 @@ export class MainScreen extends Container {
 
         this.unsubscribeGameStore = useGameStore.subscribe((state) => {
             this.syncPlayers(state);
+            this.handleDeathState(state.isDead);
             this.timer.setTime(state.matchTimer);
             this.gameMap.setSunRadius(state.sunRadius);
             this.handleLifecycleEvents(state);
@@ -97,13 +100,15 @@ export class MainScreen extends Container {
         if (this.isTouchDevice) {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
+                if (useGameStore.getState().isDead) return;
+
                 // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
                 const scaledX = Math.round(dx * 100);
                 const scaledY = Math.round(dy * 100);
 
                 this.inputState.x = scaledX;
                 this.inputState.y = scaledY;
-                
+
                 // Update local visual target
                 this.rocket.setTarget(scaledX, scaledY);
             };
@@ -111,7 +116,7 @@ export class MainScreen extends Container {
 
             this.dashButton = new DashButton();
             this.dashButton.onDash = () => {
-                if (!this.rocket.canDash()) return;
+                if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
                 this.rocket.dash();
                 this.inputState.dash = true;
             };
@@ -124,14 +129,14 @@ export class MainScreen extends Container {
     private handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === "Space") {
             e.preventDefault();
-            if (!this.rocket.canDash()) return;
+            if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
             this.rocket.dash();
             this.inputState.dash = true;
         }
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
-        if (event.pointerType !== "mouse") return;
+        if (event.pointerType !== "mouse" || useGameStore.getState().isDead) return;
 
         // This converts the global mouse position into the mainContainer's local space.
         // Since mainContainer is centered, (0,0) is now the dead center of the canvas.
@@ -152,9 +157,33 @@ export class MainScreen extends Container {
         this.rocket.setTarget(dx, dy);
     }
 
+    private handleDeathState(isDead: boolean) {
+        if (isDead) {
+            this.rocket.visible = false;
+            this.rocket.setSunPointer(false);
+
+            if (this.deathTimeoutId === null) {
+                this.deathTimeoutId = window.setTimeout(async () => {
+                    this.deathTimeoutId = null;
+                    network?.disconnect();
+                    useGameStore.getState().resetGame();
+                    this.reset();
+                    await engine().navigation.showScreen(StartScreen);
+                }, 3000);
+            }
+        } else {
+            if (this.deathTimeoutId !== null) {
+                window.clearTimeout(this.deathTimeoutId);
+                this.deathTimeoutId = null;
+            }
+            this.rocket.visible = true;
+        }
+    }
+
     /** Prepare the screen just before showing */
     public prepare() {
         const state = useGameStore.getState();
+        this.handleDeathState(state.isDead);
         this.syncPlayers(state);
     }
 
@@ -164,11 +193,12 @@ export class MainScreen extends Container {
         if (localId !== null && state.players[localId]) {
             const player = state.players[localId];
             this.rocket.applyPlayerState(player);
-            this.setEnergy(player.energy);
+            this.setEnergy(player.energy, player.size);
         }
 
-        for (const [idStr, player] of Object.entries(state.players)) {
-            const id = Number(idStr);
+        for (const idStr in state.players) {
+            const player = state.players[idStr];
+            const id = player.id;
             if (id === localId) continue;
 
             let enemyRocket = this.enemyRockets.get(id);
@@ -225,27 +255,28 @@ export class MainScreen extends Container {
     public update(time: Ticker) {
         this.gameMap.update(time);
 
-        if (network) {
-            const inputBuffer = BinaryCodec.encodeInput(
-                this.inputState.x,
-                this.inputState.y,
-                this.inputState.dash
-            );
+        const isDead = useGameStore.getState().isDead;
+        if (!isDead) {
+            if (network) {
+                const inputBuffer = BinaryCodec.encodeInput(
+                    this.inputState.x,
+                    this.inputState.y,
+                    this.inputState.dash
+                );
 
-            console.log(`Sending Input -> X: ${this.inputState.x}, Y: ${this.inputState.y}, Dash: ${this.inputState.dash}`);
 
-            network.send(inputBuffer);
+
+                network.send(inputBuffer);
+            }
+
+            this.rocket.update(time);
+            for (const enemyRocket of this.enemyRockets.values()) {
+                enemyRocket.update(time);
+            }
+            this.gameMap.setFocus(this.rocket.x, this.rocket.y);
+            this.updateSunPointer();
         }
-
         this.inputState.dash = false;
-
-        this.rocket.update(time);
-        for (const enemyRocket of this.enemyRockets.values()) {
-            enemyRocket.update(time);
-        }
-        this.gameMap.setFocus(this.rocket.x, this.rocket.y);
-
-        this.updateSunPointer();
     }
 
     /** Update rocket's sun pointer indicator based on sun visibility in viewport */
@@ -294,7 +325,12 @@ export class MainScreen extends Container {
 
     /** Fully reset */
     public reset() {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         this.rocket.reset();
+        this.rocket.visible = true;
         this.gameMap.reset();
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
@@ -367,9 +403,9 @@ export class MainScreen extends Container {
         }
     }
 
-    /** Set energy current value and optional maximum */
-    public setEnergy(current: number, max?: number): void {
-        this.energyBar.setValue(current, max);
+    /** Set energy current value and optional level */
+    public setEnergy(current: number, level?: number): void {
+        this.energyBar.setValueForLevel(current, level);
     }
 
     /** Set energy progress directly from 0.0 to 1.0 */
@@ -417,12 +453,20 @@ export class MainScreen extends Container {
 
     /** Hide screen with animations */
     public async hide() {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         window.removeEventListener("keydown", this.handleKeyDown);
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
     }
 
     public override destroy(options?: DestroyOptions) {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         this.unsubscribeGameStore?.();
         window.removeEventListener("keydown", this.handleKeyDown);
         for (const enemyRocket of this.enemyRockets.values()) {

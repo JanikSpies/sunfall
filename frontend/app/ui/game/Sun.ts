@@ -20,6 +20,7 @@ type SunOptions = typeof defaultSunOptions;
  */
 export class Sun extends Container {
     public static readonly BASE_RADIUS = 750;
+    public static readonly RADIUS_OFFSET_FACTOR = 1.025;
     private _radius: number = 150;
 
     public perimeter: Sprite;
@@ -70,7 +71,7 @@ export class Sun extends Container {
     /** Set the exact sun radius in world units */
     public setRadius(radius: number): void {
         this._radius = radius;
-        const scale = radius / Sun.BASE_RADIUS;
+        const scale = radius / Sun.BASE_RADIUS * Sun.RADIUS_OFFSET_FACTOR;
         this.scale.set(scale);
     }
 

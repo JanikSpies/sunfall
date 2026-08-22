@@ -2,7 +2,6 @@
 
 import {useEffect, useRef} from "react";
 import {CreationEngine} from "@/engine/engine";
-import {initNetwork} from "../lib/store/gameStore";
 
 export default function GameCanvas() {
     const startedRef = useRef(false);
@@ -10,18 +9,17 @@ export default function GameCanvas() {
     useEffect(() => {
         if (startedRef.current) return;
         startedRef.current = true;
-        initNetwork();
 
         let engine: CreationEngine | undefined;
 
         const startEngine = async () => {
-            const [{CreationEngine}, {setEngine}, {userSettings}, {LoadScreen}, {MainScreen}] =
+            const [{CreationEngine}, {setEngine}, {userSettings}, {LoadScreen}, {StartScreen}] =
                 await Promise.all([
                     import("../../engine/engine"),
                     import("../getEngine"),
                     import("../utils/userSettings"),
                     import("../screens/LoadScreen"),
-                    import("../screens/main/MainScreen"),
+                    import("../screens/StartScreen"),
                 ]);
 
             (globalThis as Record<string, unknown>).APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
@@ -40,7 +38,7 @@ export default function GameCanvas() {
 
             try {
                 await engine.navigation.showScreen(LoadScreen);
-                await engine.navigation.showScreen(MainScreen);
+                await engine.navigation.showScreen(StartScreen);
             } catch (error) {
                 console.warn("Unable to start the bundled Pixi screens; using fallback scene.", error);
 

@@ -103,10 +103,10 @@ func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
 
 			player.Energy -= DashEnergyCost
 			player.DashCooldown = DashCooldownDuration
+			player.Dashed = true
 		}
 
 		player.DashRequested = false
-		player.Dashed = true
 	}
 
 	inputX := float64(player.InputX) / 127.0
@@ -160,10 +160,9 @@ func (g *Game) gravitationPull(player *Player, elapsed float32) {
 
 		falloff := (SupernovaGravityReach - surfaceDistance) / SupernovaGravityReach
 
-		supernovaGravStrength := g.Sun.Radius * 0.01
+		supernovaGravStrength := g.Sun.Radius * SupernovaGravityStrengthScale
 		pullStrength := supernovaGravStrength * falloff
 
-		// this good effect? or rather use player.VX and player.VY?
 		player.KnockbackX += nx * pullStrength * elapsed
 		player.KnockbackY += ny * pullStrength * elapsed
 

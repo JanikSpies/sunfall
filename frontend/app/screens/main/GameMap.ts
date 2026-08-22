@@ -1,8 +1,12 @@
-import {Container, Graphics, type Ticker} from "pixi.js";
+import {Container, Graphics, type Renderer, Texture, type Ticker, TilingSprite} from "pixi.js";
 import {Sun} from "../../ui/game/Sun";
+import {engine} from "../../getEngine";
 
 export class GameMap extends Container {
-  private background: Graphics;
+  private static cachedGridTexture: Texture | null = null;
+  private static cachedStarTexture: Texture | null = null;
+
+  private background: Container;
   public sun: Sun;
   public mapWidth: number;
   public mapHeight: number;
@@ -20,7 +24,123 @@ export class GameMap extends Container {
     this.addChild(this.sun);
   }
 
-  private createBackground(width: number, height: number): Graphics {
+  private static getOrCreateTextures(renderer: Renderer) {
+    if (!GameMap.cachedGridTexture) {
+      const minorGridSize = 100;
+      const majorGridSize = 500;
+      const tile = new Graphics();
+
+      // Base dark space background tile
+      tile.rect(0, 0, majorGridSize, majorGridSize).fill({ color: 0x090d16 });
+
+      // Minor grid lines
+      for (let x = 0; x <= majorGridSize; x += minorGridSize) {
+        const isMajor = x === 0 || x === majorGridSize;
+        tile.moveTo(x, 0)
+          .lineTo(x, majorGridSize)
+          .stroke({
+            width: isMajor ? 1.5 : 1,
+            color: isMajor ? 0x334155 : 0x1e293b,
+            alpha: isMajor ? 0.6 : 0.25,
+          });
+      }
+
+      for (let y = 0; y <= majorGridSize; y += minorGridSize) {
+        const isMajor = y === 0 || y === majorGridSize;
+        tile.moveTo(0, y)
+          .lineTo(majorGridSize, y)
+          .stroke({
+            width: isMajor ? 1.5 : 1,
+            color: isMajor ? 0x334155 : 0x1e293b,
+            alpha: isMajor ? 0.6 : 0.25,
+          });
+      }
+
+      // Major intersection crosshair
+      const crossSize = 8;
+      tile.moveTo(0, -crossSize).lineTo(0, crossSize).stroke({ width: 1.5, color: 0x38bdf8, alpha: 0.5 });
+      tile.moveTo(-crossSize, 0).lineTo(crossSize, 0).stroke({ width: 1.5, color: 0x38bdf8, alpha: 0.5 });
+
+      GameMap.cachedGridTexture = renderer.generateTexture(tile);
+      tile.destroy();
+    }
+
+    if (!GameMap.cachedStarTexture) {
+      const starTileSize = 2000;
+      const starTile = new Graphics();
+      let seed = 12345;
+      const pseudoRandom = () => {
+        seed = (seed * 9301 + 49297) % 233280;
+        return seed / 233280;
+      };
+
+      const starColors = [0xffffff, 0x93c5fd, 0x38bdf8, 0xfde047, 0xf472b6];
+      const totalStars = 100;
+      for (let i = 0; i < totalStars; i++) {
+        const sx = pseudoRandom() * starTileSize;
+        const sy = pseudoRandom() * starTileSize;
+        const radius = 1 + pseudoRandom() * 2;
+        const color = starColors[Math.floor(pseudoRandom() * starColors.length)];
+        const alpha = 0.3 + pseudoRandom() * 0.7;
+
+        starTile.circle(sx, sy, radius).fill({ color, alpha });
+      }
+
+      GameMap.cachedStarTexture = renderer.generateTexture(starTile);
+      starTile.destroy();
+    }
+  }
+
+  private createBackground(width: number, height: number): Container {
+    const halfW = width / 2;
+    const halfH = height / 2;
+    const appRenderer = engine()?.renderer;
+
+    if (appRenderer) {
+      GameMap.getOrCreateTextures(appRenderer);
+
+      const bg = new Container();
+
+      if (GameMap.cachedGridTexture) {
+        const gridSprite = new TilingSprite({
+          texture: GameMap.cachedGridTexture,
+          width,
+          height,
+        });
+        gridSprite.position.set(-halfW, -halfH);
+        bg.addChild(gridSprite);
+      }
+
+      if (GameMap.cachedStarTexture) {
+        const starSprite = new TilingSprite({
+          texture: GameMap.cachedStarTexture,
+          width,
+          height,
+        });
+        starSprite.position.set(-halfW, -halfH);
+        bg.addChild(starSprite);
+      }
+
+      const overlay = new Graphics();
+      // Origin / Spawn point indicator
+      overlay.circle(0, 0, 40).stroke({ width: 2, color: 0x38bdf8, alpha: 0.8 });
+      overlay.circle(0, 0, 6).fill({ color: 0x38bdf8, alpha: 0.9 });
+
+      // Map boundary border
+      overlay.rect(-halfW, -halfH, width, height).stroke({
+        width: 4,
+        color: 0xef4444,
+        alpha: 0.7,
+      });
+
+      bg.addChild(overlay);
+      return bg;
+    }
+
+    return this.createDirectBackground(width, height);
+  }
+
+  private createDirectBackground(width: number, height: number): Graphics {
     const bg = new Graphics();
     const halfW = width / 2;
     const halfH = height / 2;

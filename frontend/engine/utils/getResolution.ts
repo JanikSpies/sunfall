@@ -1,9 +1,6 @@
 export function getResolution(): number {
-  let resolution = Math.max(window.devicePixelRatio, 2);
-
-  if (resolution % 1 !== 0) {
-    resolution = 2;
+  if (typeof window === "undefined") {
+    return 1;
   }
-
-  return resolution;
+  return Math.min(window.devicePixelRatio || 1, 2);
 }

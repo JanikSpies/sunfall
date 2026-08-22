@@ -10,7 +10,8 @@ import (
 )
 
 type Player struct {
-	ID uint16
+	ID   uint16
+	Name string
 
 	X float32
 	Y float32

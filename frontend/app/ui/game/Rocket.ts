@@ -1,16 +1,27 @@
-import {Point, Sprite, Texture, type Ticker} from "pixi.js";
+import {Container, Point, Sprite, Texture, type Ticker} from "pixi.js";
 import type {PlayerState} from "../../lib/models/PlayerState";
 import {BaseRocket} from "./BaseRocket";
+import {Label} from "../menu/Label";
 
 const scale = 0.5;
 
 export class Rocket extends BaseRocket {
+
+  private image: Sprite;
   public arrow: Sprite;
   public targetPosition: Point = new Point(0, 0);
   public dashAvailable: boolean = false;
+  private nameLabel: Label;
 
   constructor() {
     super();
+    this.image = new Sprite({
+      texture: Texture.from("spaceship_stage_1.svg"),
+      anchor: 0.5,
+      alpha: 1,
+      scale: scale,
+    });
+    this.addChild(this.image);
 
     this.arrow = new Sprite({
       texture: Texture.from("sun-pointer-ship-1.svg"),
@@ -19,12 +30,31 @@ export class Rocket extends BaseRocket {
       scale: scale,
     });
     this.addChild(this.arrow);
+
+    this.nameLabel = new Label({
+      text: "",
+      style: {
+        fontSize: 14,
+        fill: 0xffffff,
+        stroke: { color: 0x000000, width: 3 },
+        fontWeight: "bold",
+        fontFamily: "Science Gothic",
+      },
+    });
+    this.nameLabel.position.set(0, -36);
+    this.addChild(this.nameLabel);
   }
 
   /** Apply authoritative server PlayerState to update position, rotation, visual stage, and dash readiness */
   public applyPlayerState(state: PlayerState): void {
     super.applyBaseState(state);
     this.arrow.texture = Texture.from(`sun-pointer-ship-${this.getStage()}.svg`);
+    this.x = state.x;
+    this.y = state.y;
+    this.rotation = state.rotation + Math.PI / 2;
+    this.nameLabel.text = state.name || "Player";
+    this.nameLabel.rotation = -this.rotation;
+    this.setStage(state.size);
     this.dashAvailable = state.dashAvailable;
   }
 
@@ -64,6 +94,8 @@ export class Rocket extends BaseRocket {
   public override reset() {
     super.reset();
     this.targetPosition.set(0, 0);
+    this.rotation = 0;
+    this.nameLabel.rotation = 0;
     this.setSunPointer(false);
     this.dashAvailable = false;
     this.arrow.rotation = 0;

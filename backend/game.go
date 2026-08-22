@@ -26,6 +26,7 @@ const (
 	MatchDuration  float32    = 10 * 60
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2
+	PhaseFinished  MatchPhase = 3
 
 	BlackHolePull       float32 = 500
 	BlackHoleKillRadius float32 = 80
@@ -219,6 +220,18 @@ func (g *Game) Update(dt float64) {
 	}
 
 	g.handlePlayerCollisions()
+
+	aliveCount := 0
+
+	for _, player := range g.Players {
+		if player.Alive {
+			aliveCount++
+		}
+	}
+
+	if g.Phase == PhaseBlackHole && aliveCount == 0 {
+		g.Phase = PhaseFinished
+	}
 }
 
 func (g *Game) BuildWorldState() []byte {

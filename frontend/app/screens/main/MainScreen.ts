@@ -17,7 +17,7 @@ import {network, useGameStore} from "@/app/lib/store/gameStore";
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
-    private inputState = { x: 100, y: 0, dash: false };
+    private inputState = {x: 100, y: 0, dash: false};
 
     /** Assets bundles required by this screen */
     public static assetBundles = ["main"];
@@ -31,7 +31,7 @@ export class MainScreen extends Container {
     private enemyRockets: Map<number, EnemyRocket> = new Map();
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
-    private isTouchDevice =  isMobile.phone;
+    private isTouchDevice = isMobile.phone;
     private screenWidth = 0;
     private screenHeight = 0;
     private unsubscribeGameStore?: () => void;
@@ -69,7 +69,7 @@ export class MainScreen extends Container {
         );
         this.addChild(this.settingsButton);
 
-        this.timer = new Timer({ text: "00:00" });
+        this.timer = new Timer({text: "00:00"});
         this.addChild(this.timer);
 
         this.energyBar = new EnergyBar();
@@ -98,7 +98,7 @@ export class MainScreen extends Container {
 
                 this.inputState.x = scaledX;
                 this.inputState.y = scaledY;
-                
+
                 // Update local visual target
                 this.rocket.setTarget(scaledX, scaledY);
             };
@@ -159,7 +159,7 @@ export class MainScreen extends Container {
         if (localId !== null && state.players[localId]) {
             const player = state.players[localId];
             this.rocket.applyPlayerState(player);
-            this.setEnergy(player.energy);
+            this.setEnergy(player.energy, player.size);
         }
 
         for (const [idStr, player] of Object.entries(state.players)) {
@@ -197,8 +197,6 @@ export class MainScreen extends Container {
                 this.inputState.y,
                 this.inputState.dash
             );
-
-            console.log(`Sending Input -> X: ${this.inputState.x}, Y: ${this.inputState.y}, Dash: ${this.inputState.dash}`);
 
             network.send(inputBuffer);
         }
@@ -329,9 +327,9 @@ export class MainScreen extends Container {
         }
     }
 
-    /** Set energy current value and optional maximum */
-    public setEnergy(current: number, max?: number): void {
-        this.energyBar.setValue(current, max);
+    /** Set energy current value and optional level */
+    public setEnergy(current: number, level?: number): void {
+        this.energyBar.setValueForLevel(current, level);
     }
 
     /** Set energy progress directly from 0.0 to 1.0 */

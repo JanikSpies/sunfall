@@ -1,5 +1,71 @@
 import {type ColorSource, Container, Graphics, Sprite, Texture} from "pixi.js";
 
+/**
+ * Minimum energy threshold for each energy / size level.
+ * Level 1: 0
+ * Level 2: 200
+ * Level 3: 350
+ * Level 4: 600
+ * Level 5: 1000
+ */
+export const ENERGY_LEVEL_MIN: Record<number, number> = {
+  1: 0,
+  2: 200,
+  3: 350,
+  4: 600,
+  5: 1000,
+};
+
+/**
+ * Maximum energy threshold for each energy / size level.
+ * Level 1: < 200 (max: 200)
+ * Level 2: >= 200 (max: 350)
+ * Level 3: >= 350 (max: 600)
+ * Level 4: >= 600 (max: 1000)
+ * Level 5: >= 1000 (max: 1000)
+ */
+export const ENERGY_LEVEL_MAX: Record<number, number> = {
+  1: 200,
+  2: 350,
+  3: 600,
+  4: 1000,
+  5: 1000,
+};
+
+/**
+ * Get minimum energy threshold for a given energy level.
+ */
+export function getMinEnergyForLevel(level: number): number {
+  return ENERGY_LEVEL_MIN[level] ?? 0;
+}
+
+/**
+ * Get maximum energy threshold for a given energy level.
+ */
+export function getMaxEnergyForLevel(level: number): number {
+  return ENERGY_LEVEL_MAX[level] ?? ENERGY_LEVEL_MAX[1];
+}
+
+/**
+ * Get the energy capacity (range) needed to complete a given energy level.
+ */
+export function getEnergyCapacityForLevel(level: number): number {
+  const min = getMinEnergyForLevel(level);
+  const max = getMaxEnergyForLevel(level);
+  return Math.max(0, max - min);
+}
+
+/**
+ * Calculate the energy level (1-5) for a given energy amount.
+ */
+export function sizeLevelForEnergy(energy: number): number {
+  if (energy >= 1000) return 5;
+  if (energy >= 600) return 4;
+  if (energy >= 350) return 3;
+  if (energy >= 200) return 2;
+  return 1;
+}
+
 export interface EnergyBarOptions {
   scale?: number;
   fillColor?: ColorSource;
@@ -11,6 +77,7 @@ export interface EnergyBarOptions {
   borderWidth?: number;
   value?: number;
   maxValue?: number;
+  level?: number;
 }
 
 /**
@@ -53,20 +120,24 @@ export class EnergyBar extends Container {
       this.scale.set(options.scale);
     }
 
-    this.fillColor = options.fillColor ?? 0x00fffc;
+    this.fillColor = options.fillColor ?? 0x00ff00;
     this.fillAlpha = options.fillAlpha ?? 1.0;
     this.backgroundColor = options.backgroundColor ?? 0x000000;
     this.backgroundAlpha = options.backgroundAlpha ?? 0.5;
-    this.borderColor = options.borderColor ?? 0x00fffc;
+    this.borderColor = options.borderColor ?? 0x00ff00;
     this.borderAlpha = options.borderAlpha ?? 0;
     this.borderWidth = options.borderWidth ?? 0;
 
-    this._maxValue = options.maxValue ?? 100;
-    this._value = options.value ?? this._maxValue;
+    const level = options.level;
+    const defaultMax = level
+      ? getEnergyCapacityForLevel(level)
+      : (options.maxValue ?? getEnergyCapacityForLevel(1));
+    this._maxValue = options.maxValue ?? defaultMax;
+    this._value = options.value ?? 0;
     this._progress =
       this._maxValue > 0
         ? Math.min(Math.max(this._value / this._maxValue, 0), 1)
-        : 1;
+        : 0;
 
     // Layer 4 (Bottom): energy-hud-backdrop.svg
     this.backdropSprite = new Sprite({
@@ -188,9 +259,34 @@ export class EnergyBar extends Container {
   }
 
   /**
-   * Reset energy bar to full default value
+   * Set energy value and update max according to energy level.
+   * Energy progress is relative to the current level range:
+   * e.g., for Level 2 (200-350 energy), 200 energy gives a relative value of 0 (0% progress).
+   */
+  public setValueForLevel(current: number, level?: number): void {
+    const currentLevel = level ?? sizeLevelForEnergy(current);
+    const min = getMinEnergyForLevel(currentLevel);
+    const max = getMaxEnergyForLevel(currentLevel);
+    const capacity = Math.max(0, max - min);
+
+    if (capacity <= 0) {
+      // Max level (Level 5)
+      this._maxValue = 0;
+      this._value = Math.max(0, current - min);
+      this._progress = 1;
+    } else {
+      const levelValue = Math.min(Math.max(current - min, 0), capacity);
+      this._maxValue = capacity;
+      this._value = levelValue;
+      this._progress = levelValue / capacity;
+    }
+    this.drawFill();
+  }
+
+  /**
+   * Reset energy bar to initial level 1 state with 0 energy
    */
   public reset(): void {
-    this.setValue(this._maxValue, this._maxValue);
+    this.setValueForLevel(0, 1);
   }
 }

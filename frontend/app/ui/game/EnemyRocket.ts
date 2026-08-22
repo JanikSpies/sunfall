@@ -1,15 +1,15 @@
-import {Container, NineSliceSprite, Texture} from "pixi.js";
+import {Container, Sprite, Texture} from "pixi.js";
 import type {PlayerState} from "../../lib/models/PlayerState";
 
 const scale = 0.5;
 
 export class EnemyRocket extends Container {
-  private image: NineSliceSprite;
+  private image: Sprite;
   private stage = 1;
 
   constructor() {
     super();
-    this.image = new NineSliceSprite({
+    this.image = new Sprite({
       texture: Texture.from("spaceship_stage_1.svg"),
       anchor: 0.5,
       alpha: 1,

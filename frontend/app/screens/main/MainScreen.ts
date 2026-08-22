@@ -86,6 +86,8 @@ export class MainScreen extends Container {
                 this.rocket.applyPlayerState(player);
                 this.setEnergy(player.energy);
             }
+            this.timer.setTime(state.matchTimer);
+            this.gameMap.setSunRadius(state.sunRadius);
         });
 
         this.on("pointermove", this.handlePointerMove, this);
@@ -157,6 +159,8 @@ export class MainScreen extends Container {
             this.rocket.applyPlayerState(player);
             this.setEnergy(player.energy);
         }
+        this.timer.setTime(state.matchTimer);
+        this.gameMap.setSunRadius(state.sunRadius);
     }
 
     /** Update the screen */
@@ -195,8 +199,8 @@ export class MainScreen extends Container {
         const screenSunX = centerX + (sun.x - this.rocket.x);
         const screenSunY = centerY + (sun.y - this.rocket.y);
 
-        // Visible radius of the sun considering outer circle and current scale
-        const sunRadius = sun.outerCircle?.width ? sun.outerCircle.width * sun.scale.x * 0.5 : 150;
+        // Visible radius of the sun
+        const sunRadius = sun.radius;
 
         // Check if the sun intersects the screen viewport rectangle [0, screenWidth] x [0, screenHeight]
         const isSunOnScreen =

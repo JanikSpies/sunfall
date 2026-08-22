@@ -6,21 +6,35 @@ import {DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
 interface GameState {
     localPlayerId: number | null;
     players: Record<number, PlayerState>;
+    worldPhase: number;
+    matchTimer: number;
+    sunRadius: number;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
+    setMatchState: (worldPhase: number, matchTimer: number, sunRadius: number) => void;
     handleMessage: (message: DecodedMessage) => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
     localPlayerId: null,
     players: {},
+    worldPhase: 0,
+    matchTimer: 0,
+    sunRadius: 150,
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
+    setMatchState: (worldPhase, matchTimer, sunRadius) => set({ worldPhase, matchTimer, sunRadius }),
     handleMessage: (message: DecodedMessage) => {
         if (message.type === WebSocketTypes.CONNECTED) {
             set({ localPlayerId: message.id });
         } else if (message.type === WebSocketTypes.WORLD_STATE) {
             set({ players: message.players });
+        } else if (message.type === WebSocketTypes.MATCH_STATE) {
+            set({
+                worldPhase: message.worldPhase,
+                matchTimer: message.matchTimer,
+                sunRadius: message.sunRadius,
+            });
         }
     },
 }));

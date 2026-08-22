@@ -13,6 +13,7 @@ var game = NewGame()
 
 func main() {
 	ticker := time.NewTicker(time.Second / 30)
+	radarTicker := time.NewTicker(time.Second)
 
 	go func() {
 		last := time.Now()
@@ -23,6 +24,12 @@ func main() {
 
 			game.Update(dt)
 			game.BroadcastWorldState()
+		}
+	}()
+
+	go func() {
+		for range radarTicker.C {
+			game.BroadcastRadar()
 		}
 	}()
 

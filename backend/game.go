@@ -338,3 +338,18 @@ func (g *Game) BuildRadarPacket() []byte {
 
 	return buf
 }
+
+func (g *Game) BroadcastRadar() {
+	data := g.BuildRadarPacket()
+
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	for _, player := range g.Players {
+		select {
+		case player.Send <- data:
+		default:
+			// Slow client: skip this radar update.
+		}
+	}
+}

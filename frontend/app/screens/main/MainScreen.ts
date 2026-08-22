@@ -162,8 +162,9 @@ export class MainScreen extends Container {
             this.setEnergy(player.energy, player.size);
         }
 
-        for (const [idStr, player] of Object.entries(state.players)) {
-            const id = Number(idStr);
+        for (const idStr in state.players) {
+            const player = state.players[idStr];
+            const id = player.id;
             if (id === localId) continue;
 
             let enemyRocket = this.enemyRockets.get(id);

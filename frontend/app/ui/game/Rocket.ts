@@ -6,8 +6,6 @@ import {Label} from "../menu/Label";
 const scale = 0.5;
 
 export class Rocket extends BaseRocket {
-
-  private image: Sprite;
   public arrow: Sprite;
   public targetPosition: Point = new Point(0, 0);
   public dashAvailable: boolean = false;
@@ -15,14 +13,6 @@ export class Rocket extends BaseRocket {
 
   constructor() {
     super();
-    this.image = new Sprite({
-      texture: Texture.from("spaceship_stage_1.svg"),
-      anchor: 0.5,
-      alpha: 1,
-      scale: scale,
-    });
-    this.addChild(this.image);
-
     this.arrow = new Sprite({
       texture: Texture.from("sun-pointer-ship-1.svg"),
       anchor: 0.5,

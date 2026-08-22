@@ -1,7 +1,6 @@
-import {Container, Point, Sprite, Texture, type Ticker} from "pixi.js";
+import {Point, Sprite, Texture, type Ticker} from "pixi.js";
 import type {PlayerState} from "../../lib/models/PlayerState";
 import {BaseRocket} from "./BaseRocket";
-import {Label} from "../menu/Label";
 
 const scale = 0.5;
 
@@ -9,7 +8,6 @@ export class Rocket extends BaseRocket {
   public arrow: Sprite;
   public targetPosition: Point = new Point(0, 0);
   public dashAvailable: boolean = false;
-  private nameLabel: Label;
 
   constructor() {
     super();
@@ -20,19 +18,6 @@ export class Rocket extends BaseRocket {
       scale: scale,
     });
     this.addChild(this.arrow);
-
-    this.nameLabel = new Label({
-      text: "",
-      style: {
-        fontSize: 14,
-        fill: 0xffffff,
-        stroke: { color: 0x000000, width: 3 },
-        fontWeight: "bold",
-        fontFamily: "Science Gothic",
-      },
-    });
-    this.nameLabel.position.set(0, -36);
-    this.addChild(this.nameLabel);
   }
 
   /** Apply authoritative server PlayerState to update position, rotation, visual stage, and dash readiness */
@@ -42,8 +27,6 @@ export class Rocket extends BaseRocket {
     this.x = state.x;
     this.y = state.y;
     this.rotation = state.rotation + Math.PI / 2;
-    this.nameLabel.text = state.name || "Player";
-    this.nameLabel.rotation = -this.rotation;
     this.setStage(state.size);
     this.dashAvailable = state.dashAvailable;
   }
@@ -85,7 +68,6 @@ export class Rocket extends BaseRocket {
     super.reset();
     this.targetPosition.set(0, 0);
     this.rotation = 0;
-    this.nameLabel.rotation = 0;
     this.setSunPointer(false);
     this.dashAvailable = false;
     this.arrow.rotation = 0;

@@ -13,6 +13,7 @@ import {Timer} from "../../ui/game/Timer";
 import {EnergyBar} from "../../ui/game/EnergyBar";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
+import {StartScreen} from "../StartScreen";
 
 
 /** The screen that holds the app */
@@ -35,6 +36,7 @@ export class MainScreen extends Container {
     private screenWidth = 0;
     private screenHeight = 0;
     private unsubscribeGameStore?: () => void;
+    private deathTimeoutId: number | null = null;
 
     constructor() {
         super();
@@ -83,6 +85,7 @@ export class MainScreen extends Container {
 
         this.unsubscribeGameStore = useGameStore.subscribe((state) => {
             this.syncPlayers(state);
+            this.handleDeathState(state.isDead);
             this.timer.setTime(state.matchTimer);
             this.gameMap.setSunRadius(state.sunRadius);
         });
@@ -92,6 +95,8 @@ export class MainScreen extends Container {
         if (this.isTouchDevice) {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
+                if (useGameStore.getState().isDead) return;
+
                 // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
                 const scaledX = Math.round(dx * 100);
                 const scaledY = Math.round(dy * 100);
@@ -106,7 +111,7 @@ export class MainScreen extends Container {
 
             this.dashButton = new DashButton();
             this.dashButton.onDash = () => {
-                if (!this.rocket.canDash()) return;
+                if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
                 this.rocket.dash();
                 this.inputState.dash = true;
             };
@@ -119,14 +124,14 @@ export class MainScreen extends Container {
     private handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === "Space") {
             e.preventDefault();
-            if (!this.rocket.canDash()) return;
+            if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
             this.rocket.dash();
             this.inputState.dash = true;
         }
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
-        if (event.pointerType !== "mouse") return;
+        if (event.pointerType !== "mouse" || useGameStore.getState().isDead) return;
 
         // This converts the global mouse position into the mainContainer's local space.
         // Since mainContainer is centered, (0,0) is now the dead center of the canvas.
@@ -147,9 +152,33 @@ export class MainScreen extends Container {
         this.rocket.setTarget(dx, dy);
     }
 
+    private handleDeathState(isDead: boolean) {
+        if (isDead) {
+            this.rocket.visible = false;
+            this.rocket.setSunPointer(false);
+
+            if (this.deathTimeoutId === null) {
+                this.deathTimeoutId = window.setTimeout(async () => {
+                    this.deathTimeoutId = null;
+                    network?.disconnect();
+                    useGameStore.getState().resetGame();
+                    this.reset();
+                    await engine().navigation.showScreen(StartScreen);
+                }, 3000);
+            }
+        } else {
+            if (this.deathTimeoutId !== null) {
+                window.clearTimeout(this.deathTimeoutId);
+                this.deathTimeoutId = null;
+            }
+            this.rocket.visible = true;
+        }
+    }
+
     /** Prepare the screen just before showing */
     public prepare() {
         const state = useGameStore.getState();
+        this.handleDeathState(state.isDead);
         this.syncPlayers(state);
     }
 
@@ -192,22 +221,26 @@ export class MainScreen extends Container {
     public update(time: Ticker) {
         this.gameMap.update(time);
 
-        if (network) {
-            const inputBuffer = BinaryCodec.encodeInput(
-                this.inputState.x,
-                this.inputState.y,
-                this.inputState.dash
-            );
+        const isDead = useGameStore.getState().isDead;
+        if (!isDead) {
+            if (network) {
+                const inputBuffer = BinaryCodec.encodeInput(
+                    this.inputState.x,
+                    this.inputState.y,
+                    this.inputState.dash
+                );
 
-            network.send(inputBuffer);
+
+
+                network.send(inputBuffer);
+            }
+
+            this.rocket.update(time);
+            this.gameMap.setFocus(this.rocket.x, this.rocket.y);
+            this.updateSunPointer();
         }
 
         this.inputState.dash = false;
-
-        this.rocket.update(time);
-        this.gameMap.setFocus(this.rocket.x, this.rocket.y);
-
-        this.updateSunPointer();
     }
 
     /** Update rocket's sun pointer indicator based on sun visibility in viewport */
@@ -256,7 +289,12 @@ export class MainScreen extends Container {
 
     /** Fully reset */
     public reset() {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         this.rocket.reset();
+        this.rocket.visible = true;
         this.gameMap.reset();
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
@@ -378,12 +416,20 @@ export class MainScreen extends Container {
 
     /** Hide screen with animations */
     public async hide() {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         window.removeEventListener("keydown", this.handleKeyDown);
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
     }
 
     public override destroy(options?: DestroyOptions) {
+        if (this.deathTimeoutId !== null) {
+            window.clearTimeout(this.deathTimeoutId);
+            this.deathTimeoutId = null;
+        }
         this.unsubscribeGameStore?.();
         window.removeEventListener("keydown", this.handleKeyDown);
         for (const enemyRocket of this.enemyRockets.values()) {

@@ -4,6 +4,7 @@ import "sort"
 
 type PlayerNetState struct {
 	ID            uint16
+	Name          string
 	X             float32
 	Y             float32
 	Rotation      float32
@@ -43,6 +44,7 @@ func newVisibilitySnapshot(tick uint32, players map[uint16]*Player) *VisibilityS
 		player := players[uint16(rawID)]
 		state := PlayerNetState{
 			ID:            player.ID,
+			Name:          player.Name,
 			X:             player.X,
 			Y:             player.Y,
 			Rotation:      player.Rotation,

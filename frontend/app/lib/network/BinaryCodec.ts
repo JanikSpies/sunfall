@@ -41,6 +41,7 @@ export class BinaryCodec {
                 const playerCount = view.getInt16(1);
                 const players: Record<number, PlayerState> = {}; 
                 let offset = 3;
+                const decoder = new TextDecoder();
                 for (let i = 0; i < playerCount; i++) {
                     const id = view.getInt16(offset);
                     let player = BinaryCodec.playerPool.get(id);
@@ -71,9 +72,10 @@ export class BinaryCodec {
                 }
                 return {
                     type: WebSocketTypes.WORLD_STATE,
-                    playerCount: playerCount,
-                    players: players,
+                    playerCount,
+                    players,
                 };
+            };
             }
 
             case WebSocketTypes.MATCH_STATE:
@@ -83,6 +85,21 @@ export class BinaryCodec {
                     matchTimer: view.getFloat32(2),
                     sunRadius: view.getFloat32(6)
                 };
+
+            case WebSocketTypes.DEATH: {
+                const reason = view.byteLength >= 2 ? view.getUint8(1) : 0;
+                const deadId = view.byteLength >= 3 ? view.getUint16(1) : undefined;
+                const killerId = view.byteLength >= 5 ? view.getUint16(3) : undefined;
+                return {
+                    type: WebSocketTypes.DEATH,
+                    reason,
+                    deadId,
+                    killerId,
+                };
+            }
+
+            case WebSocketTypes.MATCH_RESET:
+                return { type: WebSocketTypes.MATCH_RESET };
 
             default:
                 return null;

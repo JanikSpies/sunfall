@@ -37,6 +37,9 @@ func buildConnectedPacket(player *Player) []byte {
 		math.Float32bits(player.Y),
 	)
 
+	// TODO: add direction
+	// Change min size of an information to 1 byte for better js compatibility
+
 	return buf
 }
 

@@ -120,6 +120,19 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 			inputX := int8(data[1])
 			inputY := int8(data[2])
+
+			if inputX == -128 {
+				inputX = -127
+			}
+
+			if inputY == -128 {
+				inputY = -127
+			}
+
+			if data[3] > 1 {
+				continue
+			}
+
 			dash := data[3] == 1
 
 			world.SetPlayerInput(

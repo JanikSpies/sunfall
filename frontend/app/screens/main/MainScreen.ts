@@ -9,7 +9,8 @@ import {PausePopup} from "../../popups/PausePopup";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
 import {GameMap} from "./GameMap";
-import { Sun } from "../../ui/game/Sun";
+import {Sun} from "../../ui/game/Sun";
+import {Timer} from "../../ui/game/Timer";
 
 
 /** The screen that holds the app */
@@ -18,6 +19,7 @@ export class MainScreen extends Container {
     public static assetBundles = ["main"];
 
     public mainContainer: Container;
+    public timer: Timer;
     private gameMap: GameMap;
     private pauseButton: FancyButton;
     private settingsButton: FancyButton;
@@ -71,6 +73,9 @@ export class MainScreen extends Container {
             engine().navigation.presentPopup(SettingsPopup),
         );
         this.addChild(this.settingsButton);
+
+        this.timer = new Timer({ text: "00:00" });
+        this.addChild(this.timer);
 
         this.gameMap = new GameMap();
         this.mainContainer.addChild(this.gameMap);
@@ -131,9 +136,37 @@ export class MainScreen extends Container {
         this.pauseButton.y = 30;
         this.settingsButton.x = width - 30;
         this.settingsButton.y = 30;
+        this.timer.x = centerX;
+        this.timer.y = 30;
 
 
         this.hitArea = new Rectangle(0, 0, width, height);
+    }
+
+    /** Update the timer text */
+    public setTimerText(text: string): void {
+        this.timer.setText(text);
+    }
+
+    /** Update the timer text (alias for setTimerText) */
+    public updateTimerText(text: string): void {
+        this.timer.setText(text);
+    }
+
+    /** Get the current timer text */
+    public getTimerText(): string {
+        return this.timer.getText();
+    }
+
+    /** Set the timer time in seconds or (minutes, seconds) */
+    public setTimerTime(seconds: number): void;
+    public setTimerTime(minutes: number, seconds: number): void;
+    public setTimerTime(minutesOrSeconds: number, maybeSeconds?: number): void {
+        if (maybeSeconds !== undefined) {
+            this.timer.setTime(minutesOrSeconds, maybeSeconds);
+        } else {
+            this.timer.setTime(minutesOrSeconds);
+        }
     }
 
     /** Show screen with animations */
@@ -143,7 +176,7 @@ export class MainScreen extends Container {
         const elementsToAnimate = [
             this.pauseButton,
             this.settingsButton,
-
+            this.timer,
         ];
 
         let finalPromise!: AnimationPlaybackControls;

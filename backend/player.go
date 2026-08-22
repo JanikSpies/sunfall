@@ -34,6 +34,7 @@ type Player struct {
 	Done     chan struct{}
 	LastPing time.Time
 	Send     chan []byte
+	doneOnce sync.Once
 	pingMu   sync.RWMutex
 }
 
@@ -108,10 +109,7 @@ func (p *Player) LastPingTime() time.Time {
 }
 
 func (p *Player) CloseDone() {
-	select {
-	case <-p.Done:
-		// already closed
-	default:
+	p.doneOnce.Do(func() {
 		close(p.Done)
-	}
+	})
 }

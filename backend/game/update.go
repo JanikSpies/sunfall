@@ -6,6 +6,16 @@ func (g *Game) Update(dt float64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	if g.Phase == PhaseFinished {
+		g.FinishedTime += float32(dt)
+
+		if g.FinishedTime >= 5 {
+			g.ResetMatch()
+		}
+
+		return
+	}
+
 	g.MatchTime += float32(dt)
 	progress := g.MatchTime / MatchDuration
 
@@ -13,7 +23,7 @@ func (g *Game) Update(dt float64) {
 		progress = 1
 	}
 
-	if g.MatchTime >= MatchDuration {
+	if g.Phase == PhaseSupernova && g.MatchTime >= MatchDuration {
 		g.Phase = PhaseBlackHole
 	}
 
@@ -170,16 +180,7 @@ func (g *Game) Update(dt float64) {
 
 	if g.Phase == PhaseBlackHole && aliveCount == 0 {
 		g.Phase = PhaseFinished
-	}
-
-	if g.Phase == PhaseFinished {
-		g.FinishedTime += float32(dt)
-
-		if g.FinishedTime >= 5 {
-			g.FinishedTime = 0
-			g.ResetMatch()
-		}
-
+		g.FinishedTime = 0
 		return
 	}
 }

@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	PacketPing            = 1
-	PacketPong            = 2
+	PacketPing       byte = 1
+	PacketPong       byte = 2
 	PacketConnected  byte = 3
 	PacketInput      byte = 4
 	PacketWorldState byte = 5

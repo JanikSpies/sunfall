@@ -26,26 +26,14 @@ func (g *Game) Update(dt float64) {
 
 	switch g.Phase {
 	case PhaseSupernova:
-		progress := g.PhaseElapsed / MatchDuration
-
-		if progress > 1 {
-			progress = 1
-		}
-
-		g.Sun.Radius =
-			g.Sun.StartRadius +
-				(g.Sun.EndRadius-g.Sun.StartRadius)*progress
+		g.Sun.update(g.Phase, g.PhaseElapsed)
 
 		if g.PhaseElapsed >= MatchDuration {
 			g.enterPhaseLocked(PhaseBlackHole)
 		}
 
 	case PhaseBlackHole:
-		g.Sun.BlackHoleRadius += BlackHoleGrowthPerSecond * elapsed
-
-		if g.Sun.BlackHoleRadius > g.Sun.BlackHoleMaxRadius {
-			g.Sun.BlackHoleRadius = g.Sun.BlackHoleMaxRadius
-		}
+		g.Sun.update(g.Phase, g.PhaseElapsed)
 	}
 
 	for _, player := range g.Players {
@@ -118,12 +106,12 @@ func (g *Game) Update(dt float64) {
 			player.Y = MapHalfSize
 		}
 
-		dx := player.X - g.Sun.X
-		dy := player.Y - g.Sun.Y
+		dx := player.X
+		dy := player.Y
 
 		if g.Phase == PhaseBlackHole {
-			dx := g.Sun.X - player.X
-			dy := g.Sun.Y - player.Y
+			dx := -player.X
+			dy := -player.Y
 
 			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 
@@ -145,7 +133,7 @@ func (g *Game) Update(dt float64) {
 				player.KnockbackY += ny * pullStrength * elapsed
 			}
 
-			if distance <= g.Sun.BlackHoleRadius+player.Radius {
+			if distance <= g.Sun.Radius+player.Radius {
 				g.killPlayer(player, DeathByBlackHole)
 				continue
 			}

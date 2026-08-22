@@ -46,7 +46,7 @@ func main() {
 		}
 	}()
 
-	matchStateTicker := time.NewTicker(time.Second)
+	matchStateTicker := time.NewTicker(time.Second / 10)
 	go func() {
 		for range matchStateTicker.C {
 			world.BroadcastMatchState()
@@ -104,10 +104,6 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	player.Send <- world.BuildConnectedPacket(&player)
 	player.Send <- world.BuildMatchStatePacket()
-
-	matchState := world.BuildMatchStatePacket()
-	player.Send <- matchState
-	player.Send <- matchState
 
 	for {
 		messageType, data, err := conn.Read(context.Background())

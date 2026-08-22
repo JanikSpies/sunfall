@@ -107,6 +107,15 @@ export class BinaryCodec {
             case WebSocketTypes.MATCH_RESET:
                 return { type: WebSocketTypes.MATCH_RESET };
 
+            case WebSocketTypes.DEATH:
+                return {
+                    type: WebSocketTypes.DEATH,
+                    reason: view.getUint8(1)
+                }
+
+            case WebSocketTypes.MATCH_RESET:
+                return { type: WebSocketTypes.MATCH_RESET };
+
             default:
                 return null;
         }

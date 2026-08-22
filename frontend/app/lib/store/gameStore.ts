@@ -1,7 +1,12 @@
 import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
-import {DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+import {DeathReason, DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+
+interface DeathEvent {
+    reason: DeathReason;
+    seq: number;
+}
 
 interface GameState {
     localPlayerId: number | null;
@@ -9,6 +14,8 @@ interface GameState {
     worldPhase: number;
     matchTimer: number;
     sunRadius: number;
+    deathEvent: DeathEvent | null;
+    matchResetSeq: number;
     playerName: string;
     isDead: boolean;
     setPlayerName: (name: string) => void;
@@ -25,6 +32,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     worldPhase: 0,
     matchTimer: 0,
     sunRadius: 150,
+    deathEvent: null,
+    matchResetSeq: 0,
     playerName: "",
     isDead: false,
     setPlayerName: (name) => set({ playerName: name }),
@@ -51,11 +60,13 @@ export const useGameStore = create<GameState>((set, get) => ({
                 sunRadius: message.sunRadius,
             });
         } else if (message.type === WebSocketTypes.DEATH) {
+            set({ deathEvent: { reason: message.reason, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });
             const localId = get().localPlayerId;
             if (message.deadId === undefined || message.deadId === localId) {
                 set({ isDead: true });
             }
         } else if (message.type === WebSocketTypes.MATCH_RESET) {
+            set({ matchResetSeq: get().matchResetSeq + 1 });
             set({ isDead: false });
         }
     },

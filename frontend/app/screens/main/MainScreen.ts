@@ -13,6 +13,7 @@ import {Timer} from "../../ui/game/Timer";
 import {EnergyBar} from "../../ui/game/EnergyBar";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
+import {DeathReason} from "@/app/lib/models/WebSocketTypes";
 import {StartScreen} from "../StartScreen";
 
 
@@ -30,6 +31,9 @@ export class MainScreen extends Container {
     private settingsButton: FancyButton;
     private rocket: Rocket;
     private enemyRockets: Map<number, EnemyRocket> = new Map();
+    private dyingEnemyIds: Set<number> = new Set();
+    private lastDeathSeq = 0;
+    private lastMatchResetSeq = 0;
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
     private isTouchDevice = isMobile.phone;
@@ -88,6 +92,7 @@ export class MainScreen extends Container {
             this.handleDeathState(state.isDead);
             this.timer.setTime(state.matchTimer);
             this.gameMap.setSunRadius(state.sunRadius);
+            this.handleLifecycleEvents(state);
         });
 
         this.on("pointermove", this.handlePointerMove, this);
@@ -201,20 +206,49 @@ export class MainScreen extends Container {
                 enemyRocket = new EnemyRocket();
                 this.enemyRockets.set(id, enemyRocket);
                 this.gameMap.addChild(enemyRocket);
+                enemyRocket.applyPlayerState(player);
+                void enemyRocket.playRespawn();
+                continue;
             }
             enemyRocket.applyPlayerState(player);
         }
 
         for (const [id, enemyRocket] of this.enemyRockets.entries()) {
+            if (this.dyingEnemyIds.has(id)) continue;
             if (!(id in state.players) || id === localId) {
-                this.gameMap.removeChild(enemyRocket);
-                enemyRocket.destroy();
-                this.enemyRockets.delete(id);
+                this.dyingEnemyIds.add(id);
+                void enemyRocket.playDyingExplosion().then(() => {
+                    this.gameMap.removeChild(enemyRocket);
+                    enemyRocket.destroy();
+                    this.enemyRockets.delete(id);
+                    this.dyingEnemyIds.delete(id);
+                });
             }
         }
 
         this.timer.setTime(state.matchTimer);
         this.gameMap.setSunRadius(state.sunRadius);
+    }
+
+    /** React to one-shot lifecycle events (death, match reset) that aren't part of steady PlayerState */
+    private handleLifecycleEvents(state: ReturnType<typeof useGameStore.getState>) {
+        if (state.deathEvent && state.deathEvent.seq !== this.lastDeathSeq) {
+            this.lastDeathSeq = state.deathEvent.seq;
+            void this.playLocalDeath(state.deathEvent.reason);
+        }
+
+        if (state.matchResetSeq !== this.lastMatchResetSeq) {
+            this.lastMatchResetSeq = state.matchResetSeq;
+            void this.rocket.playRespawn();
+        }
+    }
+
+    /** Play the local player's death sequence, chaining a sun-specific pre-animation when relevant */
+    private async playLocalDeath(reason: DeathReason): Promise<void> {
+        if (reason === DeathReason.SUN) {
+            await this.rocket.playFallingIntoSun();
+        }
+        await this.rocket.playDyingExplosion();
     }
 
     /** Update the screen */
@@ -236,10 +270,12 @@ export class MainScreen extends Container {
             }
 
             this.rocket.update(time);
+            for (const enemyRocket of this.enemyRockets.values()) {
+                enemyRocket.update(time);
+            }
             this.gameMap.setFocus(this.rocket.x, this.rocket.y);
             this.updateSunPointer();
         }
-
         this.inputState.dash = false;
     }
 
@@ -304,6 +340,7 @@ export class MainScreen extends Container {
             enemyRocket.destroy();
         }
         this.enemyRockets.clear();
+        this.dyingEnemyIds.clear();
     }
 
     /** Resize the screen, fired whenever window size changes */
@@ -437,6 +474,7 @@ export class MainScreen extends Container {
             enemyRocket.destroy();
         }
         this.enemyRockets.clear();
+        this.dyingEnemyIds.clear();
         super.destroy(options);
     }
 }

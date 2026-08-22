@@ -23,6 +23,20 @@
         },
         {
           "alias": [
+            "main/sun-outer-circle.svg",
+            "sun-outer-circle.svg"
+          ],
+          "src": [
+            "sun-outer-circle.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
             "main/sounds/bgm-main.mp3",
             "bgm-main.mp3"
           ],

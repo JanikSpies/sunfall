@@ -333,10 +333,7 @@ func (g *Game) BroadcastWorldState() {
 	}
 }
 
-func (g *Game) RandomSpawnPosition() (float32, float32) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
+func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 	for {
 		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
@@ -351,17 +348,18 @@ func (g *Game) RandomSpawnPosition() (float32, float32) {
 		}
 
 		valid := true
-		for _, player := range g.Players {
-			if !player.Alive {
+
+		for _, existing := range g.Players {
+			if !existing.Alive {
 				continue
 			}
 
-			dx := x - player.X
-			dy := y - player.Y
+			dx := x - existing.X
+			dy := y - existing.Y
 
 			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 
-			if distance < player.Radius+100 { // 100 is just a safe gap
+			if distance < existing.Radius+100 {
 				valid = false
 				break
 			}
@@ -521,7 +519,7 @@ func (g *Game) ResetMatch() {
 	g.Sun.BlackHoleRadius = 80
 
 	for _, player := range g.Players {
-		spawnX, spawnY := g.RandomSpawnPosition()
+		spawnX, spawnY := g.randomSpawnPositionLocked()
 
 		player.X = spawnX
 		player.Y = spawnY
@@ -563,7 +561,11 @@ func (g *Game) AddPlayer(player *Player) bool {
 		return false
 	}
 
-	for range 65535 {
+	var playerID uint16
+
+	foundID := false
+
+	for i := 0; i < 65535; i++ {
 		g.nextPlayerID++
 
 		if g.nextPlayerID == 0 {
@@ -574,11 +576,22 @@ func (g *Game) AddPlayer(player *Player) bool {
 			continue
 		}
 
-		player.ID = g.nextPlayerID
-		g.Players[player.ID] = player
-
-		return true
+		playerID = g.nextPlayerID
+		foundID = true
+		break
 	}
 
-	return false
+	if !foundID {
+		return false
+	}
+
+	spawnX, spawnY := g.randomSpawnPositionLocked()
+
+	player.ID = playerID
+	player.X = spawnX
+	player.Y = spawnY
+
+	g.Players[player.ID] = player
+
+	return true
 }

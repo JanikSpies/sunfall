@@ -54,10 +54,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
-	spawnX, spawnY := game.RandomSpawnPosition()
 	player := Player{
-		X:         spawnX,
-		Y:         spawnY,
 		Alive:     true,
 		Energy:    100,
 		Radius:    16,

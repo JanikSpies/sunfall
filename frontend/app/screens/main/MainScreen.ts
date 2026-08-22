@@ -4,7 +4,6 @@ import type {AnimationPlaybackControls} from "motion/react";
 import {Container, FederatedPointerEvent, isMobile, Rectangle, Ticker} from "pixi.js";
 
 import {engine} from "../../getEngine";
-import {PausePopup} from "../../popups/PausePopup";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
 import {GameMap} from "./GameMap";
@@ -22,7 +21,6 @@ export class MainScreen extends Container {
     public mainContainer: Container;
     public timer: Timer;
     private gameMap: GameMap;
-    private pauseButton: FancyButton;
     private settingsButton: FancyButton;
     private rocket: Rocket;
     private sun: Sun;
@@ -56,15 +54,6 @@ export class MainScreen extends Container {
                 duration: 100,
             },
         };
-        this.pauseButton = new FancyButton({
-            defaultView: "icon-pause.png",
-            anchor: 0.5,
-            animations: buttonAnimations,
-        });
-        this.pauseButton.onPress.connect(() =>
-            engine().navigation.presentPopup(PausePopup),
-        );
-        this.addChild(this.pauseButton);
 
         this.settingsButton = new FancyButton({
             defaultView: "icon-settings.png",
@@ -162,8 +151,6 @@ export class MainScreen extends Container {
 
         this.mainContainer.x = centerX;
         this.mainContainer.y = centerY;
-        this.pauseButton.x = 30;
-        this.pauseButton.y = 30;
         this.settingsButton.x = width - 30;
         this.settingsButton.y = 30;
         this.timer.x = centerX;
@@ -218,7 +205,6 @@ export class MainScreen extends Container {
         engine().audio.bgm.play("main/sounds/bgm-main.mp3", {volume: 0.5});
 
         const elementsToAnimate: Container[] = [
-            this.pauseButton,
             this.settingsButton,
             this.timer,
         ];
@@ -244,12 +230,5 @@ export class MainScreen extends Container {
         window.removeEventListener("keydown", this.handleKeyDown);
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
-    }
-
-    /** Auto pause the app when window go out of focus */
-    public blur() {
-        if (!engine().navigation.currentPopup) {
-            engine().navigation.presentPopup(PausePopup);
-        }
     }
 }

@@ -433,3 +433,21 @@ func (g *Game) BroadcastRadar() {
 		}
 	}
 }
+
+func (g *Game) BroadcastMatchState() {
+	g.mu.RLock()
+	data := buildMatchStatePacket(g)
+
+	players := make([]*Player, 0, len(g.Players))
+	for _, player := range g.Players {
+		players = append(players, player)
+	}
+	g.mu.RUnlock()
+
+	for _, player := range players {
+		select {
+		case player.Send <- data:
+		default:
+		}
+	}
+}

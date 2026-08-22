@@ -12,6 +12,7 @@ const (
 	PacketDeath      byte = 4
 	PacketDash       byte = 5
 	PacketRadar      byte = 6
+	PacketMatchState byte = 7
 )
 
 func buildConnectedPacket(player *Player) []byte {
@@ -39,4 +40,18 @@ func buildConnectedPacket(player *Player) []byte {
 
 func buildDeathPacket() []byte {
 	return []byte{PacketDeath}
+}
+
+func buildMatchStatePacket(game *Game) []byte {
+	buf := make([]byte, 6)
+
+	buf[0] = PacketMatchState
+	buf[1] = byte(game.Phase)
+
+	binary.BigEndian.PutUint32(
+		buf[2:6],
+		math.Float32bits(game.MatchTime),
+	)
+
+	return buf
 }

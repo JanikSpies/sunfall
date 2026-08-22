@@ -681,12 +681,3 @@ func (g *Game) RemoveTimedOutPlayers() {
 		)
 	}
 }
-
-func (p *Player) CloseDone() {
-	select {
-	case <-p.Done:
-		// already closed
-	default:
-		close(p.Done)
-	}
-}

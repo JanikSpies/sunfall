@@ -106,3 +106,12 @@ func (p *Player) LastPingTime() time.Time {
 
 	return p.LastPing
 }
+
+func (p *Player) CloseDone() {
+	select {
+	case <-p.Done:
+		// already closed
+	default:
+		close(p.Done)
+	}
+}

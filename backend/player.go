@@ -29,9 +29,10 @@ type Player struct {
 	Radius        float32
 	SizeLevel     uint8
 
-	Conn *websocket.Conn
-	Send chan []byte
-	Done chan struct{}
+	Conn     *websocket.Conn
+	Send     chan []byte
+	Done     chan struct{}
+	LastPing time.Time
 }
 
 func (p *Player) writeLoop() {

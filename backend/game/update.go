@@ -41,105 +41,12 @@ func (g *Game) Update(dt float64) {
 			continue
 		}
 
-		if player.DashCooldown > 0 {
-			player.DashCooldown -= elapsed
-
-			if player.DashCooldown < 0 {
-				player.DashCooldown = 0
-			}
-		}
-
-		if player.DashRequested {
-			inputX := float32(player.InputX) / 127.0
-			inputY := float32(player.InputY) / 127.0
-
-			length := float32(math.Sqrt(float64(inputX*inputX + inputY*inputY)))
-
-			if player.Energy >= DashEnergyCost && player.DashCooldown == 0 && length > 0 {
-				inputX /= length
-				inputY /= length
-
-				player.KnockbackX += inputX * DashForce
-				player.KnockbackY += inputY * DashForce
-
-				player.Energy -= DashEnergyCost
-				player.DashCooldown = DashCooldownDuration
-			}
-
-			player.DashRequested = false
-		}
-
-		inputX := float64(player.InputX) / 127.0
-		inputY := float64(player.InputY) / 127.0
-
-		length := math.Hypot(inputX, inputY)
-
-		if length > 1 {
-			inputX /= length
-			inputY /= length
-		}
-
-		if inputX != 0 || inputY != 0 {
-			player.Rotation = float32(math.Atan2(inputY, inputX))
-		}
-
-		player.VX = float32(inputX * PlayerSpeed)
-		player.VY = float32(inputY * PlayerSpeed)
-
-		player.X += (player.VX + player.KnockbackX) * elapsed
-		player.Y += (player.VY + player.KnockbackY) * elapsed
-
-		player.KnockbackX -= player.KnockbackX * KnockbackDecay * elapsed
-		player.KnockbackY -= player.KnockbackY * KnockbackDecay * elapsed
-
-		if player.X < -MapHalfSize {
-			player.X = -MapHalfSize
-		}
-		if player.X > MapHalfSize {
-			player.X = MapHalfSize
-		}
-
-		if player.Y < -MapHalfSize {
-			player.Y = -MapHalfSize
-		}
-		if player.Y > MapHalfSize {
-			player.Y = MapHalfSize
-		}
-
-		dx := player.X
-		dy := player.Y
-
-		if g.Phase == PhaseBlackHole {
-			dx := -player.X
-			dy := -player.Y
-
-			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-
-			if distance > 0 {
-				nx := dx / distance
-				ny := dy / distance
-
-				pullProgress := g.PhaseElapsed / BlackHoleRampTime
-
-				if pullProgress > 1 {
-					pullProgress = 1
-				}
-
-				pullStrength :=
-					BlackHolePullStart +
-						(BlackHolePullMax-BlackHolePullStart)*pullProgress
-
-				player.KnockbackX += nx * pullStrength * elapsed
-				player.KnockbackY += ny * pullStrength * elapsed
-			}
-
-			if distance <= g.Sun.Radius+player.Radius {
-				g.killPlayer(player, DeathByBlackHole)
-				continue
-			}
-		}
+		g.updatePlayerMovement(player, elapsed)
 
 		// calculate energy gain/loss based on distance to sun
+		dx := -player.X
+		dy := -player.Y
+
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 		factor := (NeutralEnergyDistance - distance) / NeutralEnergyDistance
 		energyGain := factor * MaxEnergyGain
@@ -162,4 +69,118 @@ func (g *Game) Update(dt float64) {
 		g.finishMatchLocked()
 		return
 	}
+}
+
+func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
+	if player.DashCooldown > 0 {
+		player.DashCooldown -= elapsed
+
+		if player.DashCooldown < 0 {
+			player.DashCooldown = 0
+		}
+	}
+
+	if player.DashRequested {
+		inputX := float32(player.InputX) / 127.0
+		inputY := float32(player.InputY) / 127.0
+
+		length := float32(math.Sqrt(float64(inputX*inputX + inputY*inputY)))
+
+		if player.Energy >= DashEnergyCost && player.DashCooldown == 0 && length > 0 {
+			inputX /= length
+			inputY /= length
+
+			player.KnockbackX += inputX * DashForce
+			player.KnockbackY += inputY * DashForce
+
+			player.Energy -= DashEnergyCost
+			player.DashCooldown = DashCooldownDuration
+		}
+
+		player.DashRequested = false
+	}
+
+	inputX := float64(player.InputX) / 127.0
+	inputY := float64(player.InputY) / 127.0
+
+	length := math.Hypot(inputX, inputY)
+
+	if length > 1 {
+		inputX /= length
+		inputY /= length
+	}
+
+	if inputX != 0 || inputY != 0 {
+		player.Rotation = float32(math.Atan2(inputY, inputX))
+	}
+
+	player.VX = float32(inputX * PlayerSpeed)
+	player.VY = float32(inputY * PlayerSpeed)
+
+	g.gravitationPull(player, elapsed)
+
+	player.X += (player.VX + player.KnockbackX) * elapsed
+	player.Y += (player.VY + player.KnockbackY) * elapsed
+
+	player.KnockbackX -= player.KnockbackX * KnockbackDecay * elapsed
+	player.KnockbackY -= player.KnockbackY * KnockbackDecay * elapsed
+}
+
+func (g *Game) gravitationPull(player *Player, elapsed float32) {
+	dx := -player.X
+	dy := -player.Y
+
+	distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+	if g.Phase == PhaseSupernova {
+		if distance <= 0 {
+			return
+		}
+
+		surfaceDistance := distance - g.Sun.Radius
+		if surfaceDistance < 0 {
+			surfaceDistance = 0
+		}
+
+		if surfaceDistance >= SupernovaGravityReach {
+			return
+		}
+
+		nx := dx / distance
+		ny := dy / distance
+
+		falloff := (SupernovaGravityReach - surfaceDistance) / SupernovaGravityReach
+
+		supernovaGravStrength := g.Sun.Radius * 0.01
+		pullStrength := supernovaGravStrength * falloff
+
+		// this good effect? or rather use player.VX and player.VY?
+		player.KnockbackX += nx * pullStrength * elapsed
+		player.KnockbackY += ny * pullStrength * elapsed
+
+	}
+	if g.Phase == PhaseBlackHole {
+		if distance <= 0 {
+			return
+		}
+
+		nx := dx / distance
+		ny := dy / distance
+
+		pullProgress := g.PhaseElapsed / BlackHoleRampTime
+		if pullProgress > 1 {
+			pullProgress = 1
+		}
+
+		pullStrength := BlackHolePullStart + (BlackHolePullMax-BlackHolePullStart)*pullProgress
+
+		player.KnockbackX += nx * pullStrength * elapsed
+		player.KnockbackY += ny * pullStrength * elapsed
+
+		// die if you collide with black hole
+		if distance <= g.Sun.Radius+player.Radius {
+			g.killPlayer(player, DeathByBlackHole)
+		}
+	}
+
 }

@@ -30,6 +30,8 @@ const (
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
+	SupernovaGravityReach float32 = 5000
+
 	BlackHolePullStart        float32 = 1800
 	BlackHolePullMax          float32 = 3600
 	BlackHoleRampTime         float32 = 8

@@ -42,6 +42,8 @@ services:
 
   prod_backend: &prod_backend
     image: ${IMAGE_PATH_BACKEND}
+    environment:
+      WS_ALLOWED_ORIGINS: "https://sunfall.io,https://www.sunfall.io"
     build:
       context: backend
     env_file:

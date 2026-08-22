@@ -29,7 +29,7 @@ export type ConnectedMessage = { type: WebSocketTypes.CONNECTED; id: number; x: 
 export type WorldStateMessage = { type: WebSocketTypes.WORLD_STATE; playerCount: number, players: Record<number, PlayerState> }
 export type ScoreboardMessage = { type: WebSocketTypes.SCOREBOARD; entries: ScoreboardEntry[] }
 export type DeathMessage = { type: WebSocketTypes.DEATH; deadId?: number; killerId?: number; reason?: DeathReason }
-export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE, worldPhase: number, matchTimer: number, sunRadius: number }
+export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE, worldPhase: number, matchTimer: number, sunScale: number }
 export type MatchResetMessage = { type: WebSocketTypes.MATCH_RESET }
 
 export type DecodedMessage =

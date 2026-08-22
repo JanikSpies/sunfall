@@ -106,7 +106,7 @@ export class BinaryCodec {
                     type: WebSocketTypes.MATCH_STATE,
                     worldPhase: view.getUint8(1),
                     matchTimer: view.getFloat32(2),
-                    sunRadius: view.getFloat32(6)
+                    sunScale: view.getFloat32(6)
                 };
 
             case WebSocketTypes.DEATH: {

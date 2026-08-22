@@ -19,6 +19,7 @@ type SunOptions = typeof defaultSunOptions;
  * a static outer circle base, and two independently rotating inner circles.
  */
 export class Sun extends Container {
+    private BACKEND_TRANSFORM_FACTOR: number = 0.475;
     private _sunScale: number = 1;
 
     public perimeter: Sprite;
@@ -68,7 +69,7 @@ export class Sun extends Container {
     /** Set the exact sun scale in world units (for scale 1 the sun is 500px by 500px) */
     public setSunScale(scale: number): void {
         this._sunScale = scale;
-        this.scale.set(scale);
+        this.scale.set(scale * this.BACKEND_TRANSFORM_FACTOR);
     }
 
     /** Set the sun scale (alias for setSunScale) */

@@ -23,20 +23,6 @@
         },
         {
           "alias": [
-            "main/sun-outer-circle.svg",
-            "sun-outer-circle.svg"
-          ],
-          "src": [
-            "sun-outer-circle.svg"
-          ],
-          "data": {
-            "tags": {
-              "m": true
-            }
-          }
-        },
-        {
-          "alias": [
             "main/sounds/bgm-main.mp3",
             "bgm-main.mp3"
           ],
@@ -160,12 +146,12 @@
         },
         {
           "alias": [
-            "main/game/sun-inner-circle.svg",
-            "main/sun-inner-circle.svg",
-            "sun-inner-circle.svg"
+            "main/game/sun-circle-outer.svg",
+            "main/sun-circle-outer.svg",
+            "sun-circle-outer.svg"
           ],
           "src": [
-            "main/game/sun-inner-circle.svg"
+            "main/game/sun-circle-outer.svg"
           ],
           "data": {
             "tags": {
@@ -175,12 +161,27 @@
         },
         {
           "alias": [
-            "main/game/sun-outer-circle.svg",
-            "main/sun-outer-circle.svg",
-            "sun-outer-circle.svg"
+            "main/game/sun-circle-1.svg",
+            "main/sun-circle-1.svg",
+            "sun-circle-1.svg"
           ],
           "src": [
-            "main/game/sun-outer-circle.svg"
+            "main/game/sun-circle-1.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-circle-2.svg",
+            "main/sun-circle-2.svg",
+            "sun-circle-2.svg"
+          ],
+          "src": [
+            "main/game/sun-circle-2.svg"
           ],
           "data": {
             "tags": {

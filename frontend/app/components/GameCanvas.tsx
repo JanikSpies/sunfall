@@ -22,7 +22,7 @@ export default function GameCanvas() {
                     import("../screens/main/MainScreen"),
                 ]);
 
-            (globalThis as any).APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+            (globalThis as Record<string, unknown>).APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 
             engine = new CreationEngine();
             setEngine(engine);

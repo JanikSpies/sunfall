@@ -1,46 +1,57 @@
-import type { Ticker } from "pixi.js";
-import { Sprite, Texture } from "pixi.js";
+import type {Ticker} from "pixi.js";
+import {Container, Sprite, Texture} from "pixi.js";
 
 const defaultSunOptions = {
-    size: 3000,
-    /** Rotation speed in radians per second */
-    rotationSpeed: 0.05,
+    /** Rotation speed in radians per second for circle 1 */
+    circle1RotationSpeed: 0.04,
+    /** Rotation speed in radians per second for circle 2 */
+    circle2RotationSpeed: -0.025,
 };
 
 type SunOptions = typeof defaultSunOptions;
 
 /**
- * Decorative sun shown permanently in the background.
- * Rotates slowly; call `update` every frame and `resize` whenever
- * the screen size changes to keep it centered and covering the view.
+ * Multi-layered sun object composed of a static outer circle
+ * and two independently rotating inner circles.
  */
-export class Sun extends Sprite {
-    private rotationSpeed: number;
+export class Sun extends Container {
+    public outerCircle: Sprite;
+    public circle1: Sprite;
+    public circle2: Sprite;
+    public circle1RotationSpeed: number;
+    public circle2RotationSpeed: number;
 
     constructor(options: Partial<SunOptions> = {}) {
+        super();
         const opts = { ...defaultSunOptions, ...options };
 
-        super({
-            texture: Texture.from("sun-outer-circle.svg"),
+        this.outerCircle = new Sprite({
+            texture: Texture.from("sun-circle-outer.svg"),
             anchor: 0.5,
-            width: opts.size,
-            height: opts.size,
         });
 
-        this.rotationSpeed = opts.rotationSpeed;
+        this.circle1 = new Sprite({
+            texture: Texture.from("sun-circle-1.svg"),
+            anchor: 0.5,
+        });
+
+        this.circle2 = new Sprite({
+            texture: Texture.from("sun-circle-2.svg"),
+            anchor: 0.5,
+        });
+
+        this.addChild(this.outerCircle);
+        this.addChild(this.circle1);
+        this.addChild(this.circle2);
+
+        this.circle1RotationSpeed = opts.circle1RotationSpeed;
+        this.circle2RotationSpeed = opts.circle2RotationSpeed;
     }
 
-    /** Advance the sun's rotation; call this from the screen's update loop */
-    public update(time: Ticker) {
-        this.rotation += this.rotationSpeed * (time.deltaTime / 60);
-    }
-
-    /** Keep the sun centered and large enough to cover the screen */
-    public resize(width: number, height: number) {
-        this.x = width * 0.5;
-        this.y = height * 0.5;
-
-        const scale = Math.max(width, height) / this.texture.width;
-        this.scale.set(scale);
+    /** Advance rotation of inner circles */
+    public update(time?: Ticker) {
+        const delta = time?.deltaTime ?? 1;
+        this.circle1.rotation += this.circle1RotationSpeed * (delta / 60);
+        this.circle2.rotation += this.circle2RotationSpeed * (delta / 60);
     }
 }

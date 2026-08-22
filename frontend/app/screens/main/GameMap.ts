@@ -1,7 +1,9 @@
-import {Container, Graphics} from "pixi.js";
+import {Container, Graphics, type Ticker} from "pixi.js";
+import {Sun} from "../../ui/game/Sun";
 
 export class GameMap extends Container {
   private background: Graphics;
+  public sun: Sun;
   public mapWidth: number;
   public mapHeight: number;
 
@@ -12,9 +14,12 @@ export class GameMap extends Container {
 
     this.background = this.createBackground(mapWidth, mapHeight);
     this.addChild(this.background);
+
+    this.sun = new Sun();
+    this.sun.position.set(0, 0);
+    this.addChild(this.sun);
   }
 
-  //TODO check if bg image or okey
   private createBackground(width: number, height: number): Graphics {
     const bg = new Graphics();
     const halfW = width / 2;
@@ -100,6 +105,11 @@ export class GameMap extends Container {
   /** Set camera focus / pivot position */
   public setFocus(x: number, y: number) {
     this.pivot.set(x, y);
+  }
+
+  /** Update map elements like the sun */
+  public update(time?: Ticker) {
+    this.sun.update(time);
   }
 
   /** Reset map pivot */

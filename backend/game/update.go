@@ -13,8 +13,6 @@ func (g *Game) Update(dt float64) {
 		progress = 1
 	}
 
-	g.MatchTime += float32(dt)
-
 	if g.MatchTime >= MatchDuration {
 		g.Phase = PhaseBlackHole
 	}

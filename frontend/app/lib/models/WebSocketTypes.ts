@@ -17,6 +17,7 @@ export interface ScoreboardEntry {
     energy: number;
 }
 
+
 export enum DeathReason {
     SUN = 1,
     BLACK_HOLE = 2,

@@ -9,6 +9,8 @@ import {PausePopup} from "../../popups/PausePopup";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
 import {GameMap} from "./GameMap";
+import { Sun } from "../../ui/game/Sun";
+
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
@@ -20,12 +22,18 @@ export class MainScreen extends Container {
     private pauseButton: FancyButton;
     private settingsButton: FancyButton;
     private rocket: Rocket;
+    private sun: Sun;
     private paused = false;
 
     constructor() {
         super();
 
         this.eventMode = "static";
+
+        this.mainContainer = new Container();
+        this.addChild(this.mainContainer);
+        this.sun = new Sun();
+        this.addChild(this.sun);
 
         this.mainContainer = new Container();
         this.addChild(this.mainContainer);
@@ -71,9 +79,9 @@ export class MainScreen extends Container {
         this.gameMap.addChild(this.rocket);
 
         this.on("pointermove", this.handlePointerMove, this);
-    }
+            }
 
-    private handlePointerMove(event: FederatedPointerEvent) {
+            private handlePointerMove(event: FederatedPointerEvent) {
         if (this.paused) return;
         const localPos = this.mainContainer.toLocal(event.global);
         this.rocket.setTarget(localPos.x, localPos.y);
@@ -85,6 +93,8 @@ export class MainScreen extends Container {
 
     /** Update the screen */
     public update(time: Ticker) {
+        this.sun.update(time);
+
         if (this.paused) return;
         this.rocket.update(time);
         this.gameMap.setFocus(this.rocket.x, this.rocket.y);
@@ -110,6 +120,8 @@ export class MainScreen extends Container {
 
     /** Resize the screen, fired whenever window size changes */
     public resize(width: number, height: number) {
+        this.sun.resize(width, height);
+
         const centerX = width * 0.5;
         const centerY = height * 0.5;
 
@@ -119,6 +131,7 @@ export class MainScreen extends Container {
         this.pauseButton.y = 30;
         this.settingsButton.x = width - 30;
         this.settingsButton.y = 30;
+
 
         this.hitArea = new Rectangle(0, 0, width, height);
     }
@@ -130,6 +143,7 @@ export class MainScreen extends Container {
         const elementsToAnimate = [
             this.pauseButton,
             this.settingsButton,
+
         ];
 
         let finalPromise!: AnimationPlaybackControls;
@@ -143,6 +157,7 @@ export class MainScreen extends Container {
         }
 
         await finalPromise;
+
     }
 
     /** Hide screen with animations */

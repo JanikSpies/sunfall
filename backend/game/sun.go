@@ -1,9 +1,11 @@
 package game
 
 type Sun struct {
-	Radius      float32
-	StartRadius float32
-	EndRadius   float32
+	Radius             float32
+	Scale              float32
+	StartRadius        float32
+	BlackHoleEndRadius float32
+}
 
 	BlackHoleStartRadius float32
 	BlackHoleMaxRadius   float32

@@ -39,6 +39,13 @@ func main() {
 		}
 	}()
 
+	pingTimeoutTicker := time.NewTicker(5 * time.Second)
+	go func() {
+		for range pingTimeoutTicker.C {
+			game.RemoveTimedOutPlayers()
+		}
+	}()
+
 	http.HandleFunc("/ws", handleWebSocket)
 
 	log.Println("Server running on :8080")

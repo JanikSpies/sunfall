@@ -6,12 +6,16 @@ import (
 	"math/rand"
 	"sort"
 	"sync"
+	"time"
+
+	"github.com/coder/websocket"
 )
 
 type MatchPhase uint8
 
 const (
-	MaxPlayers = 1000
+	MaxPlayers  = 1000
+	PingTimeout = 15 * time.Second
 
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
@@ -643,5 +647,30 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 	select {
 	case player.Send <- buildDeathPacket(reason):
 	default:
+	}
+}
+
+func (g *Game) RemoveTimedOutPlayers() {
+	now := time.Now()
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	for id, player := range g.Players {
+		if now.Sub(player.LastPing) > PingTimeout {
+			delete(g.Players, id)
+
+			select {
+			case <-player.Done:
+				// already closed
+			default:
+				close(player.Done)
+			}
+
+			player.Conn.Close(
+				websocket.StatusGoingAway,
+				"ping timeout",
+			)
+		}
 	}
 }

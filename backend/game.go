@@ -235,13 +235,18 @@ func (g *Game) handlePlayerCollisions() {
 			b.X += nx * push
 			b.Y += ny * push
 
-			bounceStrength := float32(250)
+			baseBounce := float32(250)
 
-			a.KnockbackX -= nx * bounceStrength
-			a.KnockbackY -= ny * bounceStrength
+			totalRadius := a.Radius + b.Radius
 
-			b.KnockbackX += nx * bounceStrength
-			b.KnockbackY += ny * bounceStrength
+			aForce := baseBounce * (b.Radius / totalRadius)
+			bForce := baseBounce * (a.Radius / totalRadius)
+
+			a.KnockbackX -= nx * aForce
+			a.KnockbackY -= ny * aForce
+
+			b.KnockbackX += nx * bForce
+			b.KnockbackY += ny * bForce
 		}
 	}
 }

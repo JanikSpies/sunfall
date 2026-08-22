@@ -10,6 +10,8 @@ import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
 import {GameMap} from "./GameMap";
 import {Sun} from "../../ui/game/Sun";
+import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
+import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
 
 
@@ -24,12 +26,23 @@ export class MainScreen extends Container {
     private pauseButton: FancyButton;
     private settingsButton: FancyButton;
     private rocket: Rocket;
+    private sun: Sun;
+    private virtualJoystick?: VirtualJoystick;
+    private dashButton?: DashButton;
+    private isTouchDevice = false;
     private paused = false;
 
     constructor() {
         super();
 
         this.eventMode = "static";
+
+        this.isTouchDevice =
+            typeof window !== "undefined" &&
+            window.matchMedia?.("(pointer: coarse) and (hover: none)").matches;
+
+        this.sun = new Sun();
+        this.addChild(this.sun);
 
         this.mainContainer = new Container();
         this.addChild(this.mainContainer);
@@ -68,6 +81,22 @@ export class MainScreen extends Container {
         );
         this.addChild(this.settingsButton);
 
+        if (this.isTouchDevice) {
+            this.virtualJoystick = new VirtualJoystick();
+            this.virtualJoystick.onMove = (dx, dy) => {
+                if (this.paused) return;
+                this.rocket.setTarget(dx * 100, dy * 100);
+            };
+            this.addChild(this.virtualJoystick);
+
+            this.dashButton = new DashButton();
+            this.dashButton.onDash = () => {
+                if (this.paused) return;
+                this.rocket.dash();
+            };
+            this.addChild(this.dashButton);
+        }
+
         this.timer = new Timer({ text: "00:00" });
         this.addChild(this.timer);
 
@@ -78,7 +107,17 @@ export class MainScreen extends Container {
         this.gameMap.addChild(this.rocket);
 
         this.on("pointermove", this.handlePointerMove, this);
+
+        window.addEventListener("keydown", this.handleKeyDown);
     }
+
+    private handleKeyDown = (e: KeyboardEvent) => {
+        if (this.paused || e.repeat) return;
+        if (e.code === "Space") {
+            e.preventDefault();
+            this.rocket.dash();
+        }
+    };
 
     private handlePointerMove(event: FederatedPointerEvent) {
         if (this.paused) return;
@@ -103,6 +142,8 @@ export class MainScreen extends Container {
     public async pause() {
         this.mainContainer.interactiveChildren = false;
         this.paused = true;
+        this.virtualJoystick?.reset();
+        this.dashButton?.reset();
     }
 
     /** Resume gameplay */
@@ -115,6 +156,8 @@ export class MainScreen extends Container {
     public reset() {
         this.rocket.reset();
         this.gameMap.reset();
+        this.virtualJoystick?.reset();
+        this.dashButton?.reset();
     }
 
     /** Resize the screen, fired whenever window size changes */
@@ -130,6 +173,20 @@ export class MainScreen extends Container {
         this.settingsButton.y = 30;
         this.timer.x = centerX;
         this.timer.y = 30;
+
+        if (this.virtualJoystick) {
+            const joyPadX = 115;
+            const joyPadY = 115;
+            this.virtualJoystick.x = joyPadX;
+            this.virtualJoystick.y = height - joyPadY;
+        }
+
+        if (this.dashButton) {
+            const btnPadX = 90;
+            const btnPadY = 90;
+            this.dashButton.x = width - btnPadX;
+            this.dashButton.y = height - btnPadY;
+        }
 
         this.hitArea = new Rectangle(0, 0, width, height);
     }
@@ -162,13 +219,16 @@ export class MainScreen extends Container {
 
     /** Show screen with animations */
     public async show(): Promise<void> {
+        window.addEventListener("keydown", this.handleKeyDown);
         engine().audio.bgm.play("main/sounds/bgm-main.mp3", {volume: 0.5});
 
-        const elementsToAnimate = [
+        const elementsToAnimate: Container[] = [
             this.pauseButton,
             this.settingsButton,
             this.timer,
         ];
+        if (this.virtualJoystick) elementsToAnimate.push(this.virtualJoystick);
+        if (this.dashButton) elementsToAnimate.push(this.dashButton);
 
         let finalPromise!: AnimationPlaybackControls;
         for (const element of elementsToAnimate) {
@@ -186,6 +246,9 @@ export class MainScreen extends Container {
 
     /** Hide screen with animations */
     public async hide() {
+        window.removeEventListener("keydown", this.handleKeyDown);
+        this.virtualJoystick?.reset();
+        this.dashButton?.reset();
     }
 
     /** Auto pause the app when window go out of focus */

@@ -48,6 +48,13 @@ export class Rocket extends Container {
     }
   }
 
+  /** Perform a discrete forward dash impulse */
+  public dash(multiplier: number = 3) {
+    const distance = this.speed * multiplier;
+    this.x += Math.sin(this.rotation) * distance;
+    this.y -= Math.cos(this.rotation) * distance;
+  }
+
   /** Update the rocket position with constant forward velocity */
   public update(time?: Ticker) {
     const delta = time?.deltaTime ?? 1;

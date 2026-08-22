@@ -371,7 +371,52 @@ func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 			return x, y
 		}
 	}
-	return -MapHalfSize + 100, -MapHalfSize + 100
+	return g.fallbackSpawnPositionLocked()
+}
+
+func (g *Game) fallbackSpawnPositionLocked() (float32, float32) {
+	candidates := [][2]float32{
+		{-MapHalfSize + 100, -MapHalfSize + 100},
+		{MapHalfSize - 100, -MapHalfSize + 100},
+		{-MapHalfSize + 100, MapHalfSize - 100},
+		{MapHalfSize - 100, MapHalfSize - 100},
+	}
+
+	bestX := candidates[0][0]
+	bestY := candidates[0][1]
+	bestDistance := float32(-1)
+
+	for _, candidate := range candidates {
+		x := candidate[0]
+		y := candidate[1]
+
+		nearestPlayerDistance := float32(math.MaxFloat32)
+
+		for _, player := range g.Players {
+			if !player.Alive {
+				continue
+			}
+
+			dx := x - player.X
+			dy := y - player.Y
+
+			distance := float32(math.Sqrt(
+				float64(dx*dx + dy*dy),
+			))
+
+			if distance < nearestPlayerDistance {
+				nearestPlayerDistance = distance
+			}
+		}
+
+		if nearestPlayerDistance > bestDistance {
+			bestDistance = nearestPlayerDistance
+			bestX = x
+			bestY = y
+		}
+	}
+
+	return bestX, bestY
 }
 
 func (g *Game) handlePlayerCollisions() {

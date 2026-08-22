@@ -612,7 +612,7 @@ func (g *Game) AddPlayer(player *Player) bool {
 
 	foundID := false
 
-	for i := 0; i < 65535; i++ {
+	for range 65535 {
 		g.nextPlayerID++
 
 		if g.nextPlayerID == 0 {

@@ -1,10 +1,10 @@
-import {Container, NineSliceSprite, Point, Sprite, Texture, type Ticker} from "pixi.js";
+import {Container, Point, Sprite, Texture, type Ticker} from "pixi.js";
 import type {PlayerState} from "../../lib/models/PlayerState";
 
 const scale = 0.5;
 
 export class Rocket extends Container {
-  private image: NineSliceSprite;
+  private image: Sprite;
   public arrow: Sprite;
   public targetPosition: Point = new Point(0, 0);
   private stage = 1;
@@ -12,7 +12,7 @@ export class Rocket extends Container {
 
   constructor() {
     super();
-    this.image = new NineSliceSprite({
+    this.image = new Sprite({
       texture: Texture.from("spaceship_stage_1.svg"),
       anchor: 0.5,
       alpha: 1,

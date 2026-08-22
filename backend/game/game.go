@@ -55,6 +55,8 @@ type Game struct {
 
 	Sun Sun
 
+	Scoreboard []ScoreboardEntry
+
 	MatchTime    float32
 	PhaseElapsed float32
 	Phase        MatchPhase

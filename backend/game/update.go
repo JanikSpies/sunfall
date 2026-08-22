@@ -16,6 +16,7 @@ func (g *Game) Update(dt float64) {
 	}
 
 	defer g.publishVisibilitySnapshotLocked()
+	defer g.updateScoreboardLocked()
 
 	if g.Phase == PhaseFinished {
 		g.PhaseElapsed += elapsed

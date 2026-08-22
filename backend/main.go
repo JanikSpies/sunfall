@@ -54,6 +54,17 @@ func main() {
 		}
 	}()
 
+	scoreboardTicker := time.NewTicker(time.Second / 2)
+	go func() {
+		for range scoreboardTicker.C {
+			func() {
+				defer recoverAndLog("scoreboard ticker")
+
+				world.BroadcastScoreboard()
+			}()
+		}
+	}()
+
 	pingTimeoutTicker := time.NewTicker(5 * time.Second)
 	go func() {
 		for range pingTimeoutTicker.C {

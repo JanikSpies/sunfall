@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
-import {DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+import {DecodedMessage, ScoreboardEntry, WebSocketTypes} from '../models/WebSocketTypes';
 
 interface GameState {
     localPlayerId: number | null;
@@ -9,6 +9,7 @@ interface GameState {
     worldPhase: number;
     matchTimer: number;
     sunRadius: number;
+    scoreboard: ScoreboardEntry[];
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
     setMatchState: (worldPhase: number, matchTimer: number, sunRadius: number) => void;
@@ -21,6 +22,7 @@ export const useGameStore = create<GameState>((set) => ({
     worldPhase: 0,
     matchTimer: 0,
     sunRadius: 150,
+    scoreboard: [],
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
     setMatchState: (worldPhase, matchTimer, sunRadius) => set({ worldPhase, matchTimer, sunRadius }),
@@ -29,6 +31,8 @@ export const useGameStore = create<GameState>((set) => ({
             set({ localPlayerId: message.id });
         } else if (message.type === WebSocketTypes.WORLD_STATE) {
             set({ players: message.players });
+        } else if (message.type === WebSocketTypes.SCOREBOARD) {
+            set({ scoreboard: message.entries });
         } else if (message.type === WebSocketTypes.MATCH_STATE) {
             set({
                 worldPhase: message.worldPhase,

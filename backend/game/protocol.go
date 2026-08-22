@@ -12,7 +12,6 @@ const (
 	PacketInput      byte = 4
 	PacketWorldState byte = 5
 	PacketDeath      byte = 6
-	PacketRadar      byte = 8
 	PacketMatchState byte = 9
 	PacketMatchReset byte = 10
 )
@@ -85,9 +84,14 @@ func buildMatchStatePacket(world *Game) []byte {
 	buf[0] = PacketMatchState
 	buf[1] = byte(world.Phase)
 
+	remaining := MatchDuration - world.MatchTime
+	if remaining < 0 {
+		remaining = 0
+	}
+
 	binary.BigEndian.PutUint32(
 		buf[2:6],
-		math.Float32bits(world.MatchTime),
+		math.Float32bits(remaining),
 	)
 
 	binary.BigEndian.PutUint32(

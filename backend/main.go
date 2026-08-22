@@ -43,17 +43,6 @@ func main() {
 		}
 	}()
 
-	radarTicker := time.NewTicker(time.Second)
-	go func() {
-		for range radarTicker.C {
-			func() {
-				defer recoverAndLog("radar ticker")
-
-				world.BroadcastRadar()
-			}()
-		}
-	}()
-
 	matchStateTicker := time.NewTicker(time.Second / 10)
 	go func() {
 		for range matchStateTicker.C {

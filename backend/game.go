@@ -664,7 +664,7 @@ func (g *Game) RemoveTimedOutPlayers() {
 	g.mu.Lock()
 
 	for id, player := range g.Players {
-		if now.Sub(player.LastPing) > PingTimeout {
+		if now.Sub(player.LastPingTime()) > PingTimeout {
 			delete(g.Players, id)
 			timedOut = append(timedOut, player)
 		}

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -30,9 +31,10 @@ type Player struct {
 	SizeLevel     uint8
 
 	Conn     *websocket.Conn
-	Send     chan []byte
 	Done     chan struct{}
 	LastPing time.Time
+	Send     chan []byte
+	pingMu   sync.RWMutex
 }
 
 func (p *Player) writeLoop() {
@@ -90,4 +92,17 @@ func radiusForSizeLevel(level uint8) float32 {
 	default:
 		return 16
 	}
+}
+
+func (p *Player) MarkPing() {
+	p.pingMu.Lock()
+	p.LastPing = time.Now()
+	p.pingMu.Unlock()
+}
+
+func (p *Player) LastPingTime() time.Time {
+	p.pingMu.RLock()
+	defer p.pingMu.RUnlock()
+
+	return p.LastPing
 }

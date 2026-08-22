@@ -33,7 +33,12 @@ func (g *Game) ResetMatch() {
 		player.DashRequested = false
 		player.DashCooldown = 0
 
-		player.Alive = false
+		player.Alive = true
+
+		select {
+		case player.Send <- buildMatchResetPacket():
+		default:
+		}
 	}
 }
 

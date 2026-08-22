@@ -116,10 +116,9 @@ func buildMatchStatePacket(world *Game) []byte {
 	)
 	offset += 4
 
-	sunScale := world.Sun.Radius / world.Sun.StartRadius
 	binary.BigEndian.PutUint32(
 		buf[offset:offset+4],
-		math.Float32bits(sunScale),
+		math.Float32bits(world.Sun.Scale),
 	)
 	offset += 4
 

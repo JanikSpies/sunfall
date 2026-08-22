@@ -1,7 +1,8 @@
-package main
+package game
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -29,12 +30,15 @@ type Player struct {
 	Radius        float32
 	SizeLevel     uint8
 
-	Conn *websocket.Conn
-	Send chan []byte
-	Done chan struct{}
+	Conn     *websocket.Conn
+	Done     chan struct{}
+	LastPing time.Time
+	Send     chan []byte
+	doneOnce sync.Once
+	pingMu   sync.RWMutex
 }
 
-func (p *Player) writeLoop() {
+func (p *Player) WriteLoop() {
 	for {
 		select {
 		case <-p.Done:
@@ -89,4 +93,23 @@ func radiusForSizeLevel(level uint8) float32 {
 	default:
 		return 16
 	}
+}
+
+func (p *Player) MarkPing() {
+	p.pingMu.Lock()
+	p.LastPing = time.Now()
+	p.pingMu.Unlock()
+}
+
+func (p *Player) LastPingTime() time.Time {
+	p.pingMu.RLock()
+	defer p.pingMu.RUnlock()
+
+	return p.LastPing
+}
+
+func (p *Player) CloseDone() {
+	p.doneOnce.Do(func() {
+		close(p.Done)
+	})
 }

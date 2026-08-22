@@ -17,6 +17,13 @@ const (
 	PacketMatchReset byte = 10
 )
 
+type DeathReason uint8
+
+const (
+	DeathBySun       DeathReason = 1
+	DeathByBlackHole DeathReason = 2
+)
+
 func buildConnectedPacket(player *Player) []byte {
 	buf := make([]byte, 11)
 
@@ -40,8 +47,8 @@ func buildConnectedPacket(player *Player) []byte {
 	return buf
 }
 
-func buildDeathPacket() []byte {
-	return []byte{PacketDeath}
+func buildDeathPacket(reason DeathReason) []byte {
+	return []byte{PacketDeath, byte(reason)}
 }
 
 func buildMatchStatePacket(game *Game) []byte {

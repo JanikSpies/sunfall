@@ -200,7 +200,7 @@ func (g *Game) Update(dt float64) {
 			}
 
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {
-				g.killPlayer(player)
+				g.killPlayer(player, DeathBySun)
 				continue
 			}
 		}
@@ -220,7 +220,7 @@ func (g *Game) Update(dt float64) {
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
 		if g.Phase == PhaseSupernova && distance <= g.Sun.Radius+player.Radius {
-			g.killPlayer(player)
+			g.killPlayer(player, DeathByBlackHole)
 			continue
 		}
 	}
@@ -633,7 +633,7 @@ func (g *Game) AddPlayer(player *Player) bool {
 	return true
 }
 
-func (g *Game) killPlayer(player *Player) {
+func (g *Game) killPlayer(player *Player, reason DeathReason) {
 	if !player.Alive {
 		return
 	}
@@ -641,7 +641,7 @@ func (g *Game) killPlayer(player *Player) {
 	player.Alive = false
 
 	select {
-	case player.Send <- buildDeathPacket():
+	case player.Send <- buildDeathPacket(reason):
 	default:
 	}
 }

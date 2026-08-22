@@ -26,14 +26,6 @@ export class NetworkTransport {
         this.socket.onerror = this.handleError.bind(this);
     }
 
-    private handleOpen() {
-        console.log("WebSocket connected.");
-        // Clear any pending reconnects
-        if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
-
-        this.pingIntervalId = window.setInterval(() => this.sendPing(), 2000);
-    }
-
     private handleMessage(event: MessageEvent) {
         if (!(event.data instanceof ArrayBuffer)) {
             console.warn("Received non-binary data. Ignoring.");
@@ -58,22 +50,33 @@ export class NetworkTransport {
         this.socket?.close(); // Force close to trigger the reconnect logic
     }
 
-    private sendPing() {
-        // this.send(BinaryMaker.createPing());
-        const tempBuffer = new ArrayBuffer(1);
-        const view = new DataView(tempBuffer);
-        view.setUint8(0, 0x02);
-        this.send(tempBuffer);
-    }
-
     public send(buffer: ArrayBuffer) {
         if (this.socket && this.socket.readyState === WebSocket.OPEN) {
             this.socket.send(buffer);
         }
     }
 
-    private cleanup() {
+    private handleOpen() {
+        console.log("WebSocket connected.");
+        
+        if (this.reconnectTimeoutId) clearTimeout(this.reconnectTimeoutId);
+
         if (this.pingIntervalId) window.clearInterval(this.pingIntervalId);
+
+        this.pingIntervalId = window.setInterval(() => this.sendPing(), 2000);
+    }
+
+    private sendPing() {
+        const pingBuffer = BinaryCodec.encodePing();
+        
+        this.send(pingBuffer);
+    }
+
+    private cleanup() {
+        if (this.pingIntervalId) {
+            window.clearInterval(this.pingIntervalId);
+            this.pingIntervalId = null;
+        }
         this.socket = null;
     }
 }

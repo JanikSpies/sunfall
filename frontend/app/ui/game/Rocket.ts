@@ -1,10 +1,9 @@
 import {Container, NineSliceSprite, Point, Texture, type Ticker} from "pixi.js";
-import {lerp} from "@/engine/utils/maths";
 
 export class Rocket extends Container {
   private image: NineSliceSprite;
   public targetPosition: Point = new Point(0, 0);
-  public ease = 0.1;
+  public speed = 4;
 
   constructor() {
     super();
@@ -26,24 +25,28 @@ export class Rocket extends Container {
     return this.image.height;
   }
 
-  /** Set target coordinates for the rocket to follow */
+  /** Set target aim coordinates relative to the rocket center */
   public setTarget(x: number, y: number) {
     this.targetPosition.set(x, y);
+    if (x !== 0 || y !== 0) {
+      this.rotation = Math.atan2(y, x) + Math.PI / 2;
+    }
   }
 
-  /** Update the rocket position and rotation towards the target */
+  /** Update the rocket position with constant forward velocity */
   public update(time?: Ticker) {
     const delta = time?.deltaTime ?? 1;
-    const factor = Math.min(1, this.ease * delta);
+    const clampedDelta = Math.min(delta, 2);
 
-    const dx = this.targetPosition.x - this.x;
-    const dy = this.targetPosition.y - this.y;
-    if (dx * dx + dy * dy > 0.01) {
-      this.rotation = Math.atan2(dy, dx) + Math.PI / 2;
+    if (this.targetPosition.x !== 0 || this.targetPosition.y !== 0) {
+      this.rotation = Math.atan2(this.targetPosition.y, this.targetPosition.x) + Math.PI / 2;
     }
 
-    this.x = lerp(this.x, this.targetPosition.x, factor);
-    this.y = lerp(this.y, this.targetPosition.y, factor);
+    const vx = Math.sin(this.rotation) * this.speed * clampedDelta;
+    const vy = -Math.cos(this.rotation) * this.speed * clampedDelta;
+
+    this.x += vx;
+    this.y += vy;
   }
 
   /** Reset the rocket position, rotation, and target */

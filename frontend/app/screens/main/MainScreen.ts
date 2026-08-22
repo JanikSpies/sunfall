@@ -8,6 +8,7 @@ import {engine} from "../../getEngine";
 import {PausePopup} from "../../popups/PausePopup";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
+import {GameMap} from "./GameMap";
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
@@ -15,6 +16,7 @@ export class MainScreen extends Container {
     public static assetBundles = ["main"];
 
     public mainContainer: Container;
+    private gameMap: GameMap;
     private pauseButton: FancyButton;
     private settingsButton: FancyButton;
     private rocket: Rocket;
@@ -62,8 +64,11 @@ export class MainScreen extends Container {
         );
         this.addChild(this.settingsButton);
 
+        this.gameMap = new GameMap();
+        this.mainContainer.addChild(this.gameMap);
+
         this.rocket = new Rocket();
-        this.mainContainer.addChild(this.rocket);
+        this.gameMap.addChild(this.rocket);
 
         this.on("pointermove", this.handlePointerMove, this);
     }
@@ -82,6 +87,7 @@ export class MainScreen extends Container {
     public update(time: Ticker) {
         if (this.paused) return;
         this.rocket.update(time);
+        this.gameMap.setFocus(this.rocket.x, this.rocket.y);
     }
 
     /** Pause gameplay - automatically fired when a popup is presented */
@@ -99,6 +105,7 @@ export class MainScreen extends Container {
     /** Fully reset */
     public reset() {
         this.rocket.reset();
+        this.gameMap.reset();
     }
 
     /** Resize the screen, fired whenever window size changes */

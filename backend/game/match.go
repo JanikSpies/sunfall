@@ -37,6 +37,7 @@ func (g *Game) startMatchLocked() {
 
 		player.X = spawnX
 		player.Y = spawnY
+		player.Rotation = randomSpawnRotation()
 
 		player.VX = 0
 		player.VY = 0

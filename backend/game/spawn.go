@@ -42,11 +42,16 @@ func (g *Game) AddPlayer(player *Player) bool {
 	player.ID = playerID
 	player.X = spawnX
 	player.Y = spawnY
+	player.Rotation = randomSpawnRotation()
 	player.Alive = g.Phase == PhaseSupernova
 
 	g.Players[player.ID] = player
 
 	return true
+}
+
+func randomSpawnRotation() float32 {
+	return float32(rand.Float64() * 2 * math.Pi)
 }
 
 func (g *Game) randomSpawnPositionLocked() (float32, float32) {

@@ -103,10 +103,10 @@ func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
 
 			player.Energy -= DashEnergyCost
 			player.DashCooldown = DashCooldownDuration
+			player.Dashed = true
 		}
 
 		player.DashRequested = false
-		player.Dashed = true
 	}
 
 	inputX := float64(player.InputX) / 127.0

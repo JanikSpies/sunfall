@@ -370,6 +370,10 @@ func (g *Game) handlePlayerCollisions() {
 			a := players[i]
 			b := players[j]
 
+			if !a.Alive || !b.Alive {
+				continue
+			}
+
 			dx := b.X - a.X
 			dy := b.Y - a.Y
 

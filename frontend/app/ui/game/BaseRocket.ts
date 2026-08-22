@@ -1,5 +1,5 @@
 import {animate} from "motion";
-import {Container, type DestroyOptions, Graphics, NineSliceSprite, Texture, type Ticker} from "pixi.js";
+import {Container, type DestroyOptions, Graphics, Sprite, Texture, type Ticker} from "pixi.js";
 import type {PlayerState} from "../../lib/models/PlayerState";
 
 const BASE_SCALE = 0.5;
@@ -84,7 +84,7 @@ function lerpColor(a: number, b: number, t: number): number {
  * trigger yet (see plan doc) until the backend/wire signals they need exist.
  */
 export class BaseRocket extends Container {
-  protected image: NineSliceSprite;
+  protected image: Sprite;
   protected stage = 1;
 
   private effectsBehind: Container;
@@ -103,7 +103,7 @@ export class BaseRocket extends Container {
     this.effectsBehind = new Container();
     this.addChild(this.effectsBehind);
 
-    this.image = new NineSliceSprite({
+    this.image = new Sprite({
       texture: Texture.from("spaceship_stage_1.svg"),
       anchor: 0.5,
       alpha: 1,

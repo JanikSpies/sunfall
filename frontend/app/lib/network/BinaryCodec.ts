@@ -5,7 +5,9 @@ export class BinaryCodec {
     private static readonly inputBuffer = new ArrayBuffer(4);
     private static readonly inputView = new DataView(BinaryCodec.inputBuffer);
     private static readonly pingBuffer = new Uint8Array([WebSocketTypes.PING]).buffer;
-    private static readonly playerPool = new Map<number, PlayerState>();
+    private static readonly playerPool: Record<number, PlayerState> = {};
+    private static readonly activeIds: number[] = [];
+    private static readonly textDecoder = new TextDecoder();
 
     public static encodeInput(x: number, y: number, dash: boolean): ArrayBuffer {
         BinaryCodec.inputView.setUint8(0, 0x04);
@@ -39,9 +41,9 @@ export class BinaryCodec {
 
             case WebSocketTypes.WORLD_STATE: {
                 const playerCount = view.getInt16(1);
-                const players: Record<number, PlayerState> = {}; 
+                const players = BinaryCodec.playerPool;
+                BinaryCodec.activeIds.length = 0;
                 let offset = 3;
-                const decoder = new TextDecoder();
                 for (let i = 0; i < playerCount; i++) {
                     const id = view.getInt16(offset);
                     const x = view.getFloat32(offset + 2);
@@ -60,23 +62,48 @@ export class BinaryCodec {
                         entrySize = 22 + nameLen;
                         if (view.byteLength >= offset + entrySize) {
                             const nameBytes = new Uint8Array(buffer, offset + 22, nameLen);
-                            name = decoder.decode(nameBytes) || "Player";
+                            name = BinaryCodec.textDecoder.decode(nameBytes) || "Player";
                         }
                     }
 
-                    players[id] = {
-                        id,
-                        name,
-                        x,
-                        y,
-                        rotation,
-                        energy,
-                        size,
-                        dashAvailable,
-                        dashed,
-                    };
+                    BinaryCodec.activeIds.push(id);
+
+                    let player = players[id];
+                    if (!player) {
+                        player = {
+                            id,
+                            name,
+                            x,
+                            y,
+                            rotation,
+                            energy,
+                            size,
+                            dashAvailable,
+                            dashed,
+                        };
+                        players[id] = player;
+                    } else {
+                        player.id = id;
+                        player.name = name;
+                        player.x = x;
+                        player.y = y;
+                        player.rotation = rotation;
+                        player.energy = energy;
+                        player.size = size;
+                        player.dashAvailable = dashAvailable;
+                        player.dashed = dashed;
+                    }
+
                     offset += entrySize;
                 }
+
+                for (const key in players) {
+                    const numId = Number(key);
+                    if (!BinaryCodec.activeIds.includes(numId)) {
+                        delete players[numId];
+                    }
+                }
+
                 return {
                     type: WebSocketTypes.WORLD_STATE,
                     playerCount,
@@ -120,15 +147,6 @@ export class BinaryCodec {
                     killerId,
                 };
             }
-
-            case WebSocketTypes.MATCH_RESET:
-                return { type: WebSocketTypes.MATCH_RESET };
-
-            case WebSocketTypes.DEATH:
-                return {
-                    type: WebSocketTypes.DEATH,
-                    reason: view.getUint8(1)
-                }
 
             case WebSocketTypes.MATCH_RESET:
                 return { type: WebSocketTypes.MATCH_RESET };

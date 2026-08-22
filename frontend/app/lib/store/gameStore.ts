@@ -49,10 +49,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         worldPhase: 0,
         matchTimer: 0,
         sunScale: 1,
+        deathEvent: null,
+        matchResetSeq: 0,
     }),
     handleMessage: (message: DecodedMessage) => {
         if (message.type === WebSocketTypes.CONNECTED) {
-            set({ localPlayerId: message.id, isDead: false });
+            set({ localPlayerId: message.id, isDead: false, deathEvent: null });
         } else if (message.type === WebSocketTypes.WORLD_STATE) {
             set({ players: message.players });
         } else if (message.type === WebSocketTypes.SCOREBOARD) {
@@ -70,8 +72,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 set({ isDead: true });
             }
         } else if (message.type === WebSocketTypes.MATCH_RESET) {
-            set({ matchResetSeq: get().matchResetSeq + 1 });
-            set({ isDead: false });
+            set({ matchResetSeq: get().matchResetSeq + 1, isDead: false, deathEvent: null });
         }
     },
 }));

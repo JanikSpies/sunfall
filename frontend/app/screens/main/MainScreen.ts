@@ -31,7 +31,7 @@ export class MainScreen extends Container {
     private scoreboard?: Scoreboard;
     private gameMap: GameMap;
     private settingsButton: FancyButton;
-    private rocket: Rocket;
+    private rocket!: Rocket;
     private enemyRockets: Map<number, EnemyRocket> = new Map();
     private dyingEnemyIds: Set<number> = new Set();
     private lastDeathSeq = 0;
@@ -91,8 +91,7 @@ export class MainScreen extends Container {
         this.gameMap = new GameMap();
         this.mainContainer.addChild(this.gameMap);
 
-        this.rocket = new Rocket();
-        this.gameMap.addChild(this.rocket);
+        this.createRocket();
 
         this.unsubscribeGameStore = useGameStore.subscribe((state) => {
             this.syncPlayers(state);
@@ -108,7 +107,7 @@ export class MainScreen extends Container {
         if (this.isTouchDevice) {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
-                if (useGameStore.getState().isDead) return;
+                if (useGameStore.getState().isDead || !this.rocket) return;
 
                 // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
                 const scaledX = Math.round(dx * 100);
@@ -124,27 +123,39 @@ export class MainScreen extends Container {
 
             this.dashButton = new DashButton();
             this.dashButton.onDash = () => {
-                if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
+                if (useGameStore.getState().isDead || !this.rocket || !this.rocket.canDash()) return;
                 this.rocket.dash();
                 this.inputState.dash = true;
             };
             this.addChild(this.dashButton);
         }
+    }
 
-        window.addEventListener("keydown", this.handleKeyDown);
+    private createRocket() {
+        this.destroyRocket();
+        this.rocket = new Rocket();
+        this.gameMap.addChild(this.rocket);
+    }
+
+    private destroyRocket() {
+        if (this.rocket) {
+            this.gameMap.removeChild(this.rocket);
+            this.rocket.destroy();
+            this.rocket = undefined as unknown as Rocket;
+        }
     }
 
     private handleKeyDown = (e: KeyboardEvent) => {
         if (e.code === "Space") {
             e.preventDefault();
-            if (useGameStore.getState().isDead || !this.rocket.canDash()) return;
+            if (useGameStore.getState().isDead || !this.rocket || !this.rocket.canDash()) return;
             this.rocket.dash();
             this.inputState.dash = true;
         }
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
-        if (event.pointerType !== "mouse" || useGameStore.getState().isDead) return;
+        if (event.pointerType !== "mouse" || useGameStore.getState().isDead || !this.rocket) return;
 
         // This converts the global mouse position into the mainContainer's local space.
         // Since mainContainer is centered, (0,0) is now the dead center of the canvas.
@@ -167,8 +178,7 @@ export class MainScreen extends Container {
 
     private handleDeathState(isDead: boolean) {
         if (isDead) {
-            this.rocket.visible = false;
-            this.rocket.setSunPointer(false);
+            this.rocket?.setSunPointer(false);
 
             if (this.deathTimeoutId === null) {
                 this.deathTimeoutId = window.setTimeout(async () => {
@@ -184,12 +194,17 @@ export class MainScreen extends Container {
                 window.clearTimeout(this.deathTimeoutId);
                 this.deathTimeoutId = null;
             }
-            this.rocket.visible = true;
+            if (this.rocket) {
+                this.rocket.visible = true;
+            }
         }
     }
 
     /** Prepare the screen just before showing */
     public prepare() {
+        this.lastDeathSeq = 0;
+        this.lastMatchResetSeq = 0;
+        this.createRocket();
         const state = useGameStore.getState();
         this.handleDeathState(state.isDead);
         this.syncPlayers(state);
@@ -198,7 +213,7 @@ export class MainScreen extends Container {
     /** Synchronize local and remote player entities with game store state */
     private syncPlayers(state: ReturnType<typeof useGameStore.getState>) {
         const localId = state.localPlayerId;
-        if (localId !== null && state.players[localId]) {
+        if (localId !== null && state.players[localId] && this.rocket) {
             const player = state.players[localId];
             this.rocket.applyPlayerState(player);
             this.setEnergy(player.energy, player.size);
@@ -248,16 +263,21 @@ export class MainScreen extends Container {
 
         if (state.matchResetSeq !== this.lastMatchResetSeq) {
             this.lastMatchResetSeq = state.matchResetSeq;
-            void this.rocket.playRespawn();
+            if (this.rocket) {
+                void this.rocket.playRespawn();
+            }
         }
     }
 
     /** Play the local player's death sequence, chaining a sun-specific pre-animation when relevant */
     private async playLocalDeath(reason: DeathReason): Promise<void> {
+        if (!this.rocket) return;
         if (reason === DeathReason.SUN) {
             await this.rocket.playFallingIntoSun();
         }
-        await this.rocket.playDyingExplosion();
+        if (this.rocket) {
+            await this.rocket.playDyingExplosion();
+        }
     }
 
     /** Update the screen */
@@ -265,15 +285,13 @@ export class MainScreen extends Container {
         this.gameMap.update(time);
 
         const isDead = useGameStore.getState().isDead;
-        if (!isDead) {
+        if (!isDead && this.rocket) {
             if (network) {
                 const inputBuffer = BinaryCodec.encodeInput(
                     this.inputState.x,
                     this.inputState.y,
                     this.inputState.dash
                 );
-
-
 
                 network.send(inputBuffer);
             }
@@ -338,8 +356,10 @@ export class MainScreen extends Container {
             window.clearTimeout(this.deathTimeoutId);
             this.deathTimeoutId = null;
         }
-        this.rocket.reset();
-        this.rocket.visible = true;
+        this.destroyRocket();
+        this.lastDeathSeq = 0;
+        this.lastMatchResetSeq = 0;
+        this.inputState = {x: 100, y: 0, dash: false};
         this.gameMap.reset();
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
@@ -485,6 +505,7 @@ export class MainScreen extends Container {
             this.deathTimeoutId = null;
         }
         this.unsubscribeGameStore?.();
+        this.destroyRocket();
         window.removeEventListener("keydown", this.handleKeyDown);
         for (const enemyRocket of this.enemyRockets.values()) {
             this.gameMap.removeChild(enemyRocket);

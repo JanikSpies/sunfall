@@ -54,23 +54,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
-	game.mu.RLock()
-	full := len(game.Players) >= MaxPlayers
-	game.mu.RUnlock()
-
-	if full {
-		conn.Close(websocket.StatusTryAgainLater, "server full")
-		return
-	}
-
 	spawnX, spawnY := game.RandomSpawnPosition()
-	playerID, ok := game.NextPlayerID()
-	if !ok {
-		conn.Close(websocket.StatusTryAgainLater, "server full")
-		return
-	}
 	player := Player{
-		ID:        playerID,
 		X:         spawnX,
 		Y:         spawnY,
 		Alive:     true,
@@ -80,6 +65,10 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Conn:      conn,
 		Send:      make(chan []byte, 32),
 		Done:      make(chan struct{}),
+	}
+	if !game.AddPlayer(&player) {
+		conn.Close(websocket.StatusTryAgainLater, "server full")
+		return
 	}
 
 	game.mu.Lock()

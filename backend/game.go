@@ -67,25 +67,6 @@ func NewGame() *Game {
 	}
 }
 
-func (g *Game) NextPlayerID() (uint16, bool) {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-
-	for range 65535 {
-		g.nextPlayerID++
-
-		if g.nextPlayerID == 0 {
-			g.nextPlayerID = 1
-		}
-
-		if _, exists := g.Players[g.nextPlayerID]; !exists {
-			return g.nextPlayerID, true
-		}
-	}
-
-	return 0, false
-}
-
 func (g *Game) Update(dt float64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -548,4 +529,32 @@ func (g *Game) RemovePlayer(id uint16) {
 	defer g.mu.Unlock()
 
 	delete(g.Players, id)
+}
+
+func (g *Game) AddPlayer(player *Player) bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	if len(g.Players) >= MaxPlayers {
+		return false
+	}
+
+	for range 65535 {
+		g.nextPlayerID++
+
+		if g.nextPlayerID == 0 {
+			g.nextPlayerID = 1
+		}
+
+		if _, exists := g.Players[g.nextPlayerID]; exists {
+			continue
+		}
+
+		player.ID = g.nextPlayerID
+		g.Players[player.ID] = player
+
+		return true
+	}
+
+	return false
 }

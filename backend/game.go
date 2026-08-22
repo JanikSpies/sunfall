@@ -15,6 +15,7 @@ const (
 	MaxEnergyGain float32 = 10
 	EnergyRange   float32 = 1000
 
+	DashEnergyCost float32 = 25
 	KnockbackDecay float32 = 6
 )
 
@@ -55,6 +56,14 @@ func (g *Game) Update(dt float64) {
 	for _, player := range g.Players {
 		if !player.Alive {
 			continue
+		}
+
+		if player.DashRequested {
+			if player.Energy >= DashEnergyCost {
+				player.Energy -= DashEnergyCost
+			}
+
+			player.DashRequested = false
 		}
 
 		inputX := float64(player.InputX) / 127.0

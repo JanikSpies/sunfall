@@ -22,10 +22,11 @@ type Player struct {
 	InputX int8
 	InputY int8
 
-	Alive     bool
-	Energy    float32
-	Radius    float32
-	SizeLevel uint8
+	Alive         bool
+	DashRequested bool
+	Energy        float32
+	Radius        float32
+	SizeLevel     uint8
 
 	Conn *websocket.Conn
 	Send chan []byte

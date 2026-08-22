@@ -27,9 +27,9 @@ const (
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
-	BlackHolePullStart       float32 = 300
-	BlackHolePullMax         float32 = 1200
-	BlackHoleRampTime        float32 = 20
+	BlackHolePullStart       float32 = 1800
+	BlackHolePullMax         float32 = 3600
+	BlackHoleRampTime        float32 = 8
 	BlackHoleGrowthPerSecond float32 = 60
 )
 

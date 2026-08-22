@@ -22,7 +22,10 @@ const (
 	DashForce            float32 = 700
 	KnockbackDecay       float32 = 6
 
-	MatchDuration  float32    = 10 * 60
+	MatchDuration     float32 = 10 * 60
+	FinishedDuration  float32 = 5
+	BlackHoleDuration float32 = 20
+
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
@@ -41,8 +44,8 @@ type Game struct {
 
 	Sun Sun
 
-	FinishedTime float32
 	MatchTime    float32
+	PhaseElapsed float32
 	Phase        MatchPhase
 }
 

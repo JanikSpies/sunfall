@@ -42,10 +42,7 @@ func (g *Game) AddPlayer(player *Player) bool {
 	player.ID = playerID
 	player.X = spawnX
 	player.Y = spawnY
-
-	if g.Phase == PhaseFinished {
-		player.Alive = false
-	}
+	player.Alive = g.Phase == PhaseSupernova
 
 	g.Players[player.ID] = player
 

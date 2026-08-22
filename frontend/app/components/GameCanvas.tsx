@@ -2,7 +2,7 @@
 
 import {useEffect, useRef} from "react";
 import {CreationEngine} from "@/engine/engine";
-import { initNetwork, useGameStore } from "../lib/store/gameStore";
+import {initNetwork, useGameStore} from "../lib/store/gameStore";
 
 
 export default function GameCanvas() {
@@ -57,6 +57,7 @@ export default function GameCanvas() {
                 const title = new Text({
                     text: "Sunfall",
                     style: new TextStyle({
+                        fontFamily: "Science Gothic",
                         fill: 0xf8fafc,
                         fontSize: 48,
                         fontWeight: "700",

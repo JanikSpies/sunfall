@@ -1,5 +1,5 @@
-import { PlayerState } from "../models/PlayerState";
-import { DecodedMessage, WebSocketTypes } from "../models/WebSocketTypes";
+import {PlayerState} from "../models/PlayerState";
+import {DecodedMessage, WebSocketTypes} from "../models/WebSocketTypes";
 
 export class BinaryCodec {
     public static encodeInput(x: number, y: number, dash: boolean): ArrayBuffer {
@@ -70,7 +70,6 @@ export class BinaryCodec {
                 }
 
             default:
-                console.warn(`Unknown WebSocket message type received: ${type}`);
                 return null;
         }
     }

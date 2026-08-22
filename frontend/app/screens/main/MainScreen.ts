@@ -198,8 +198,6 @@ export class MainScreen extends Container {
                 this.inputState.dash
             );
 
-            console.log(`Sending Input -> X: ${this.inputState.x}, Y: ${this.inputState.y}, Dash: ${this.inputState.dash}`);
-
             network.send(inputBuffer);
         }
 

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 	"math/rand"
+	"sort"
 	"sync"
 )
 
@@ -289,4 +290,51 @@ func (g *Game) handlePlayerCollisions() {
 			b.KnockbackY += ny * bForce
 		}
 	}
+}
+
+func (g *Game) BuildRadarPacket() []byte {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	players := make([]*Player, 0, len(g.Players))
+
+	for _, player := range g.Players {
+		if player.Alive {
+			players = append(players, player)
+		}
+	}
+
+	sort.Slice(players, func(i, j int) bool {
+		return players[i].Energy > players[j].Energy
+	})
+
+	if len(players) > 10 {
+		players = players[:10]
+	}
+
+	buf := make([]byte, 2+(len(players)*12))
+
+	buf[0] = PacketRadar
+	buf[1] = byte(len(players))
+
+	offset := 2
+
+	for _, player := range players {
+		binary.BigEndian.PutUint32(buf[offset:offset+4], player.ID)
+		offset += 4
+
+		binary.BigEndian.PutUint32(
+			buf[offset:offset+4],
+			math.Float32bits(player.X),
+		)
+		offset += 4
+
+		binary.BigEndian.PutUint32(
+			buf[offset:offset+4],
+			math.Float32bits(player.Y),
+		)
+		offset += 4
+	}
+
+	return buf
 }

@@ -74,6 +74,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		SizeLevel: 1,
 		Conn:      conn,
 		Send:      make(chan []byte, 32),
+
+		Done: make(chan struct{}),
 	}
 
 	game.mu.Lock()
@@ -82,6 +84,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		game.RemovePlayer(player.ID)
+		close(player.Done)
 
 		log.Println("Player disconnected:", player.ID)
 	}()

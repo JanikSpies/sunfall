@@ -24,7 +24,7 @@ const (
 	DeathByBlackHole DeathReason = 2
 )
 
-func BuildConnectedPacket(player *Player) []byte {
+func buildConnectedPacket(player *Player) []byte {
 	buf := make([]byte, 11)
 
 	buf[0] = PacketConnected

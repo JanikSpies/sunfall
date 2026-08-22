@@ -1,9 +1,29 @@
 package game
 
-func (g *Game) ResetMatch() {
+func (g *Game) enterPhaseLocked(next MatchPhase) {
+	valid := false
+
+	switch g.Phase {
+	case PhaseSupernova:
+		valid = next == PhaseBlackHole
+	case PhaseBlackHole:
+		valid = next == PhaseFinished
+	case PhaseFinished:
+		valid = next == PhaseSupernova
+	}
+
+	if !valid {
+		panic("invalid match phase transition")
+	}
+
+	g.Phase = next
+	g.PhaseElapsed = 0
+}
+
+func (g *Game) startMatchLocked() {
+	g.enterPhaseLocked(PhaseSupernova)
+
 	g.MatchTime = 0
-	g.Phase = PhaseSupernova
-	g.FinishedTime = 0
 
 	g.Sun.Radius = g.Sun.StartRadius
 	g.Sun.BlackHoleRadius = 80
@@ -35,11 +55,28 @@ func (g *Game) ResetMatch() {
 
 		player.Alive = true
 
-		select {
-		case player.Send <- buildMatchResetPacket():
-		default:
+		player.QueueLifecyclePacket(buildMatchResetPacket())
+	}
+}
+
+func (g *Game) finishMatchLocked() {
+	for _, player := range g.Players {
+		g.killPlayer(player, DeathByBlackHole)
+	}
+
+	g.enterPhaseLocked(PhaseFinished)
+}
+
+func (g *Game) alivePlayerCountLocked() int {
+	aliveCount := 0
+
+	for _, player := range g.Players {
+		if player.Alive {
+			aliveCount++
 		}
 	}
+
+	return aliveCount
 }
 
 func (g *Game) killPlayer(player *Player, reason DeathReason) {
@@ -49,8 +86,5 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 
 	player.Alive = false
 
-	select {
-	case player.Send <- buildDeathPacket(reason):
-	default:
-	}
+	player.QueueLifecyclePacket(buildDeathPacket(reason))
 }

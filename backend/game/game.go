@@ -9,7 +9,7 @@ type MatchPhase uint8
 
 const (
 	MaxPlayers  = 1000
-	PingTimeout = 15 * time.Second
+	PingTimeout = 5 * time.Second
 
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
@@ -22,14 +22,17 @@ const (
 	DashForce            float32 = 700
 	KnockbackDecay       float32 = 6
 
-	MatchDuration  float32    = 10 * 60
+	MatchDuration     float32 = 10 * 60
+	FinishedDuration  float32 = 5
+	BlackHoleDuration float32 = 20
+
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
-	BlackHolePullStart       float32 = 300
-	BlackHolePullMax         float32 = 1200
-	BlackHoleRampTime        float32 = 20
+	BlackHolePullStart       float32 = 1800
+	BlackHolePullMax         float32 = 3600
+	BlackHoleRampTime        float32 = 8
 	BlackHoleGrowthPerSecond float32 = 60
 )
 
@@ -41,8 +44,8 @@ type Game struct {
 
 	Sun Sun
 
-	FinishedTime float32
 	MatchTime    float32
+	PhaseElapsed float32
 	Phase        MatchPhase
 }
 

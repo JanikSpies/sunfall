@@ -31,39 +31,78 @@ type Player struct {
 	Rotation      float32
 	SizeLevel     uint8
 
-	Conn     *websocket.Conn
-	Done     chan struct{}
-	LastPing time.Time
-	Send     chan []byte
-	doneOnce sync.Once
-	pingMu   sync.RWMutex
+	Conn       *websocket.Conn
+	Disconnect chan struct{}
+	Done       chan struct{}
+	LastPing   time.Time
+	Lifecycle  chan []byte
+	Send       chan []byte
+
+	disconnectOnce sync.Once
+	doneOnce       sync.Once
+	pingMu         sync.RWMutex
 }
 
 func (p *Player) WriteLoop() {
 	for {
+		var data []byte
+
+		// Lifecycle packets take precedence over replaceable state updates.
 		select {
 		case <-p.Done:
 			return
-
-		case data := <-p.Send:
-			ctx, cancel := context.WithTimeout(
-				context.Background(),
-				100*time.Millisecond,
-			)
-
-			err := p.Conn.Write(
-				ctx,
-				websocket.MessageBinary,
-				data,
-			)
-
-			cancel()
-
-			if err != nil {
+		case <-p.Disconnect:
+			p.Conn.CloseNow()
+			return
+		case data = <-p.Lifecycle:
+		default:
+			select {
+			case <-p.Done:
 				return
+			case <-p.Disconnect:
+				p.Conn.CloseNow()
+				return
+			case data = <-p.Lifecycle:
+			case data = <-p.Send:
 			}
 		}
+
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			100*time.Millisecond,
+		)
+
+		err := p.Conn.Write(
+			ctx,
+			websocket.MessageBinary,
+			data,
+		)
+
+		cancel()
+
+		if err != nil {
+			p.Conn.CloseNow()
+			return
+		}
 	}
+}
+
+func (p *Player) QueueLifecyclePacket(data []byte) {
+	select {
+	case p.Lifecycle <- data:
+	default:
+		p.RequestDisconnect()
+	}
+}
+
+func (p *Player) RequestDisconnect() {
+	if p.Disconnect == nil {
+		return
+	}
+
+	p.disconnectOnce.Do(func() {
+		close(p.Disconnect)
+	})
 }
 
 func sizeLevelForEnergy(energy float32) uint8 {

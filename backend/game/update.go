@@ -6,21 +6,27 @@ func (g *Game) Update(dt float64) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	g.MatchTime += float32(dt)
-	progress := g.MatchTime / MatchDuration
-
-	if progress > 1 {
-		progress = 1
+	elapsed := float32(dt)
+	if elapsed <= 0 {
+		return
 	}
 
-	g.MatchTime += float32(dt)
+	if g.Phase == PhaseFinished {
+		g.PhaseElapsed += elapsed
 
-	if g.MatchTime >= MatchDuration {
-		g.Phase = PhaseBlackHole
+		if g.PhaseElapsed >= FinishedDuration {
+			g.startMatchLocked()
+		}
+
+		return
 	}
 
-	if g.Phase == PhaseSupernova {
-		progress := g.MatchTime / MatchDuration
+	g.MatchTime += elapsed
+	g.PhaseElapsed += elapsed
+
+	switch g.Phase {
+	case PhaseSupernova:
+		progress := g.PhaseElapsed / MatchDuration
 
 		if progress > 1 {
 			progress = 1
@@ -29,10 +35,13 @@ func (g *Game) Update(dt float64) {
 		g.Sun.Radius =
 			g.Sun.StartRadius +
 				(g.Sun.EndRadius-g.Sun.StartRadius)*progress
-	}
 
-	if g.Phase == PhaseBlackHole {
-		g.Sun.BlackHoleRadius += BlackHoleGrowthPerSecond * float32(dt)
+		if g.PhaseElapsed >= MatchDuration {
+			g.enterPhaseLocked(PhaseBlackHole)
+		}
+
+	case PhaseBlackHole:
+		g.Sun.BlackHoleRadius += BlackHoleGrowthPerSecond * elapsed
 
 		if g.Sun.BlackHoleRadius > g.Sun.BlackHoleMaxRadius {
 			g.Sun.BlackHoleRadius = g.Sun.BlackHoleMaxRadius
@@ -45,7 +54,7 @@ func (g *Game) Update(dt float64) {
 		}
 
 		if player.DashCooldown > 0 {
-			player.DashCooldown -= float32(dt)
+			player.DashCooldown -= elapsed
 
 			if player.DashCooldown < 0 {
 				player.DashCooldown = 0
@@ -82,14 +91,18 @@ func (g *Game) Update(dt float64) {
 			inputY /= length
 		}
 
+		if inputX != 0 || inputY != 0 {
+			player.Rotation = float32(math.Atan2(inputY, inputX))
+		}
+
 		player.VX = float32(inputX * PlayerSpeed)
 		player.VY = float32(inputY * PlayerSpeed)
 
-		player.X += (player.VX + player.KnockbackX) * float32(dt)
-		player.Y += (player.VY + player.KnockbackY) * float32(dt)
+		player.X += (player.VX + player.KnockbackX) * elapsed
+		player.Y += (player.VY + player.KnockbackY) * elapsed
 
-		player.KnockbackX -= player.KnockbackX * KnockbackDecay * float32(dt)
-		player.KnockbackY -= player.KnockbackY * KnockbackDecay * float32(dt)
+		player.KnockbackX -= player.KnockbackX * KnockbackDecay * elapsed
+		player.KnockbackY -= player.KnockbackY * KnockbackDecay * elapsed
 
 		if player.X < -MapHalfSize {
 			player.X = -MapHalfSize
@@ -118,9 +131,7 @@ func (g *Game) Update(dt float64) {
 				nx := dx / distance
 				ny := dy / distance
 
-				blackHoleTime := g.MatchTime - MatchDuration
-
-				pullProgress := blackHoleTime / BlackHoleRampTime
+				pullProgress := g.PhaseElapsed / BlackHoleRampTime
 
 				if pullProgress > 1 {
 					pullProgress = 1
@@ -130,17 +141,13 @@ func (g *Game) Update(dt float64) {
 					BlackHolePullStart +
 						(BlackHolePullMax-BlackHolePullStart)*pullProgress
 
-				player.KnockbackX += nx * pullStrength * float32(dt)
-				player.KnockbackY += ny * pullStrength * float32(dt)
+				player.KnockbackX += nx * pullStrength * elapsed
+				player.KnockbackY += ny * pullStrength * elapsed
 			}
 
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {
-				g.killPlayer(player, DeathBySun)
+				g.killPlayer(player, DeathByBlackHole)
 				continue
-			}
-
-			if inputX != 0 || inputY != 0 {
-				player.Rotation = float32(math.Atan2(inputY, inputX))
 			}
 		}
 
@@ -149,39 +156,22 @@ func (g *Game) Update(dt float64) {
 		factor := (NeutralEnergyDistance - distance) / NeutralEnergyDistance
 		energyGain := factor * MaxEnergyGain
 
-		player.Energy += energyGain * float32(dt)
+		player.Energy += energyGain * float32(dt) * elapsed
 
 		player.SizeLevel = sizeLevelForEnergy(player.Energy)
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
 		if g.Phase == PhaseSupernova && distance <= g.Sun.Radius+player.Radius {
-			g.killPlayer(player, DeathByBlackHole)
+			g.killPlayer(player, DeathBySun)
 			continue
 		}
 	}
 
 	g.handlePlayerCollisions()
 
-	aliveCount := 0
-
-	for _, player := range g.Players {
-		if player.Alive {
-			aliveCount++
-		}
-	}
-
-	if g.Phase == PhaseBlackHole && aliveCount == 0 {
-		g.Phase = PhaseFinished
-	}
-
-	if g.Phase == PhaseFinished {
-		g.FinishedTime += float32(dt)
-
-		if g.FinishedTime >= 5 {
-			g.FinishedTime = 0
-			g.ResetMatch()
-		}
-
+	if g.Phase == PhaseBlackHole &&
+		(g.alivePlayerCountLocked() == 0 || g.PhaseElapsed >= BlackHoleDuration) {
+		g.finishMatchLocked()
 		return
 	}
 }

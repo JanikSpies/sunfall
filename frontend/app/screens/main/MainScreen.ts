@@ -94,12 +94,14 @@ export class MainScreen extends Container {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
                 // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
-                this.inputState.x = Math.round(dx * 100);
-                this.inputState.y = Math.round(dy * 100);
-            };
-            this.virtualJoystick.onEnd = () => {
-                this.inputState.x = 0;
-                this.inputState.y = 0;
+                const scaledX = Math.round(dx * 100);
+                const scaledY = Math.round(dy * 100);
+
+                this.inputState.x = scaledX;
+                this.inputState.y = scaledY;
+                
+                // Update local visual target
+                this.rocket.setTarget(scaledX, scaledY);
             };
             this.addChild(this.virtualJoystick);
 

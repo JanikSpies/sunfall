@@ -334,6 +334,9 @@ func (g *Game) BroadcastWorldState() {
 }
 
 func (g *Game) RandomSpawnPosition() (float32, float32) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
 	for {
 		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
@@ -341,9 +344,30 @@ func (g *Game) RandomSpawnPosition() (float32, float32) {
 		dx := x - g.Sun.X
 		dy := y - g.Sun.Y
 
-		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+		distanceToSun := float32(math.Sqrt(float64(dx*dx + dy*dy)))
 
-		if distance > g.Sun.Radius+200 {
+		if distanceToSun <= g.Sun.Radius+200 {
+			continue
+		}
+
+		valid := true
+		for _, player := range g.Players {
+			if !player.Alive {
+				continue
+			}
+
+			dx := x - player.X
+			dy := y - player.Y
+
+			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+
+			if distance < player.Radius+100 { // 100 is just a safe gap
+				valid = false
+				break
+			}
+		}
+
+		if valid {
 			return x, y
 		}
 	}

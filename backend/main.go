@@ -55,7 +55,11 @@ func main() {
 }
 
 func handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	conn, err := websocket.Accept(w, r, nil)
+	opts := &websocket.AcceptOptions{
+		InsecureSkipVerify: true,
+	}
+
+	conn, err := websocket.Accept(w, r, opts)
 	if err != nil {
 		log.Println("WebSocket error:", err)
 		return

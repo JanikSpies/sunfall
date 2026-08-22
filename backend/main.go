@@ -93,7 +93,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	go player.WriteLoop()
 
-	player.Send <- game.BuildConnectedPacket(&player)
+	player.Send <- world.BuildConnectedPacket(&player)
 	player.Send <- world.BuildMatchStatePacket()
 
 	matchState := world.BuildMatchStatePacket()

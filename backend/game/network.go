@@ -9,6 +9,13 @@ import (
 	"github.com/coder/websocket"
 )
 
+func (g *Game) BuildConnectedPacket(player *Player) []byte {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	return buildConnectedPacket(player)
+}
+
 func (g *Game) BuildWorldState() []byte {
 	g.mu.RLock()
 	defer g.mu.RUnlock()

@@ -147,7 +147,7 @@ func (g *Game) Update(dt float64) {
 			}
 
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {
-				g.killPlayer(player, DeathBySun)
+				g.killPlayer(player, DeathByBlackHole)
 				continue
 			}
 		}
@@ -163,7 +163,7 @@ func (g *Game) Update(dt float64) {
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
 		if g.Phase == PhaseSupernova && distance <= g.Sun.Radius+player.Radius {
-			g.killPlayer(player, DeathByBlackHole)
+			g.killPlayer(player, DeathBySun)
 			continue
 		}
 	}

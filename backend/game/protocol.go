@@ -103,6 +103,7 @@ func buildMatchStatePacket(world *Game) []byte {
 
 	buf[0] = PacketMatchState
 	buf[1] = byte(world.Phase)
+	offset := 2
 
 	remaining := MatchDuration - world.MatchTime
 	if remaining < 0 {
@@ -110,14 +111,17 @@ func buildMatchStatePacket(world *Game) []byte {
 	}
 
 	binary.BigEndian.PutUint32(
-		buf[2:6],
+		buf[offset:offset+4],
 		math.Float32bits(remaining),
 	)
+	offset += 4
 
+	sunScale := world.Sun.Radius / world.Sun.StartRadius
 	binary.BigEndian.PutUint32(
-		buf[6:10],
-		math.Float32bits(world.Sun.Radius),
+		buf[offset:offset+4],
+		math.Float32bits(sunScale),
 	)
+	offset += 4
 
 	return buf
 }

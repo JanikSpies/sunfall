@@ -19,6 +19,9 @@ type SunOptions = typeof defaultSunOptions;
  * a static outer circle base, and two independently rotating inner circles.
  */
 export class Sun extends Container {
+    public static readonly BASE_RADIUS = 750;
+    private _radius: number = 150;
+
     public perimeter: Sprite;
     public outerCircle: Sprite;
     public circle1: Sprite;
@@ -57,10 +60,23 @@ export class Sun extends Container {
         this.addChild(this.circle2);
 
         this.scale.set(opts.scale);
+        this._radius = opts.scale * Sun.BASE_RADIUS;
 
         this.circle1RotationSpeed = opts.circle1RotationSpeed;
         this.circle2RotationSpeed = opts.circle2RotationSpeed;
         this.growthSpeed = opts.growthSpeed;
+    }
+
+    /** Set the exact sun radius in world units */
+    public setRadius(radius: number): void {
+        this._radius = radius;
+        const scale = radius / Sun.BASE_RADIUS;
+        this.scale.set(scale);
+    }
+
+    /** Get the exact current radius in world units */
+    public get radius(): number {
+        return this._radius;
     }
 
     /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2) uniformly */

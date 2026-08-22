@@ -107,6 +107,11 @@ export class GameMap extends Container {
     this.pivot.set(x, y);
   }
 
+  /** Set the sun radius */
+  public setSunRadius(radius: number) {
+    this.sun.setRadius(radius);
+  }
+
   /** Update map elements like the sun */
   public update(time?: Ticker) {
     this.sun.update(time);

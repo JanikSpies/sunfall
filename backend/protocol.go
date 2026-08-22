@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	PacketConnected  byte = 1
-	PacketInput      byte = 2
-	PacketWorldState byte = 3
-	PacketDeath      byte = 4
-	PacketDash       byte = 5
-	PacketRadar      byte = 6
-	PacketMatchState byte = 7
-	PacketMatchReset byte = 8
-	PacketPing            = 9
-	PacketPong            = 10
+	PacketPing            = 1
+	PacketPong            = 2
+	PacketConnected  byte = 3
+	PacketInput      byte = 4
+	PacketWorldState byte = 5
+	PacketDeath      byte = 6
+	PacketDash       byte = 7
+	PacketRadar      byte = 8
+	PacketMatchState byte = 9
+	PacketMatchReset byte = 10
 )
 
 func buildConnectedPacket(player *Player) []byte {

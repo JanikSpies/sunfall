@@ -8,10 +8,8 @@ const defaultSunOptions = {
     circle1RotationSpeed: 0.04,
     /** Rotation speed in radians per second for circle 2 */
     circle2RotationSpeed: -0.025,
-    /** Initial relative scale of the perimeter layer */
-    perimeterScale: 1,
-    /** Growth speed of perimeter scale per second (default 0, does not grow automatically) */
-    perimeterGrowthSpeed: 0,
+    /** Unified growth speed per second applied to all layers */
+    growthSpeed: 0,
 };
 
 type SunOptions = typeof defaultSunOptions;
@@ -27,7 +25,7 @@ export class Sun extends Container {
     public circle2: Sprite;
     public circle1RotationSpeed: number;
     public circle2RotationSpeed: number;
-    public perimeterGrowthSpeed: number;
+    public growthSpeed: number;
 
     constructor(options: Partial<SunOptions> = {}) {
         super();
@@ -37,7 +35,6 @@ export class Sun extends Container {
             texture: Texture.from("sun-perimeter.svg"),
             anchor: 0.5,
         });
-        this.perimeter.scale.set(opts.perimeterScale);
 
         this.outerCircle = new Sprite({
             texture: Texture.from("sun-circle-outer.svg"),
@@ -63,7 +60,32 @@ export class Sun extends Container {
 
         this.circle1RotationSpeed = opts.circle1RotationSpeed;
         this.circle2RotationSpeed = opts.circle2RotationSpeed;
-        this.perimeterGrowthSpeed = opts.perimeterGrowthSpeed;
+        this.growthSpeed = opts.growthSpeed;
+    }
+
+    /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2) uniformly */
+    public setAllScales(scale: number) {
+        this.perimeter.scale.set(scale);
+        this.outerCircle.scale.set(scale);
+        this.circle1.scale.set(scale);
+        this.circle2.scale.set(scale);
+    }
+
+    /** Increase scale across all layers uniformly by a given delta amount */
+    public grow(deltaScale: number) {
+        this.perimeter.scale.x += deltaScale;
+        this.perimeter.scale.y += deltaScale;
+        this.outerCircle.scale.x += deltaScale;
+        this.outerCircle.scale.y += deltaScale;
+        this.circle1.scale.x += deltaScale;
+        this.circle1.scale.y += deltaScale;
+        this.circle2.scale.x += deltaScale;
+        this.circle2.scale.y += deltaScale;
+    }
+
+    /** Increase scale across all layers uniformly by a given delta amount (alias for grow) */
+    public growAll(deltaScale: number) {
+        this.grow(deltaScale);
     }
 
     /** Set the perimeter scale factor */
@@ -82,14 +104,63 @@ export class Sun extends Container {
         return this.perimeter.scale.x;
     }
 
-    /** Advance rotation of inner circles and update perimeter growth if configured */
+    /** Set the outer circle scale factor */
+    public setOuterCircleScale(scale: number) {
+        this.outerCircle.scale.set(scale);
+    }
+
+    /** Increase outer circle scale by a given delta amount */
+    public growOuterCircle(deltaScale: number) {
+        this.outerCircle.scale.x += deltaScale;
+        this.outerCircle.scale.y += deltaScale;
+    }
+
+    /** Get current outer circle scale */
+    public get outerCircleScale(): number {
+        return this.outerCircle.scale.x;
+    }
+
+    /** Set the circle 1 scale factor */
+    public setCircle1Scale(scale: number) {
+        this.circle1.scale.set(scale);
+    }
+
+    /** Increase circle 1 scale by a given delta amount */
+    public growCircle1(deltaScale: number) {
+        this.circle1.scale.x += deltaScale;
+        this.circle1.scale.y += deltaScale;
+    }
+
+    /** Get current circle 1 scale */
+    public get circle1Scale(): number {
+        return this.circle1.scale.x;
+    }
+
+    /** Set the circle 2 scale factor */
+    public setCircle2Scale(scale: number) {
+        this.circle2.scale.set(scale);
+    }
+
+    /** Increase circle 2 scale by a given delta amount */
+    public growCircle2(deltaScale: number) {
+        this.circle2.scale.x += deltaScale;
+        this.circle2.scale.y += deltaScale;
+    }
+
+    /** Get current circle 2 scale */
+    public get circle2Scale(): number {
+        return this.circle2.scale.x;
+    }
+
+    /** Advance rotation of inner circles and update unified growth if configured */
     public update(time?: Ticker) {
         const delta = time?.deltaTime ?? 1;
-        this.circle1.rotation += this.circle1RotationSpeed * (delta / 60);
-        this.circle2.rotation += this.circle2RotationSpeed * (delta / 60);
+        const dt = delta / 60;
+        this.circle1.rotation += this.circle1RotationSpeed * dt;
+        this.circle2.rotation += this.circle2RotationSpeed * dt;
 
-        if (this.perimeterGrowthSpeed !== 0) {
-            this.growPerimeter(this.perimeterGrowthSpeed * (delta / 60));
+        if (this.growthSpeed !== 0) {
+            this.grow(this.growthSpeed * dt);
         }
     }
 }

@@ -188,6 +188,21 @@
               "m": true
             }
           }
+        },
+        {
+          "alias": [
+            "main/game/sun-perimeter.svg",
+            "main/sun-perimeter.svg",
+            "sun-perimeter.svg"
+          ],
+          "src": [
+            "main/game/sun-perimeter.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
         }
       ]
     },

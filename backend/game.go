@@ -519,6 +519,10 @@ func (g *Game) ResetMatch() {
 	g.Sun.BlackHoleRadius = 80
 
 	for _, player := range g.Players {
+		player.Alive = false
+	}
+
+	for _, player := range g.Players {
 		spawnX, spawnY := g.randomSpawnPositionLocked()
 
 		player.X = spawnX
@@ -529,15 +533,17 @@ func (g *Game) ResetMatch() {
 		player.KnockbackX = 0
 		player.KnockbackY = 0
 
+		player.InputX = 0
+		player.InputY = 0
+
 		player.Energy = 100
 		player.SizeLevel = 1
 		player.Radius = 16
-		player.Alive = true
 
-		player.InputX = 0
-		player.InputY = 0
 		player.DashRequested = false
 		player.DashCooldown = 0
+
+		player.Alive = true
 
 		select {
 		case player.Send <- buildMatchResetPacket():

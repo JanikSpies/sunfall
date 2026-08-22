@@ -43,7 +43,7 @@ func buildDeathPacket() []byte {
 }
 
 func buildMatchStatePacket(game *Game) []byte {
-	buf := make([]byte, 6)
+	buf := make([]byte, 10)
 
 	buf[0] = PacketMatchState
 	buf[1] = byte(game.Phase)
@@ -51,6 +51,11 @@ func buildMatchStatePacket(game *Game) []byte {
 	binary.BigEndian.PutUint32(
 		buf[2:6],
 		math.Float32bits(game.MatchTime),
+	)
+
+	binary.BigEndian.PutUint32(
+		buf[6:10],
+		math.Float32bits(game.Sun.Radius),
 	)
 
 	return buf

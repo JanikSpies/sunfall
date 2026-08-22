@@ -529,3 +529,10 @@ func (g *Game) ResetMatch() {
 		}
 	}
 }
+
+func (g *Game) RemovePlayer(id uint32) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+
+	delete(g.Players, id)
+}

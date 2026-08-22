@@ -64,7 +64,7 @@ export class BinaryCodec {
                 return {
                     type: WebSocketTypes.MATCH_STATE,
                     worldPhase: view.getUint8(1),
-                    matchTime: view.getFloat32(2),
+                    matchTimer: view.getFloat32(2),
                     sunRadius: view.getFloat32(6)
                 }
 

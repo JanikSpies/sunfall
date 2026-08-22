@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 3000 3000" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+<svg width="150" height="150" viewBox="0 0 3000 3000" version="1.1" xmlns="http://www.w3.org/2000/svg"
+     xml:space="preserve"
+     style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
     <g transform="matrix(0.809575,0,0,0.809575,287.445,287.445)">
         <path d="M1500,500C1511.77,500 1496.38,443.073 1590.83,360C1730.74,236.95 1590.56,230.825 1520,160C1496.19,136.101 1782.87,175.251 1700,346.526C1625.73,500.027 1760,534.192 1760,534.192C1760,534.192 1786.78,541.699 1800,545.856C2205.53,673.406 2500,1052.59 2500,1500C2500,2051.91 2051.91,2500 1500,2500C948.085,2500 500,2051.91 500,1500C500,948.085 948.085,500 1500,500Z" style="fill:url(#_Radial1);"/>
         <g transform="matrix(0.951057,-0.309017,0.309017,0.951057,-390.11,536.941)">

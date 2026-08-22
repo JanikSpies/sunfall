@@ -1,13 +1,11 @@
 import {FancyButton} from "@pixi/ui";
 import {animate} from "motion";
-import type {AnimationPlaybackControls} from "motion/react";
 import {Container, FederatedPointerEvent, isMobile, Rectangle, Ticker} from "pixi.js";
 
 import {engine} from "../../getEngine";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
 import {GameMap} from "./GameMap";
-import {Sun} from "../../ui/game/Sun";
 import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
 import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
@@ -23,19 +21,17 @@ export class MainScreen extends Container {
     private gameMap: GameMap;
     private settingsButton: FancyButton;
     private rocket: Rocket;
-    private sun: Sun;
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
     private isTouchDevice =  isMobile.phone;
     private paused = false;
+    private screenWidth = 0;
+    private screenHeight = 0;
 
     constructor() {
         super();
 
         this.eventMode = "static";
-
-        this.sun = new Sun();
-        this.addChild(this.sun);
 
         this.mainContainer = new Container();
         this.addChild(this.mainContainer);
@@ -120,6 +116,40 @@ export class MainScreen extends Container {
         if (this.paused) return;
         this.rocket.update(time);
         this.gameMap.setFocus(this.rocket.x, this.rocket.y);
+
+        this.updateSunPointer();
+    }
+
+    /** Update rocket's sun pointer indicator based on sun visibility in viewport */
+    private updateSunPointer() {
+        if (this.screenWidth <= 0 || this.screenHeight <= 0) return;
+
+        const sun = this.gameMap.sun;
+        const centerX = this.screenWidth * 0.5;
+        const centerY = this.screenHeight * 0.5;
+
+        // Position of the sun in screen space
+        const screenSunX = centerX + (sun.x - this.rocket.x);
+        const screenSunY = centerY + (sun.y - this.rocket.y);
+
+        // Visible radius of the sun considering outer circle and current scale
+        const sunRadius = sun.outerCircle?.width ? sun.outerCircle.width * sun.scale.x * 0.5 : 150;
+
+        // Check if the sun intersects the screen viewport rectangle [0, screenWidth] x [0, screenHeight]
+        const isSunOnScreen =
+            screenSunX + sunRadius >= 0 &&
+            screenSunX - sunRadius <= this.screenWidth &&
+            screenSunY + sunRadius >= 0 &&
+            screenSunY - sunRadius <= this.screenHeight;
+
+        if (isSunOnScreen) {
+            this.rocket.setSunPointer(false);
+        } else {
+            const dx = sun.x - this.rocket.x;
+            const dy = sun.y - this.rocket.y;
+            const angleToSun = Math.atan2(dy, dx);
+            this.rocket.setSunPointer(true, angleToSun);
+        }
     }
 
     /** Pause gameplay - automatically fired when a popup is presented */
@@ -146,6 +176,9 @@ export class MainScreen extends Container {
 
     /** Resize the screen, fired whenever window size changes */
     public resize(width: number, height: number) {
+        this.screenWidth = width;
+        this.screenHeight = height;
+
         const centerX = width * 0.5;
         const centerY = height * 0.5;
 
@@ -211,18 +244,14 @@ export class MainScreen extends Container {
         if (this.virtualJoystick) elementsToAnimate.push(this.virtualJoystick);
         if (this.dashButton) elementsToAnimate.push(this.dashButton);
 
-        let finalPromise!: AnimationPlaybackControls;
         for (const element of elementsToAnimate) {
             element.alpha = 0;
-            finalPromise = animate(
+            animate(
                 element,
                 {alpha: 1},
-                {duration: 0.3, delay: 0.75, ease: "backOut"},
+                {duration: 0.2, delay: 0.75, ease: "backOut"},
             );
         }
-
-        await finalPromise;
-
     }
 
     /** Hide screen with animations */

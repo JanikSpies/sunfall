@@ -1,11 +1,15 @@
-import {Container, NineSliceSprite, Point, Texture, type Ticker} from "pixi.js";
+import {Container, NineSliceSprite, Point, Sprite, Texture, type Ticker} from "pixi.js";
 import {EnergyBar} from "./EnergyBar";
+
+const scale = 0.5;
 
 export class Rocket extends Container {
   private image: NineSliceSprite;
+  public arrow: Sprite;
   public energyBar: EnergyBar;
   public targetPosition: Point = new Point(0, 0);
   public speed = 4;
+  private stage = 1;
 
   constructor() {
     super();
@@ -13,8 +17,17 @@ export class Rocket extends Container {
       texture: Texture.from("spaceship_stage_1.svg"),
       anchor: 0.5,
       alpha: 1,
+      scale: scale,
     });
     this.addChild(this.image);
+
+    this.arrow = new Sprite({
+      texture: Texture.from("sun-pointer-ship-1.svg"),
+      anchor: 0.5,
+      visible: false,
+      scale: scale,
+    });
+    this.addChild(this.arrow);
 
     this.energyBar = new EnergyBar({
       width: 80,
@@ -23,6 +36,26 @@ export class Rocket extends Container {
     });
     this.energyBar.position.set(0, this.image.height * 0.5 + 16);
     this.addChild(this.energyBar);
+  }
+
+  /** Set upgrade stage of the spaceship (1-4) */
+  public setStage(stage: number) {
+    this.stage = Math.max(1, Math.min(4, Math.floor(stage)));
+    this.image.texture = Texture.from(`spaceship_stage_${this.stage}.svg`);
+    this.arrow.texture = Texture.from(`sun-pointer-ship-${this.stage}.svg`);
+  }
+
+  /** Get current stage */
+  public getStage(): number {
+    return this.stage;
+  }
+
+  /** Update pointer arrow visibility and direction towards the sun */
+  public setSunPointer(visible: boolean, angleToSun?: number) {
+    this.arrow.visible = visible;
+    if (visible && angleToSun !== undefined) {
+      this.arrow.rotation = angleToSun + Math.PI / 2 - this.rotation;
+    }
   }
 
   /** Get the base width, without counting the shadow */
@@ -77,5 +110,7 @@ export class Rocket extends Container {
     this.targetPosition.set(0, 0);
     this.rotation = 0;
     this.energyBar.reset();
+    this.setSunPointer(false);
+    this.arrow.rotation = 0;
   }
 }

@@ -9,6 +9,7 @@ import {GameMap} from "./GameMap";
 import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
 import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
+import {EnergyBar} from "../../ui/game/EnergyBar";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
 
@@ -22,6 +23,7 @@ export class MainScreen extends Container {
 
     public mainContainer: Container;
     public timer: Timer;
+    public energyBar: EnergyBar;
     private gameMap: GameMap;
     private settingsButton: FancyButton;
     private rocket: Rocket;
@@ -65,23 +67,11 @@ export class MainScreen extends Container {
         );
         this.addChild(this.settingsButton);
 
-        if (this.isTouchDevice) {
-            this.virtualJoystick = new VirtualJoystick();
-            this.virtualJoystick.onMove = (dx, dy) => {
-                this.rocket.setTarget(dx * 100, dy * 100);
-            };
-            this.addChild(this.virtualJoystick);
-
-            this.dashButton = new DashButton();
-            this.dashButton.onDash = () => {
-                if (!this.rocket.canDash()) return;
-                this.rocket.dash();
-            };
-            this.addChild(this.dashButton);
-        }
-
         this.timer = new Timer({ text: "00:00" });
         this.addChild(this.timer);
+
+        this.energyBar = new EnergyBar();
+        this.addChild(this.energyBar);
 
         this.gameMap = new GameMap();
         this.mainContainer.addChild(this.gameMap);
@@ -237,6 +227,7 @@ export class MainScreen extends Container {
         this.gameMap.reset();
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
+        this.energyBar.reset();
     }
 
     /** Resize the screen, fired whenever window size changes */
@@ -253,6 +244,8 @@ export class MainScreen extends Container {
         this.settingsButton.y = 30;
         this.timer.x = centerX;
         this.timer.y = 30;
+        this.energyBar.x = centerX;
+        this.energyBar.y = height - 50;
 
         if (this.virtualJoystick) {
             const joyPadX = 115;
@@ -297,6 +290,31 @@ export class MainScreen extends Container {
         }
     }
 
+    /** Set energy current value and optional maximum */
+    public setEnergy(current: number, max?: number): void {
+        this.energyBar.setValue(current, max);
+    }
+
+    /** Set energy progress directly from 0.0 to 1.0 */
+    public setEnergyProgress(progress: number): void {
+        this.energyBar.setProgress(progress);
+    }
+
+    /** Get current energy value */
+    public getEnergy(): number {
+        return this.energyBar.value;
+    }
+
+    /** Get max energy value */
+    public getMaxEnergy(): number {
+        return this.energyBar.maxValue;
+    }
+
+    /** Get energy progress fraction */
+    public getEnergyProgress(): number {
+        return this.energyBar.progress;
+    }
+
     /** Show screen with animations */
     public async show(): Promise<void> {
         window.addEventListener("keydown", this.handleKeyDown);
@@ -305,6 +323,7 @@ export class MainScreen extends Container {
         const elementsToAnimate: Container[] = [
             this.settingsButton,
             this.timer,
+            this.energyBar,
         ];
         if (this.virtualJoystick) elementsToAnimate.push(this.virtualJoystick);
         if (this.dashButton) elementsToAnimate.push(this.dashButton);

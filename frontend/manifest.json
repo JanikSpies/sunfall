@@ -263,6 +263,36 @@
               "m": true
             }
           }
+        },
+        {
+          "alias": [
+            "main/game/energy-hud.svg",
+            "main/energy-hud.svg",
+            "energy-hud.svg"
+          ],
+          "src": [
+            "main/game/energy-hud.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/energy-hud-backdrop.svg",
+            "main/energy-hud-backdrop.svg",
+            "energy-hud-backdrop.svg"
+          ],
+          "src": [
+            "main/game/energy-hud-backdrop.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
         }
       ]
     },

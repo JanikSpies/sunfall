@@ -140,16 +140,12 @@ func (g *Game) Update(dt float64) {
 			}
 		}
 
+		// calculate energy gain/loss based on distance to sun
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+		factor := (NeutralEnergyDistance - distance) / NeutralEnergyDistance
+		energyGain := factor * MaxEnergyGain
 
-		if distance < EnergyRange {
-			factor := 1 - (distance / EnergyRange)
-
-			gainPerSecond := MinEnergyGain +
-				(MaxEnergyGain-MinEnergyGain)*factor
-
-			player.Energy += gainPerSecond * float32(dt)
-		}
+		player.Energy += energyGain * float32(dt)
 
 		player.SizeLevel = sizeLevelForEnergy(player.Energy)
 		player.Radius = radiusForSizeLevel(player.SizeLevel)

@@ -14,9 +14,8 @@ const (
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
 
-	MinEnergyGain float32 = 1
-	MaxEnergyGain float32 = 10
-	EnergyRange   float32 = 1000
+	NeutralEnergyDistance         = 100
+	MaxEnergyGain         float32 = 10
 
 	DashCooldownDuration float32 = 0.75
 	DashEnergyCost       float32 = 25

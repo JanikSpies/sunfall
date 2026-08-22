@@ -1,7 +1,9 @@
 import {Container, NineSliceSprite, Point, Texture, type Ticker} from "pixi.js";
+import {EnergyBar} from "./EnergyBar";
 
 export class Rocket extends Container {
   private image: NineSliceSprite;
+  public energyBar: EnergyBar;
   public targetPosition: Point = new Point(0, 0);
   public speed = 4;
 
@@ -13,6 +15,14 @@ export class Rocket extends Container {
       alpha: 1,
     });
     this.addChild(this.image);
+
+    this.energyBar = new EnergyBar({
+      width: 80,
+      height: 10,
+      radius: 4,
+    });
+    this.energyBar.position.set(0, this.image.height * 0.5 + 16);
+    this.addChild(this.energyBar);
   }
 
   /** Get the base width, without counting the shadow */
@@ -23,6 +33,11 @@ export class Rocket extends Container {
   /** Get the base height, without counting the shadow */
   public get boxHeight() {
     return this.image.height;
+  }
+
+  /** Update rocket energy level */
+  public setEnergy(current: number, max?: number) {
+    this.energyBar.setValue(current, max);
   }
 
   /** Set target aim coordinates relative to the rocket center */
@@ -49,10 +64,11 @@ export class Rocket extends Container {
     this.y += vy;
   }
 
-  /** Reset the rocket position, rotation, and target */
+  /** Reset the rocket position, rotation, target, and energy bar */
   public reset() {
     this.position.set(0, 0);
     this.targetPosition.set(0, 0);
     this.rotation = 0;
+    this.energyBar.reset();
   }
 }

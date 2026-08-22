@@ -57,14 +57,10 @@ export class StartScreen extends Container {
                 fill: 0xffffff,
                 fontSize: 20,
                 fontFamily: "Science Gothic",
+                align: "center",
             },
             align: "center",
-            padding: {
-                top: 14,
-                bottom: 14,
-                left: 16,
-                right: 16,
-            },
+            padding: 0,
             maxLength: 16,
             cleanOnFocus: false,
         });

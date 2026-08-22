@@ -5,6 +5,7 @@ import {Container, type DestroyOptions, FederatedPointerEvent, isMobile, Rectang
 import {engine} from "../../getEngine";
 import {SettingsPopup} from "../../popups/SettingsPopup";
 import {Rocket} from "@/app/ui/game/Rocket";
+import {EnemyRocket} from "@/app/ui/game/EnemyRocket";
 import {GameMap} from "./GameMap";
 import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
 import {DashButton} from "../../ui/game/DashButton";
@@ -27,6 +28,7 @@ export class MainScreen extends Container {
     private gameMap: GameMap;
     private settingsButton: FancyButton;
     private rocket: Rocket;
+    private enemyRockets: Map<number, EnemyRocket> = new Map();
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
     private isTouchDevice =  isMobile.phone;
@@ -80,12 +82,7 @@ export class MainScreen extends Container {
         this.gameMap.addChild(this.rocket);
 
         this.unsubscribeGameStore = useGameStore.subscribe((state) => {
-            const localId = state.localPlayerId;
-            if (localId !== null && state.players[localId]) {
-                const player = state.players[localId];
-                this.rocket.applyPlayerState(player);
-                this.setEnergy(player.energy);
-            }
+            this.syncPlayers(state);
             this.timer.setTime(state.matchTimer);
             this.gameMap.setSunRadius(state.sunRadius);
         });
@@ -153,12 +150,39 @@ export class MainScreen extends Container {
     /** Prepare the screen just before showing */
     public prepare() {
         const state = useGameStore.getState();
+        this.syncPlayers(state);
+    }
+
+    /** Synchronize local and remote player entities with game store state */
+    private syncPlayers(state: ReturnType<typeof useGameStore.getState>) {
         const localId = state.localPlayerId;
         if (localId !== null && state.players[localId]) {
             const player = state.players[localId];
             this.rocket.applyPlayerState(player);
             this.setEnergy(player.energy);
         }
+
+        for (const [idStr, player] of Object.entries(state.players)) {
+            const id = Number(idStr);
+            if (id === localId) continue;
+
+            let enemyRocket = this.enemyRockets.get(id);
+            if (!enemyRocket) {
+                enemyRocket = new EnemyRocket();
+                this.enemyRockets.set(id, enemyRocket);
+                this.gameMap.addChild(enemyRocket);
+            }
+            enemyRocket.applyPlayerState(player);
+        }
+
+        for (const [id, enemyRocket] of this.enemyRockets.entries()) {
+            if (!(id in state.players) || id === localId) {
+                this.gameMap.removeChild(enemyRocket);
+                enemyRocket.destroy();
+                this.enemyRockets.delete(id);
+            }
+        }
+
         this.timer.setTime(state.matchTimer);
         this.gameMap.setSunRadius(state.sunRadius);
     }
@@ -238,6 +262,11 @@ export class MainScreen extends Container {
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
         this.energyBar.reset();
+        for (const enemyRocket of this.enemyRockets.values()) {
+            this.gameMap.removeChild(enemyRocket);
+            enemyRocket.destroy();
+        }
+        this.enemyRockets.clear();
     }
 
     /** Resize the screen, fired whenever window size changes */
@@ -358,6 +387,11 @@ export class MainScreen extends Container {
     public override destroy(options?: DestroyOptions) {
         this.unsubscribeGameStore?.();
         window.removeEventListener("keydown", this.handleKeyDown);
+        for (const enemyRocket of this.enemyRockets.values()) {
+            this.gameMap.removeChild(enemyRocket);
+            enemyRocket.destroy();
+        }
+        this.enemyRockets.clear();
         super.destroy(options);
     }
 }

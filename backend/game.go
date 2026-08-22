@@ -42,8 +42,9 @@ type Game struct {
 
 	Sun Sun
 
-	MatchTime float32
-	Phase     MatchPhase
+	FinishedTime float32
+	MatchTime    float32
+	Phase        MatchPhase
 }
 
 func NewGame() *Game {
@@ -255,6 +256,17 @@ func (g *Game) Update(dt float64) {
 
 	if g.Phase == PhaseBlackHole && aliveCount == 0 {
 		g.Phase = PhaseFinished
+	}
+
+	if g.Phase == PhaseFinished {
+		g.FinishedTime += float32(dt)
+
+		if g.FinishedTime >= 5 {
+			g.FinishedTime = 0
+			g.ResetMatch()
+		}
+
+		return
 	}
 }
 
@@ -473,5 +485,29 @@ func (g *Game) BroadcastMatchState() {
 		case player.Send <- data:
 		default:
 		}
+	}
+}
+
+func (g *Game) ResetMatch() {
+	g.MatchTime = 0
+	g.Phase = PhaseSupernova
+
+	g.Sun.Radius = g.Sun.StartRadius
+	g.Sun.BlackHoleRadius = 80
+
+	for _, player := range g.Players {
+		spawnX, spawnY := g.RandomSpawnPosition()
+
+		player.X = spawnX
+		player.Y = spawnY
+		player.VX = 0
+		player.VY = 0
+		player.KnockbackX = 0
+		player.KnockbackY = 0
+
+		player.Energy = 100
+		player.SizeLevel = 1
+		player.Radius = 16
+		player.Alive = true
 	}
 }

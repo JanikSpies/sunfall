@@ -28,7 +28,9 @@ const (
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
-	BlackHolePull            float32 = 500
+	BlackHolePullStart       float32 = 300
+	BlackHolePullMax         float32 = 1200
+	BlackHoleRampTime        float32 = 20
 	BlackHoleGrowthPerSecond float32 = 60
 )
 
@@ -187,8 +189,20 @@ func (g *Game) Update(dt float64) {
 				nx := dx / distance
 				ny := dy / distance
 
-				player.KnockbackX += nx * BlackHolePull * float32(dt)
-				player.KnockbackY += ny * BlackHolePull * float32(dt)
+				blackHoleTime := g.MatchTime - MatchDuration
+
+				pullProgress := blackHoleTime / BlackHoleRampTime
+
+				if pullProgress > 1 {
+					pullProgress = 1
+				}
+
+				pullStrength :=
+					BlackHolePullStart +
+						(BlackHolePullMax-BlackHolePullStart)*pullProgress
+
+				player.KnockbackX += nx * pullStrength * float32(dt)
+				player.KnockbackY += ny * pullStrength * float32(dt)
 			}
 
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {

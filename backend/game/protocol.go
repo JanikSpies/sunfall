@@ -25,13 +25,14 @@ const (
 )
 
 func buildConnectedPacket(player *Player) []byte {
-	buf := make([]byte, 11)
+	buf := make([]byte, 15)
 
 	buf[0] = PacketConnected
 
 	binary.BigEndian.PutUint16(buf[1:3], player.ID)
 	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(player.X))
 	binary.BigEndian.PutUint32(buf[7:11], math.Float32bits(player.Y))
+	binary.BigEndian.PutUint32(buf[11:15], math.Float32bits(player.Rotation))
 
 	return buf
 }

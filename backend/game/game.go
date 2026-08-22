@@ -11,8 +11,14 @@ const (
 	MaxPlayers  = 1000
 	PingTimeout = 5 * time.Second
 
-	PlayerSpeed         = 200.0
-	MapHalfSize float32 = 2000
+	PlayerSpeed             = 200.0
+	MapHalfSize     float32 = 2000
+	MaxPlayerRadius float32 = 40
+
+	CollisionCellSize   float32 = 128
+	VisibilityChunkSize float32 = 512
+	VisibilityRadius    float32 = 1280
+	WorldSeed           uint32  = 12345
 
 	NeutralEnergyDistance         = 100
 	MaxEnergyGain         float32 = 10
@@ -50,11 +56,16 @@ type Game struct {
 	MatchTime    float32
 	PhaseElapsed float32
 	Phase        MatchPhase
+
+	collisionGrid *CollisionGrid
+	snapshot      *VisibilitySnapshot
+	tick          uint32
 }
 
 func NewGame() *Game {
-	return &Game{
-		Players: make(map[uint16]*Player),
+	game := &Game{
+		Players:       make(map[uint16]*Player),
+		collisionGrid: NewCollisionGrid(),
 
 		Sun: Sun{
 			Radius:               150,
@@ -66,6 +77,10 @@ func NewGame() *Game {
 
 		Phase: PhaseSupernova,
 	}
+
+	game.snapshot = newVisibilitySnapshot(0, game.Players)
+
+	return game
 }
 
 func (g *Game) RemovePlayer(id uint16) bool {

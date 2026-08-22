@@ -82,6 +82,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Alive:      true,
 		Conn:       conn,
 		Send:       make(chan []byte, 32),
+		WorldState: make(chan []byte, 1),
 		Lifecycle:  make(chan []byte, 4),
 		Disconnect: make(chan struct{}),
 		Done:       make(chan struct{}),
@@ -102,8 +103,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	go player.WriteLoop()
 
-	player.Send <- world.BuildConnectedPacket(&player)
-	player.Send <- world.BuildMatchStatePacket()
+	player.QueueLifecyclePacket(world.BuildConnectedPacket(&player))
+	player.QueueLifecyclePacket(world.BuildWorldConfigPacket())
+	player.QueueLifecyclePacket(world.BuildMatchStatePacket())
 
 	for {
 		messageType, data, err := conn.Read(context.Background())

@@ -6,15 +6,16 @@ import (
 )
 
 const (
-	PacketPing       byte = 1
-	PacketPong       byte = 2
-	PacketConnected  byte = 3
-	PacketInput      byte = 4
-	PacketWorldState byte = 5
-	PacketDeath      byte = 6
-	PacketRadar      byte = 8
-	PacketMatchState byte = 9
-	PacketMatchReset byte = 10
+	PacketPing        byte = 1
+	PacketPong        byte = 2
+	PacketConnected   byte = 3
+	PacketInput       byte = 4
+	PacketWorldState  byte = 5
+	PacketDeath       byte = 6
+	PacketWorldConfig byte = 7
+	PacketRadar       byte = 8
+	PacketMatchState  byte = 9
+	PacketMatchReset  byte = 10
 )
 
 type DeathReason uint8
@@ -33,6 +34,55 @@ func buildConnectedPacket(player *Player) []byte {
 	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(player.X))
 	binary.BigEndian.PutUint32(buf[7:11], math.Float32bits(player.Y))
 	binary.BigEndian.PutUint32(buf[11:15], math.Float32bits(player.Rotation))
+
+	return buf
+}
+
+func buildWorldConfigPacket() []byte {
+	buf := make([]byte, 17)
+	buf[0] = PacketWorldConfig
+
+	binary.BigEndian.PutUint32(buf[1:5], math.Float32bits(MapHalfSize))
+	binary.BigEndian.PutUint32(buf[5:9], math.Float32bits(VisibilityChunkSize))
+	binary.BigEndian.PutUint32(buf[9:13], WorldSeed)
+	binary.BigEndian.PutUint32(buf[13:17], math.Float32bits(VisibilityRadius))
+
+	return buf
+}
+
+func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
+	buf := make([]byte, 3+(len(indexes)*20))
+	buf[0] = PacketWorldState
+	binary.BigEndian.PutUint16(buf[1:3], uint16(len(indexes)))
+
+	offset := 3
+
+	for _, index := range indexes {
+		player := snapshot.Players[index]
+
+		binary.BigEndian.PutUint16(buf[offset:offset+2], player.ID)
+		offset += 2
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.X))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Y))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Rotation))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Energy))
+		offset += 4
+
+		buf[offset] = player.SizeLevel
+		offset++
+
+		if player.DashAvailable {
+			buf[offset] = 1
+		}
+		offset++
+	}
 
 	return buf
 }

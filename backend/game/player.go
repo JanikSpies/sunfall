@@ -37,6 +37,7 @@ type Player struct {
 	LastPing   time.Time
 	Lifecycle  chan []byte
 	Send       chan []byte
+	WorldState chan []byte
 
 	disconnectOnce sync.Once
 	doneOnce       sync.Once
@@ -64,6 +65,7 @@ func (p *Player) WriteLoop() {
 				return
 			case data = <-p.Lifecycle:
 			case data = <-p.Send:
+			case data = <-p.WorldState:
 			}
 		}
 
@@ -84,6 +86,28 @@ func (p *Player) WriteLoop() {
 			p.Conn.CloseNow()
 			return
 		}
+	}
+}
+
+func (p *Player) QueueLatestWorldState(data []byte) {
+	if p.WorldState == nil {
+		return
+	}
+
+	select {
+	case p.WorldState <- data:
+		return
+	default:
+	}
+
+	select {
+	case <-p.WorldState:
+	default:
+	}
+
+	select {
+	case p.WorldState <- data:
+	default:
 	}
 }
 

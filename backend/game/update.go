@@ -11,6 +11,8 @@ func (g *Game) Update(dt float64) {
 		return
 	}
 
+	defer g.publishVisibilitySnapshotLocked()
+
 	if g.Phase == PhaseFinished {
 		g.PhaseElapsed += elapsed
 
@@ -63,6 +65,7 @@ func (g *Game) Update(dt float64) {
 	}
 
 	g.handlePlayerCollisions()
+	g.clampPlayersLocked()
 
 	if g.Phase == PhaseBlackHole &&
 		(g.alivePlayerCountLocked() == 0 || g.PhaseElapsed >= BlackHoleDuration) {
@@ -182,5 +185,30 @@ func (g *Game) gravitationPull(player *Player, elapsed float32) {
 			g.killPlayer(player, DeathByBlackHole)
 		}
 	}
+}
 
+func (g *Game) clampPlayersLocked() {
+	for _, player := range g.Players {
+		if !player.Alive {
+			continue
+		}
+
+		if player.X < -MapHalfSize {
+			player.X = -MapHalfSize
+		}
+		if player.X > MapHalfSize {
+			player.X = MapHalfSize
+		}
+		if player.Y < -MapHalfSize {
+			player.Y = -MapHalfSize
+		}
+		if player.Y > MapHalfSize {
+			player.Y = MapHalfSize
+		}
+	}
+}
+
+func (g *Game) publishVisibilitySnapshotLocked() {
+	g.tick++
+	g.snapshot = newVisibilitySnapshot(g.tick, g.Players)
 }

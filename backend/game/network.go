@@ -16,90 +16,64 @@ func (g *Game) BuildConnectedPacket(player *Player) []byte {
 	return buildConnectedPacket(player)
 }
 
+func (g *Game) BuildWorldConfigPacket() []byte {
+	return buildWorldConfigPacket()
+}
+
 func (g *Game) BuildWorldState() []byte {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	playerCount := 0
-
-	for _, player := range g.Players {
-		if player.Alive {
-			playerCount++
-		}
+	indexes := make([]int, len(g.snapshot.Players))
+	for index := range indexes {
+		indexes[index] = index
 	}
 
-	buf := make([]byte, 3+(playerCount*20))
-
-	buf[0] = PacketWorldState
-	binary.BigEndian.PutUint16(buf[1:3], uint16(playerCount))
-
-	offset := 3
-
-	for _, player := range g.Players {
-		if !player.Alive {
-			continue
-		}
-
-		binary.BigEndian.PutUint16(
-			buf[offset:offset+2],
-			player.ID,
-		)
-		offset += 2
-
-		binary.BigEndian.PutUint32(
-			buf[offset:offset+4],
-			math.Float32bits(player.X),
-		)
-		offset += 4
-
-		binary.BigEndian.PutUint32(
-			buf[offset:offset+4],
-			math.Float32bits(player.Y),
-		)
-		offset += 4
-
-		binary.BigEndian.PutUint32(
-			buf[offset:offset+4],
-			math.Float32bits(player.Rotation),
-		)
-		offset += 4
-
-		binary.BigEndian.PutUint32(
-			buf[offset:offset+4],
-			math.Float32bits(player.Energy),
-		)
-		offset += 4
-
-		buf[offset] = player.SizeLevel
-		offset++
-
-		dashAvailable := player.Alive &&
-			player.DashCooldown <= 0 &&
-			player.Energy >= DashEnergyCost
-
-		if dashAvailable {
-			buf[offset] = 1
-		} else {
-			buf[offset] = 0
-		}
-		offset++
-	}
-
-	return buf
+	return buildWorldStatePacket(g.snapshot, indexes)
 }
 
-func (g *Game) BroadcastWorldState() {
-	data := g.BuildWorldState()
-
+func (g *Game) BuildWorldStateFor(player *Player) []byte {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
+	viewerIndex, exists := g.snapshot.ByID[player.ID]
+	if !exists {
+		return nil
+	}
+
+	viewer := g.snapshot.Players[viewerIndex]
+	visible := g.snapshot.QueryCircle(viewer.X, viewer.Y, VisibilityRadius, nil)
+
+	return buildWorldStatePacket(g.snapshot, visible)
+}
+
+func (g *Game) BroadcastWorldState() {
+	g.mu.RLock()
+	snapshot := g.snapshot
+	recipients := make([]*Player, 0, len(g.Players))
+
 	for _, player := range g.Players {
-		select {
-		case player.Send <- data:
-		default:
-			// Player is too slow; skip this update.
+		recipients = append(recipients, player)
+	}
+	g.mu.RUnlock()
+
+	visible := make([]int, 0, 128)
+
+	for _, recipient := range recipients {
+		viewerIndex, exists := snapshot.ByID[recipient.ID]
+		if !exists {
+			continue
 		}
+
+		viewer := snapshot.Players[viewerIndex]
+		visible = snapshot.QueryCircle(
+			viewer.X,
+			viewer.Y,
+			VisibilityRadius,
+			visible,
+		)
+
+		recipient.QueueLatestWorldState(buildWorldStatePacket(snapshot, visible))
 	}
 }
 

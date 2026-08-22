@@ -60,7 +60,7 @@ export const useGameStore = create<GameState>((set, get) => ({
                 sunRadius: message.sunRadius,
             });
         } else if (message.type === WebSocketTypes.DEATH) {
-            set({ deathEvent: { reason: message.reason, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });
+            set({ deathEvent: { reason: message.reason!, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });
             const localId = get().localPlayerId;
             if (message.deadId === undefined || message.deadId === localId) {
                 set({ isDead: true });

@@ -27,7 +27,8 @@ const (
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2
 
-	BlackHolePull float32 = 500
+	BlackHolePull       float32 = 500
+	BlackHoleKillRadius float32 = 80
 )
 
 type Game struct {
@@ -178,6 +179,17 @@ func (g *Game) Update(dt float64) {
 				player.KnockbackX += nx * BlackHolePull * float32(dt)
 				player.KnockbackY += ny * BlackHolePull * float32(dt)
 			}
+
+			if distance <= BlackHoleKillRadius+player.Radius {
+				player.Alive = false
+
+				select {
+				case player.Send <- buildDeathPacket():
+				default:
+				}
+
+				continue
+			}
 		}
 
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
@@ -194,7 +206,7 @@ func (g *Game) Update(dt float64) {
 		player.SizeLevel = sizeLevelForEnergy(player.Energy)
 		player.Radius = radiusForSizeLevel(player.SizeLevel)
 
-		if distance <= g.Sun.Radius+player.Radius {
+		if g.Phase == PhaseSupernova && distance <= g.Sun.Radius+player.Radius {
 			player.Alive = false
 
 			select {

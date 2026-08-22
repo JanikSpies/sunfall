@@ -2,15 +2,15 @@ import { PlayerState } from "../models/PlayerState";
 import { DecodedMessage, WebSocketTypes } from "../models/WebSocketTypes";
 
 export class BinaryCodec {
-    public static encodeInput(inputX: number, inputY: number, isDashing: boolean): ArrayBuffer {
-        const buffer = new ArrayBuffer(4);
+    public static encodeInput(x: number, y: number, dash: boolean): ArrayBuffer {
+        const buffer = new ArrayBuffer(4); 
         const view = new DataView(buffer);
-
-        view.setInt8(0, WebSocketTypes.INPUT);
-        view.setInt8(1, inputX);
-        view.setInt8(2, inputY);
-        view.setUint8(3, isDashing ? 1 : 0);
-
+        
+        view.setUint8(0, 0x04);
+        view.setInt8(1, x);
+        view.setInt8(2, y);
+        view.setUint8(3, dash ? 1 : 0);
+        
         return buffer;
     }
 

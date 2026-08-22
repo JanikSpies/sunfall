@@ -384,30 +384,6 @@ func (g *Game) handlePlayerCollisions() {
 				continue
 			}
 
-			if a.SizeLevel > b.SizeLevel {
-				b.Alive = false
-				a.Energy += b.Energy
-
-				select {
-				case b.Send <- buildDeathPacket():
-				default:
-				}
-
-				continue
-			}
-
-			if b.SizeLevel > a.SizeLevel {
-				a.Alive = false
-				b.Energy += a.Energy
-
-				select {
-				case a.Send <- buildDeathPacket():
-				default:
-				}
-
-				continue
-			}
-
 			nx := dx / distance
 			ny := dy / distance
 

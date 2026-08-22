@@ -69,6 +69,15 @@ export class BinaryCodec {
                     sunRadius: view.getFloat32(6)
                 }
 
+            case WebSocketTypes.DEATH:
+                return {
+                    type: WebSocketTypes.DEATH,
+                    reason: view.getUint8(1)
+                }
+
+            case WebSocketTypes.MATCH_RESET:
+                return { type: WebSocketTypes.MATCH_RESET };
+
             default:
                 console.warn(`Unknown WebSocket message type received: ${type}`);
                 return null;

@@ -1,7 +1,12 @@
 import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
-import {DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+import {DeathReason, DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+
+interface DeathEvent {
+    reason: DeathReason;
+    seq: number;
+}
 
 interface GameState {
     localPlayerId: number | null;
@@ -9,18 +14,22 @@ interface GameState {
     worldPhase: number;
     matchTimer: number;
     sunRadius: number;
+    deathEvent: DeathEvent | null;
+    matchResetSeq: number;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
     setMatchState: (worldPhase: number, matchTimer: number, sunRadius: number) => void;
     handleMessage: (message: DecodedMessage) => void;
 }
 
-export const useGameStore = create<GameState>((set) => ({
+export const useGameStore = create<GameState>((set, get) => ({
     localPlayerId: null,
     players: {},
     worldPhase: 0,
     matchTimer: 0,
     sunRadius: 150,
+    deathEvent: null,
+    matchResetSeq: 0,
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
     setMatchState: (worldPhase, matchTimer, sunRadius) => set({ worldPhase, matchTimer, sunRadius }),
@@ -35,6 +44,10 @@ export const useGameStore = create<GameState>((set) => ({
                 matchTimer: message.matchTimer,
                 sunRadius: message.sunRadius,
             });
+        } else if (message.type === WebSocketTypes.DEATH) {
+            set({ deathEvent: { reason: message.reason, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });
+        } else if (message.type === WebSocketTypes.MATCH_RESET) {
+            set({ matchResetSeq: get().matchResetSeq + 1 });
         }
     },
 }));

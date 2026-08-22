@@ -146,6 +146,66 @@
         },
         {
           "alias": [
+            "main/game/sun-pointer-ship-1.svg",
+            "main/sun-pointer-ship-1.svg",
+            "sun-pointer-ship-1.svg"
+          ],
+          "src": [
+            "main/game/sun-pointer-ship-1.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-pointer-ship-2.svg",
+            "main/sun-pointer-ship-2.svg",
+            "sun-pointer-ship-2.svg"
+          ],
+          "src": [
+            "main/game/sun-pointer-ship-2.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-pointer-ship-3.svg",
+            "main/sun-pointer-ship-3.svg",
+            "sun-pointer-ship-3.svg"
+          ],
+          "src": [
+            "main/game/sun-pointer-ship-3.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
+            "main/game/sun-pointer-ship-4.svg",
+            "main/sun-pointer-ship-4.svg",
+            "sun-pointer-ship-4.svg"
+          ],
+          "src": [
+            "main/game/sun-pointer-ship-4.svg"
+          ],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
             "main/game/sun-circle-outer.svg",
             "main/sun-circle-outer.svg",
             "sun-circle-outer.svg"

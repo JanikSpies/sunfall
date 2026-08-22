@@ -18,27 +18,24 @@ const (
 )
 
 func buildConnectedPacket(player *Player) []byte {
-	buf := make([]byte, 13)
+	buf := make([]byte, 11)
 
 	buf[0] = PacketConnected
 
-	binary.BigEndian.PutUint32(
-		buf[1:5],
+	binary.BigEndian.PutUint16(
+		buf[1:3],
 		player.ID,
 	)
 
 	binary.BigEndian.PutUint32(
-		buf[5:9],
+		buf[3:7],
 		math.Float32bits(player.X),
 	)
 
 	binary.BigEndian.PutUint32(
-		buf[9:13],
+		buf[7:11],
 		math.Float32bits(player.Y),
 	)
-
-	// TODO: add direction
-	// Change min size of an information to 1 byte for better js compatibility
 
 	return buf
 }

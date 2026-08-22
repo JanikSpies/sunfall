@@ -8,7 +8,7 @@ import (
 )
 
 type Player struct {
-	ID uint32
+	ID uint16
 
 	X float32
 	Y float32

@@ -6,4 +6,5 @@ export interface PlayerState {
     energy: number;
     size: number;
     dashAvailable: boolean;
+    dashed: boolean;
 }

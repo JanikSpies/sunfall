@@ -50,9 +50,10 @@ export class BinaryCodec {
                         rotation: view.getFloat32(offset + 10),
                         energy: view.getFloat32(offset + 14),
                         size: view.getUint8(offset + 18),
-                        dashAvailable: Boolean(view.getUint8(offset + 19))
+                        dashAvailable: Boolean(view.getUint8(offset + 19)),
+                        dashed: Boolean(view.getUint8(offset+20))
                     };
-                    offset += 20;
+                    offset += 21;
                 }
                 return {
                     type: WebSocketTypes.WORLD_STATE,

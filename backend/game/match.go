@@ -35,10 +35,7 @@ func (g *Game) ResetMatch() {
 
 		player.Alive = true
 
-		select {
-		case player.Send <- buildMatchResetPacket():
-		default:
-		}
+		player.QueueLifecyclePacket(buildMatchResetPacket())
 	}
 }
 
@@ -49,8 +46,5 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 
 	player.Alive = false
 
-	select {
-	case player.Send <- buildDeathPacket(reason):
-	default:
-	}
+	player.QueueLifecyclePacket(buildDeathPacket(reason))
 }

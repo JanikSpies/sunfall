@@ -67,14 +67,16 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer conn.CloseNow()
 
 	player := game.Player{
-		Energy:    100,
-		SizeLevel: 1,
-		Radius:    16,
-		Alive:     true,
-		Conn:      conn,
-		Send:      make(chan []byte, 32),
-		Done:      make(chan struct{}),
-		LastPing:  time.Now(),
+		Energy:     100,
+		SizeLevel:  1,
+		Radius:     16,
+		Alive:      true,
+		Conn:       conn,
+		Send:       make(chan []byte, 32),
+		Lifecycle:  make(chan []byte, 4),
+		Disconnect: make(chan struct{}),
+		Done:       make(chan struct{}),
+		LastPing:   time.Now(),
 	}
 
 	if !world.AddPlayer(&player) {

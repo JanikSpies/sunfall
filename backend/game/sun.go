@@ -1,4 +1,4 @@
-package main
+package game
 
 type Sun struct {
 	X float32

@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"encoding/binary"
@@ -24,25 +24,14 @@ const (
 	DeathByBlackHole DeathReason = 2
 )
 
-func buildConnectedPacket(player *Player) []byte {
+func BuildConnectedPacket(player *Player) []byte {
 	buf := make([]byte, 11)
 
 	buf[0] = PacketConnected
 
-	binary.BigEndian.PutUint16(
-		buf[1:3],
-		player.ID,
-	)
-
-	binary.BigEndian.PutUint32(
-		buf[3:7],
-		math.Float32bits(player.X),
-	)
-
-	binary.BigEndian.PutUint32(
-		buf[7:11],
-		math.Float32bits(player.Y),
-	)
+	binary.BigEndian.PutUint16(buf[1:3], player.ID)
+	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(player.X))
+	binary.BigEndian.PutUint32(buf[7:11], math.Float32bits(player.Y))
 
 	return buf
 }
@@ -51,35 +40,35 @@ func buildDeathPacket(reason DeathReason) []byte {
 	return []byte{PacketDeath, byte(reason)}
 }
 
-func buildMatchStatePacket(game *Game) []byte {
+func buildMatchStatePacket(world *Game) []byte {
 	buf := make([]byte, 22)
 
 	buf[0] = PacketMatchState
-	buf[1] = byte(game.Phase)
+	buf[1] = byte(world.Phase)
 
 	binary.BigEndian.PutUint32(
 		buf[2:6],
-		math.Float32bits(game.MatchTime),
+		math.Float32bits(world.MatchTime),
 	)
 
 	binary.BigEndian.PutUint32(
 		buf[6:10],
-		math.Float32bits(game.Sun.X),
+		math.Float32bits(world.Sun.X),
 	)
 
 	binary.BigEndian.PutUint32(
 		buf[10:14],
-		math.Float32bits(game.Sun.Y),
+		math.Float32bits(world.Sun.Y),
 	)
 
 	binary.BigEndian.PutUint32(
 		buf[14:18],
-		math.Float32bits(game.Sun.Radius),
+		math.Float32bits(world.Sun.Radius),
 	)
 
 	binary.BigEndian.PutUint32(
 		buf[18:22],
-		math.Float32bits(game.Sun.BlackHoleRadius),
+		math.Float32bits(world.Sun.BlackHoleRadius),
 	)
 
 	return buf

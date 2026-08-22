@@ -4,12 +4,13 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sunfall/game"
 	"time"
 
 	"github.com/coder/websocket"
 )
 
-var game = NewGame()
+var world = game.NewGame()
 
 func main() {
 	ticker := time.NewTicker(time.Second / 30)
@@ -20,29 +21,29 @@ func main() {
 			dt := now.Sub(last).Seconds()
 			last = now
 
-			game.Update(dt)
-			game.BroadcastWorldState()
+			world.Update(dt)
+			world.BroadcastWorldState()
 		}
 	}()
 
 	radarTicker := time.NewTicker(time.Second)
 	go func() {
 		for range radarTicker.C {
-			game.BroadcastRadar()
+			world.BroadcastRadar()
 		}
 	}()
 
 	matchStateTicker := time.NewTicker(time.Second)
 	go func() {
 		for range matchStateTicker.C {
-			game.BroadcastMatchState()
+			world.BroadcastMatchState()
 		}
 	}()
 
 	pingTimeoutTicker := time.NewTicker(5 * time.Second)
 	go func() {
 		for range pingTimeoutTicker.C {
-			game.RemoveTimedOutPlayers()
+			world.RemoveTimedOutPlayers()
 		}
 	}()
 
@@ -61,43 +62,36 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
-	player := Player{
-		Alive:     true,
+	player := game.Player{
 		Energy:    100,
-		Radius:    16,
 		SizeLevel: 1,
-
-		Conn:     conn,
-		Done:     make(chan struct{}),
-		LastPing: time.Now(),
-		Send:     make(chan []byte, 32),
+		Radius:    16,
+		Alive:     true,
+		Conn:      conn,
+		Send:      make(chan []byte, 32),
+		Done:      make(chan struct{}),
+		LastPing:  time.Now(),
 	}
-	if !game.AddPlayer(&player) {
+
+	if !world.AddPlayer(&player) {
 		conn.Close(websocket.StatusTryAgainLater, "server full")
 		return
 	}
 
-	game.mu.Lock()
-	game.Players[player.ID] = &player
-	game.mu.Unlock()
-
 	defer func() {
-		if game.RemovePlayer(player.ID) {
+		if world.RemovePlayer(player.ID) {
 			log.Println("Player disconnected:", player.ID)
 		}
 		player.CloseDone()
 	}()
 
-	log.Println("Player connected:", player.ID)
+	go player.WriteLoop()
 
-	go player.writeLoop()
+	player.Send <- game.BuildConnectedPacket(&player)
+	player.Send <- world.BuildMatchStatePacket()
 
-	player.Send <- buildConnectedPacket(&player)
-
-	game.mu.RLock()
-	matchState := buildMatchStatePacket(game)
-	game.mu.RUnlock()
-
+	matchState := world.BuildMatchStatePacket()
+	player.Send <- matchState
 	player.Send <- matchState
 
 	for {
@@ -115,27 +109,21 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch data[0] {
-		case PacketInput:
+		case game.PacketInput:
 			if len(data) != 3 {
 				continue
 			}
 
-			game.mu.Lock()
-
-			if !player.Alive {
-				game.mu.Unlock()
-				continue
-			}
-
-			player.InputX = int8(data[1])
-			player.InputY = int8(data[2])
-
-			game.mu.Unlock()
-		case PacketPing:
+			world.SetPlayerInput(
+				&player,
+				int8(data[1]),
+				int8(data[2]),
+			)
+		case game.PacketPing:
 			player.MarkPing()
 
 			select {
-			case player.Send <- []byte{PacketPong}:
+			case player.Send <- []byte{game.PacketPong}:
 			default:
 			}
 		}

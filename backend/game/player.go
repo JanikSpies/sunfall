@@ -1,4 +1,4 @@
-package main
+package game
 
 import (
 	"context"
@@ -38,7 +38,7 @@ type Player struct {
 	pingMu   sync.RWMutex
 }
 
-func (p *Player) writeLoop() {
+func (p *Player) WriteLoop() {
 	for {
 		select {
 		case <-p.Done:

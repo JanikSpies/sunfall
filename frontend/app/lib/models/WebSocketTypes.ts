@@ -7,15 +7,15 @@ export enum WebSocketTypes {
     INPUT = 0x04,
     WORLD_STATE = 0x05,
     DEATH = 0x06,
-    RADAR = 0x07,
-    MATCH_STATE = 0x08,
-    MATCH_RESET = 0x09,
+    RADAR = 0x08,
+    MATCH_STATE = 0x09,
+    MATCH_RESET = 0x0A,
 }
 export type PongMessage = { type: WebSocketTypes.PONG }
 export type ConnectedMessage = { type: WebSocketTypes.CONNECTED; id: number; x: number; y: number; direction: number }
 export type WorldStateMessage = { type: WebSocketTypes.WORLD_STATE; playerCount: number, players: Record<number, PlayerState> }
 export type DeathMessage = { type: WebSocketTypes.DEATH; deadId: number; killerId: number }
-export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE }
+export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE, worldPhase: number, matchTime: number, sunRadius: number }
 export type MatchResetMessage = { type: WebSocketTypes.MATCH_RESET }
 
 export type DecodedMessage = 

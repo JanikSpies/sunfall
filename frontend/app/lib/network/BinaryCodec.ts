@@ -39,14 +39,10 @@ export class BinaryCodec {
 
             case WebSocketTypes.WORLD_STATE:
                 const playerCount = view.getInt16(1);
-                
                 const players: Record<number, PlayerState> = {}; 
-                
                 let offset = 3;
-
                 for (let i = 0; i < playerCount; i++) {
                     const id = view.getInt16(offset);
-
                     players[id] = {
                         id: id,
                         x: view.getFloat32(offset + 2),
@@ -56,14 +52,20 @@ export class BinaryCodec {
                         size: view.getUint8(offset + 18),
                         dashAvailable: Boolean(view.getUint8(offset + 19))
                     };
-
                     offset += 20;
                 }
-
                 return {
                     type: WebSocketTypes.WORLD_STATE,
                     playerCount: playerCount,
                     players: players,
+                }
+
+            case WebSocketTypes.MATCH_STATE:
+                return {
+                    type: WebSocketTypes.MATCH_STATE,
+                    worldPhase: view.getUint8(1),
+                    matchTime: view.getFloat32(2),
+                    sunRadius: view.getFloat32(6)
                 }
 
             default:

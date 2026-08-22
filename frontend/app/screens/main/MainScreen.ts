@@ -135,18 +135,23 @@ export class MainScreen extends Container {
     private handlePointerMove(event: FederatedPointerEvent) {
         if (event.pointerType !== "mouse") return;
 
+        // This converts the global mouse position into the mainContainer's local space.
+        // Since mainContainer is centered, (0,0) is now the dead center of the canvas.
         const localPos = this.mainContainer.toLocal(event.global);
 
-        const dx = localPos.x - this.rocket.x;
-        const dy = localPos.y - this.rocket.y;
+        // Use localPos directly! No need to subtract world coordinates.
+        const dx = localPos.x;
+        const dy = localPos.y;
         const dist = Math.hypot(dx, dy);
 
         if (dist > 0.1) {
+            // Normalizes the vector and scales it to an int8 [-100, 100] (matching your joystick)
             this.inputState.x = Math.round((dx / dist) * 100);
             this.inputState.y = Math.round((dy / dist) * 100);
         }
 
-        this.rocket.setTarget(localPos.x, localPos.y);
+        // Assuming setTarget expects a directional offset like your joystick does
+        this.rocket.setTarget(dx, dy);
     }
 
     /** Prepare the screen just before showing */

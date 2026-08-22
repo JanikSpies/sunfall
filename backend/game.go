@@ -491,6 +491,7 @@ func (g *Game) BroadcastMatchState() {
 func (g *Game) ResetMatch() {
 	g.MatchTime = 0
 	g.Phase = PhaseSupernova
+	g.FinishedTime = 0
 
 	g.Sun.Radius = g.Sun.StartRadius
 	g.Sun.BlackHoleRadius = 80
@@ -500,6 +501,7 @@ func (g *Game) ResetMatch() {
 
 		player.X = spawnX
 		player.Y = spawnY
+
 		player.VX = 0
 		player.VY = 0
 		player.KnockbackX = 0
@@ -509,5 +511,15 @@ func (g *Game) ResetMatch() {
 		player.SizeLevel = 1
 		player.Radius = 16
 		player.Alive = true
+
+		player.InputX = 0
+		player.InputY = 0
+		player.DashRequested = false
+		player.DashCooldown = 0
+
+		select {
+		case player.Send <- buildMatchResetPacket():
+		default:
+		}
 	}
 }

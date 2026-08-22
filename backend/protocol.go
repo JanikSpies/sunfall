@@ -13,6 +13,7 @@ const (
 	PacketDash       byte = 5
 	PacketRadar      byte = 6
 	PacketMatchState byte = 7
+	PacketMatchReset byte = 8
 )
 
 func buildConnectedPacket(player *Player) []byte {
@@ -64,4 +65,8 @@ func buildMatchStatePacket(game *Game) []byte {
 	)
 
 	return buf
+}
+
+func buildMatchResetPacket() []byte {
+	return []byte{PacketMatchReset}
 }

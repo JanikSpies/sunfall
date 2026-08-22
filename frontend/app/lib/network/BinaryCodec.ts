@@ -41,38 +41,46 @@ export class BinaryCodec {
                 const playerCount = view.getInt16(1);
                 const players: Record<number, PlayerState> = {}; 
                 let offset = 3;
+                const decoder = new TextDecoder();
                 for (let i = 0; i < playerCount; i++) {
                     const id = view.getInt16(offset);
-                    let player = BinaryCodec.playerPool.get(id);
-                    if (!player) {
-                        player = {
-                            id: id,
-                            x: 0,
-                            y: 0,
-                            rotation: 0,
-                            energy: 0,
-                            size: 0,
-                            dashAvailable: false,
-                            dashed: false,
-                        };
-                        BinaryCodec.playerPool.set(id, player);
-                    }
-                    player.id = id;
-                    player.x = view.getFloat32(offset + 2);
-                    player.y = view.getFloat32(offset + 6);
-                    player.rotation = view.getFloat32(offset + 10);
-                    player.energy = view.getFloat32(offset + 14);
-                    player.size = view.getUint8(offset + 18);
-                    player.dashAvailable = Boolean(view.getUint8(offset + 19));
-                    player.dashed = Boolean(view.getUint8(offset + 20));
+                    const x = view.getFloat32(offset + 2);
+                    const y = view.getFloat32(offset + 6);
+                    const rotation = view.getFloat32(offset + 10);
+                    const energy = view.getFloat32(offset + 14);
+                    const size = view.getUint8(offset + 18);
+                    const dashAvailable = Boolean(view.getUint8(offset + 19));
+                    const dashed = Boolean(view.getUint8(offset + 20));
 
-                    players[id] = player;
-                    offset += 21;
+                    let name = "Player";
+                    let entrySize = 21;
+
+                    if (view.byteLength > offset + 21) {
+                        const nameLen = view.getUint8(offset + 21);
+                        entrySize = 22 + nameLen;
+                        if (view.byteLength >= offset + entrySize) {
+                            const nameBytes = new Uint8Array(buffer, offset + 22, nameLen);
+                            name = decoder.decode(nameBytes) || "Player";
+                        }
+                    }
+
+                    players[id] = {
+                        id,
+                        name,
+                        x,
+                        y,
+                        rotation,
+                        energy,
+                        size,
+                        dashAvailable,
+                        dashed,
+                    };
+                    offset += entrySize;
                 }
                 return {
                     type: WebSocketTypes.WORLD_STATE,
-                    playerCount: playerCount,
-                    players: players,
+                    playerCount,
+                    players,
                 };
             }
 
@@ -83,6 +91,21 @@ export class BinaryCodec {
                     matchTimer: view.getFloat32(2),
                     sunRadius: view.getFloat32(6)
                 };
+
+            case WebSocketTypes.DEATH: {
+                const reason = view.byteLength >= 2 ? view.getUint8(1) : 0;
+                const deadId = view.byteLength >= 3 ? view.getUint16(1) : undefined;
+                const killerId = view.byteLength >= 5 ? view.getUint16(3) : undefined;
+                return {
+                    type: WebSocketTypes.DEATH,
+                    reason,
+                    deadId,
+                    killerId,
+                };
+            }
+
+            case WebSocketTypes.MATCH_RESET:
+                return { type: WebSocketTypes.MATCH_RESET };
 
             default:
                 return null;

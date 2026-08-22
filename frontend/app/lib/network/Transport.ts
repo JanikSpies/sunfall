@@ -6,6 +6,7 @@ export class NetworkTransport {
     private url: string;
     private pingIntervalId: number | null = null;
     private reconnectTimeoutId: number | null = null;
+    private manualDisconnect = false;
 
     private onStateUpdate: (message: DecodedMessage) => void; 
 
@@ -14,8 +15,21 @@ export class NetworkTransport {
         this.onStateUpdate = onStateUpdate;
     }
 
-    public connect() {
-        if (this.socket && this.socket.readyState === WebSocket.OPEN) return;
+    public setUrl(url: string) {
+        this.url = url;
+    }
+
+    public connect(url?: string) {
+        if (url) {
+            this.url = url;
+        }
+        if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) return;
+
+        this.manualDisconnect = false;
+        if (this.reconnectTimeoutId) {
+            window.clearTimeout(this.reconnectTimeoutId);
+            this.reconnectTimeoutId = null;
+        }
 
         console.log("Connecting to server");
         this.socket = new WebSocket(this.url);
@@ -25,6 +39,21 @@ export class NetworkTransport {
         this.socket.onmessage = this.handleMessage.bind(this);
         this.socket.onclose = this.handleClose.bind(this);
         this.socket.onerror = this.handleError.bind(this);
+    }
+
+    public disconnect() {
+        this.manualDisconnect = true;
+        if (this.reconnectTimeoutId) {
+            window.clearTimeout(this.reconnectTimeoutId);
+            this.reconnectTimeoutId = null;
+        }
+        this.cleanup();
+        if (this.socket) {
+            this.socket.onclose = null;
+            this.socket.onerror = null;
+            this.socket.close();
+            this.socket = null;
+        }
     }
 
     private handleMessage(event: MessageEvent) {
@@ -40,9 +69,12 @@ export class NetworkTransport {
     }
 
     private handleClose(event: CloseEvent) {
-        console.log(`WebSocket closed: ${event.code}. Reconnecting in 2s`);
+        console.log(`WebSocket closed: ${event.code}.`);
         this.cleanup();
-        this.reconnectTimeoutId = window.setTimeout(() => this.connect(), 2000);
+        if (!this.manualDisconnect) {
+            console.log("Reconnecting in 2s");
+            this.reconnectTimeoutId = window.setTimeout(() => this.connect(), 2000);
+        }
     }
 
     private handleError(error: Event) {

@@ -38,7 +38,13 @@ func buildConnectedPacket(player *Player) []byte {
 }
 
 func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
-	buf := make([]byte, 3+(len(indexes)*21))
+	totalLen := 3
+	for _, index := range indexes {
+		player := snapshot.Players[index]
+		totalLen += 22 + len(player.Name)
+	}
+
+	buf := make([]byte, totalLen)
 	buf[0] = PacketWorldState
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(indexes)))
 
@@ -74,6 +80,14 @@ func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
 			buf[offset] = 1
 		}
 		offset++
+
+		nameBytes := []byte(player.Name)
+		nameLen := uint8(len(nameBytes))
+		buf[offset] = nameLen
+		offset++
+
+		copy(buf[offset:offset+int(nameLen)], nameBytes)
+		offset += int(nameLen)
 	}
 
 	return buf

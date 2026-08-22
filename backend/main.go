@@ -80,7 +80,17 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.CloseNow()
 
+	name := strings.TrimSpace(r.URL.Query().Get("name"))
+	if name == "" {
+		name = "Player"
+	}
+	runes := []rune(name)
+	if len(runes) > 16 {
+		name = string(runes[:16])
+	}
+
 	player := game.Player{
+		Name:       name,
 		Energy:     100,
 		SizeLevel:  1,
 		Radius:     16,

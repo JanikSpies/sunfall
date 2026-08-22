@@ -71,7 +71,7 @@ func (g *Game) NextPlayerID() (uint16, bool) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	for i := 0; i < 65535; i++ {
+	for range 65535 {
 		g.nextPlayerID++
 
 		if g.nextPlayerID == 0 {

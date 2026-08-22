@@ -138,6 +138,10 @@ func (g *Game) Update(dt float64) {
 				g.killPlayer(player, DeathBySun)
 				continue
 			}
+
+			if inputX != 0 || inputY != 0 {
+				player.Rotation = float32(math.Atan2(inputY, inputX))
+			}
 		}
 
 		distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))

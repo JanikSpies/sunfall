@@ -19,8 +19,8 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	NeutralEnergyDistance      float32 = 100
-	MaxEnergyGain              float32 = 10
+	NeutralEnergyDistance      float32 = 500
+	MaxEnergyGain              float32 = 20
 	EnergyDepletionGracePeriod float32 = 5
 
 	DashCooldownDuration float32 = 0.75
@@ -44,7 +44,6 @@ const (
 	BlackHolePullMax          float32 = 3600
 	BlackHoleRampTime         float32 = 8
 	BlackHoleCollapseDuration float32 = 3
-	BlackHoleGrowthPerSecond  float32 = 60
 )
 
 type Game struct {
@@ -72,11 +71,10 @@ func NewGame() *Game {
 		collisionGrid: NewCollisionGrid(),
 
 		Sun: Sun{
-			Radius:               150,
-			StartRadius:          150,
-			EndRadius:            700,
-			BlackHoleStartRadius: 80,
-			BlackHoleMaxRadius:   500,
+			Radius:             300,
+			Scale:              1,
+			StartRadius:        300,
+			BlackHoleEndRadius: 150,
 		},
 
 		Phase: PhaseSupernova,

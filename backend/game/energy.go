@@ -6,7 +6,10 @@ func (g *Game) updatePlayerEnergyLocked(
 	elapsed float32,
 ) bool {
 	distanceFromSun := distance - g.Sun.Radius - player.Radius
-	factor := (NeutralEnergyDistance - distanceFromSun) / NeutralEnergyDistance
+
+	scale := g.Sun.Radius / g.Sun.StartRadius
+	neutralEnergyDistance := NeutralEnergyDistance * scale
+	factor := (neutralEnergyDistance - distanceFromSun) / neutralEnergyDistance
 	if factor > 1 {
 		factor = 1
 	} else if factor < -1 {

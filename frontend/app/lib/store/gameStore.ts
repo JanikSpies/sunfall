@@ -13,7 +13,7 @@ interface GameState {
     players: Record<number, PlayerState>;
     worldPhase: number;
     matchTimer: number;
-    sunRadius: number;
+    sunScale: number;
     scoreboard: ScoreboardEntry[];
     deathEvent: DeathEvent | null;
     matchResetSeq: number;
@@ -22,7 +22,7 @@ interface GameState {
     setPlayerName: (name: string) => void;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
-    setMatchState: (worldPhase: number, matchTimer: number, sunRadius: number) => void;
+    setMatchState: (worldPhase: number, matchTimer: number, sunScale: number) => void;
     resetGame: () => void;
     handleMessage: (message: DecodedMessage) => void;
 }
@@ -32,7 +32,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     players: {},
     worldPhase: 0,
     matchTimer: 0,
-    sunRadius: 150,
+    sunScale: 1,
     scoreboard: [],
     deathEvent: null,
     matchResetSeq: 0,
@@ -41,14 +41,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     setPlayerName: (name) => set({ playerName: name }),
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
-    setMatchState: (worldPhase, matchTimer, sunRadius) => set({ worldPhase, matchTimer, sunRadius }),
+    setMatchState: (worldPhase, matchTimer, sunScale) => set({ worldPhase, matchTimer, sunScale }),
     resetGame: () => set({
         players: {},
         localPlayerId: null,
         isDead: false,
         worldPhase: 0,
         matchTimer: 0,
-        sunRadius: 150,
+        sunScale: 1,
     }),
     handleMessage: (message: DecodedMessage) => {
         if (message.type === WebSocketTypes.CONNECTED) {
@@ -61,7 +61,7 @@ export const useGameStore = create<GameState>((set, get) => ({
             set({
                 worldPhase: message.worldPhase,
                 matchTimer: message.matchTimer,
-                sunRadius: message.sunRadius,
+                sunScale: message.sunScale,
             });
         } else if (message.type === WebSocketTypes.DEATH) {
             set({ deathEvent: { reason: message.reason!, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });

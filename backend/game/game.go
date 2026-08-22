@@ -19,8 +19,8 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	NeutralEnergyDistance      float32 = 100
-	MaxEnergyGain              float32 = 10
+	NeutralEnergyDistance      float32 = 500
+	MaxEnergyGain              float32 = 20
 	EnergyDepletionGracePeriod float32 = 5
 
 	DashCooldownDuration float32 = 0.75

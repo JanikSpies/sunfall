@@ -1,4 +1,5 @@
-import { BinaryCodec } from "./BinaryCodec";
+import {BinaryCodec} from "./BinaryCodec";
+import {DecodedMessage} from "../models/WebSocketTypes";
 
 export class NetworkTransport {
     private socket: WebSocket | null = null;
@@ -6,9 +7,9 @@ export class NetworkTransport {
     private pingIntervalId: number | null = null;
     private reconnectTimeoutId: number | null = null;
 
-    private onStateUpdate: (data: ArrayBuffer) => void; 
+    private onStateUpdate: (message: DecodedMessage) => void; 
 
-    constructor(url: string, onStateUpdate: (data: ArrayBuffer) => void) {
+    constructor(url: string, onStateUpdate: (message: DecodedMessage) => void) {
         this.url = url;
         this.onStateUpdate = onStateUpdate;
     }
@@ -34,8 +35,7 @@ export class NetworkTransport {
         const decoded = BinaryCodec.decodeMessage(event.data);
         
         if (decoded) {
-            console.log("Successfully decoded message:", decoded);
-            // Later: this.onStateUpdate(decoded);
+            this.onStateUpdate(decoded);
         }
     }
 

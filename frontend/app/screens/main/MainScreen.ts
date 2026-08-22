@@ -1,6 +1,6 @@
 import {FancyButton} from "@pixi/ui";
 import {animate} from "motion";
-import {Container, FederatedPointerEvent, isMobile, Rectangle, Ticker} from "pixi.js";
+import {Container, type DestroyOptions, FederatedPointerEvent, isMobile, Rectangle, Ticker} from "pixi.js";
 
 import {engine} from "../../getEngine";
 import {SettingsPopup} from "../../popups/SettingsPopup";
@@ -9,15 +9,14 @@ import {GameMap} from "./GameMap";
 import {VirtualJoystick} from "../../ui/game/VirtualJoystick";
 import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
-import { NetworkTransport } from "@/app/lib/network/Transport";
-import { BinaryCodec } from "@/app/lib/network/BinaryCodec";
-import { network } from "@/app/lib/store/gameStore";
+import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
+import {network, useGameStore} from "@/app/lib/store/gameStore";
 
 
 /** The screen that holds the app */
 export class MainScreen extends Container {
     private inputState = { x: 100, y: 0, dash: false };
-    
+
     /** Assets bundles required by this screen */
     public static assetBundles = ["main"];
 
@@ -29,9 +28,9 @@ export class MainScreen extends Container {
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
     private isTouchDevice =  isMobile.phone;
-    private paused = false;
     private screenWidth = 0;
     private screenHeight = 0;
+    private unsubscribeGameStore?: () => void;
 
     constructor() {
         super();
@@ -69,14 +68,13 @@ export class MainScreen extends Container {
         if (this.isTouchDevice) {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
-                if (this.paused) return;
                 this.rocket.setTarget(dx * 100, dy * 100);
             };
             this.addChild(this.virtualJoystick);
 
             this.dashButton = new DashButton();
             this.dashButton.onDash = () => {
-                if (this.paused) return;
+                if (!this.rocket.canDash()) return;
                 this.rocket.dash();
             };
             this.addChild(this.dashButton);
@@ -91,12 +89,18 @@ export class MainScreen extends Container {
         this.rocket = new Rocket();
         this.gameMap.addChild(this.rocket);
 
+        this.unsubscribeGameStore = useGameStore.subscribe((state) => {
+            const localId = state.localPlayerId;
+            if (localId !== null && state.players[localId]) {
+                this.rocket.applyPlayerState(state.players[localId]);
+            }
+        });
+
         this.on("pointermove", this.handlePointerMove, this);
 
         if (this.isTouchDevice) {
             this.virtualJoystick = new VirtualJoystick();
             this.virtualJoystick.onMove = (dx, dy) => {
-                if (this.paused) return;
                 // Scale the normalized [-1, 1] joystick output to int8 [-100, 100]
                 this.inputState.x = Math.round(dx * 100);
                 this.inputState.y = Math.round(dy * 100);
@@ -109,8 +113,9 @@ export class MainScreen extends Container {
 
             this.dashButton = new DashButton();
             this.dashButton.onDash = () => {
-                if (this.paused) return;
-                this.inputState.dash = true; 
+                if (!this.rocket.canDash()) return;
+                this.rocket.dash();
+                this.inputState.dash = true;
             };
             this.addChild(this.dashButton);
         }
@@ -119,24 +124,24 @@ export class MainScreen extends Container {
     }
 
     private handleKeyDown = (e: KeyboardEvent) => {
-        if (this.paused || e.repeat) return;
         if (e.code === "Space") {
             e.preventDefault();
+            if (!this.rocket.canDash()) return;
             this.rocket.dash();
             this.inputState.dash = true;
         }
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
-        if (this.paused || event.pointerType !== "mouse") return;
-        
+        if (event.pointerType !== "mouse") return;
+
         const localPos = this.mainContainer.toLocal(event.global);
-        
+
         const dx = localPos.x - this.rocket.x;
         const dy = localPos.y - this.rocket.y;
         const dist = Math.hypot(dx, dy);
 
-        if (dist > 0.1) { 
+        if (dist > 0.1) {
             this.inputState.x = Math.round((dx / dist) * 100);
             this.inputState.y = Math.round((dy / dist) * 100);
         }
@@ -146,13 +151,16 @@ export class MainScreen extends Container {
 
     /** Prepare the screen just before showing */
     public prepare() {
+        const state = useGameStore.getState();
+        const localId = state.localPlayerId;
+        if (localId !== null && state.players[localId]) {
+            this.rocket.applyPlayerState(state.players[localId]);
+        }
     }
 
     /** Update the screen */
     public update(time: Ticker) {
         this.gameMap.update(time);
-
-        if (this.paused) return;
 
         if (network) {
             const inputBuffer = BinaryCodec.encodeInput(
@@ -160,13 +168,13 @@ export class MainScreen extends Container {
                 this.inputState.y,
                 this.inputState.dash
             );
-            
+
             console.log(`Sending Input -> X: ${this.inputState.x}, Y: ${this.inputState.y}, Dash: ${this.inputState.dash}`);
-            
+
             network.send(inputBuffer);
         }
 
-        this.inputState.dash = false; 
+        this.inputState.dash = false;
 
         this.rocket.update(time);
         this.gameMap.setFocus(this.rocket.x, this.rocket.y);
@@ -209,7 +217,6 @@ export class MainScreen extends Container {
     /** Pause gameplay - automatically fired when a popup is presented */
     public async pause() {
         this.mainContainer.interactiveChildren = false;
-        this.paused = true;
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
     }
@@ -217,7 +224,6 @@ export class MainScreen extends Container {
     /** Resume gameplay */
     public async resume() {
         this.mainContainer.interactiveChildren = true;
-        this.paused = false;
     }
 
     /** Fully reset */
@@ -313,5 +319,11 @@ export class MainScreen extends Container {
         window.removeEventListener("keydown", this.handleKeyDown);
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
+    }
+
+    public override destroy(options?: DestroyOptions) {
+        this.unsubscribeGameStore?.();
+        window.removeEventListener("keydown", this.handleKeyDown);
+        super.destroy(options);
     }
 }

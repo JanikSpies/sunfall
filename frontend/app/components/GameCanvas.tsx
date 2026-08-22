@@ -2,13 +2,10 @@
 
 import {useEffect, useRef} from "react";
 import {CreationEngine} from "@/engine/engine";
-import {initNetwork, useGameStore} from "../lib/store/gameStore";
-
+import {initNetwork} from "../lib/store/gameStore";
 
 export default function GameCanvas() {
     const startedRef = useRef(false);
-    const players = useGameStore((state) => state.players);
-    
 
     useEffect(() => {
         if (startedRef.current) return;

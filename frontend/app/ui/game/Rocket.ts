@@ -1,5 +1,6 @@
 import {Container, NineSliceSprite, Point, Sprite, Texture, type Ticker} from "pixi.js";
 import {EnergyBar} from "./EnergyBar";
+import type {PlayerState} from "../../lib/models/PlayerState";
 
 const scale = 0.5;
 
@@ -10,6 +11,7 @@ export class Rocket extends Container {
   public targetPosition: Point = new Point(0, 0);
   public speed = 4;
   private stage = 1;
+  public dashAvailable: boolean = false;
 
   constructor() {
     super();
@@ -38,11 +40,27 @@ export class Rocket extends Container {
     this.addChild(this.energyBar);
   }
 
+  /** Apply authoritative server PlayerState to update position, rotation, energy, visual stage, and dash readiness */
+  public applyPlayerState(state: PlayerState): void {
+    this.x = state.x;
+    this.y = state.y;
+    this.rotation = state.rotation + Math.PI / 2;
+    this.setEnergy(state.energy);
+    this.setStage(state.size);
+    this.dashAvailable = state.dashAvailable;
+  }
+
+  /** Check if dash is currently available */
+  public canDash(): boolean {
+    return this.dashAvailable;
+  }
+
   /** Set upgrade stage of the spaceship (1-4) */
   public setStage(stage: number) {
     this.stage = Math.max(1, Math.min(4, Math.floor(stage)));
     this.image.texture = Texture.from(`spaceship_stage_${this.stage}.svg`);
     this.arrow.texture = Texture.from(`sun-pointer-ship-${this.stage}.svg`);
+    this.energyBar.position.set(0, this.image.height * 0.5 + 16);
   }
 
   /** Get current stage */
@@ -76,32 +94,20 @@ export class Rocket extends Container {
   /** Set target aim coordinates relative to the rocket center */
   public setTarget(x: number, y: number) {
     this.targetPosition.set(x, y);
-    if (x !== 0 || y !== 0) {
-      this.rotation = Math.atan2(y, x) + Math.PI / 2;
-    }
   }
 
-  /** Perform a discrete forward dash impulse */
-  public dash(multiplier: number = 3) {
-    const distance = this.speed * multiplier;
-    this.x += Math.sin(this.rotation) * distance;
-    this.y -= Math.cos(this.rotation) * distance;
+  /** Perform dash if available and optimistically lock dash readiness until server update */
+  public dash(): boolean {
+    if (!this.canDash()) {
+      return false;
+    }
+    this.dashAvailable = false;
+    return true;
   }
 
-  /** Update the rocket position with constant forward velocity */
-  public update(time?: Ticker) {
-    const delta = time?.deltaTime ?? 1;
-    const clampedDelta = Math.min(delta, 2);
-
-    if (this.targetPosition.x !== 0 || this.targetPosition.y !== 0) {
-      this.rotation = Math.atan2(this.targetPosition.y, this.targetPosition.x) + Math.PI / 2;
-    }
-
-    const vx = Math.sin(this.rotation) * this.speed * clampedDelta;
-    const vy = -Math.cos(this.rotation) * this.speed * clampedDelta;
-
-    this.x += vx;
-    this.y += vy;
+  /** Update rocket ticker callback (client-side positional physics disabled) */
+  public update(_time?: Ticker) {
+    void _time;
   }
 
   /** Reset the rocket position, rotation, target, and energy bar */
@@ -109,6 +115,8 @@ export class Rocket extends Container {
     this.position.set(0, 0);
     this.targetPosition.set(0, 0);
     this.rotation = 0;
+    this.dashAvailable = true;
+    this.setStage(1);
     this.energyBar.reset();
     this.setSunPointer(false);
     this.arrow.rotation = 0;

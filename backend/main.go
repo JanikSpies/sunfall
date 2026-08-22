@@ -103,6 +103,17 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			player.InputY = int8(data[2])
 
 			game.mu.Unlock()
+		case PacketDash:
+			game.mu.Lock()
+
+			if !player.Alive {
+				game.mu.Unlock()
+				continue
+			}
+
+			log.Println("Player requested dash:", player.ID)
+
+			game.mu.Unlock()
 		}
 	}
 }

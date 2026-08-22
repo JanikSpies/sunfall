@@ -10,6 +10,7 @@ const (
 	PacketInput      byte = 2
 	PacketWorldState byte = 3
 	PacketDeath      byte = 4
+	PacketDash       byte = 5
 )
 
 func buildConnectedPacket(player *Player) []byte {

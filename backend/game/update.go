@@ -90,6 +90,10 @@ func (g *Game) Update(dt float64) {
 			inputY /= length
 		}
 
+		if inputX != 0 || inputY != 0 {
+			player.Rotation = float32(math.Atan2(inputY, inputX))
+		}
+
 		player.VX = float32(inputX * PlayerSpeed)
 		player.VY = float32(inputY * PlayerSpeed)
 
@@ -145,10 +149,6 @@ func (g *Game) Update(dt float64) {
 			if distance <= g.Sun.BlackHoleRadius+player.Radius {
 				g.killPlayer(player, DeathBySun)
 				continue
-			}
-
-			if inputX != 0 || inputY != 0 {
-				player.Rotation = float32(math.Atan2(inputY, inputX))
 			}
 		}
 

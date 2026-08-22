@@ -8,6 +8,8 @@ import (
 	"sync"
 )
 
+type MatchPhase uint8
+
 const (
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
@@ -21,7 +23,9 @@ const (
 	DashForce            float32 = 700
 	KnockbackDecay       float32 = 6
 
-	MatchDuration float32 = 10 * 60
+	MatchDuration  float32    = 10 * 60
+	PhaseSupernova MatchPhase = 1
+	PhaseBlackHole MatchPhase = 2
 )
 
 type Game struct {
@@ -33,6 +37,7 @@ type Game struct {
 	Sun Sun
 
 	MatchTime float32
+	Phase     MatchPhase
 }
 
 func NewGame() *Game {
@@ -46,6 +51,8 @@ func NewGame() *Game {
 			StartRadius: 150,
 			EndRadius:   700,
 		},
+
+		Phase: PhaseSupernova,
 	}
 }
 
@@ -69,9 +76,23 @@ func (g *Game) Update(dt float64) {
 		progress = 1
 	}
 
-	g.Sun.Radius =
-		g.Sun.StartRadius +
-			(g.Sun.EndRadius-g.Sun.StartRadius)*progress
+	g.MatchTime += float32(dt)
+
+	if g.MatchTime >= MatchDuration {
+		g.Phase = PhaseBlackHole
+	}
+
+	if g.Phase == PhaseSupernova {
+		progress := g.MatchTime / MatchDuration
+
+		if progress > 1 {
+			progress = 1
+		}
+
+		g.Sun.Radius =
+			g.Sun.StartRadius +
+				(g.Sun.EndRadius-g.Sun.StartRadius)*progress
+	}
 
 	for _, player := range g.Players {
 		if !player.Alive {

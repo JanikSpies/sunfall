@@ -1,8 +1,7 @@
 import {FancyButton} from "@pixi/ui";
 import {animate} from "motion";
 import type {AnimationPlaybackControls} from "motion/react";
-import type {FederatedPointerEvent, Ticker} from "pixi.js";
-import {Container, Rectangle} from "pixi.js";
+import {Container, FederatedPointerEvent, isMobile, Rectangle, Ticker} from "pixi.js";
 
 import {engine} from "../../getEngine";
 import {PausePopup} from "../../popups/PausePopup";
@@ -29,17 +28,13 @@ export class MainScreen extends Container {
     private sun: Sun;
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
-    private isTouchDevice = false;
+    private isTouchDevice =  isMobile.phone;
     private paused = false;
 
     constructor() {
         super();
 
         this.eventMode = "static";
-
-        this.isTouchDevice =
-            typeof window !== "undefined" &&
-            window.matchMedia?.("(pointer: coarse) and (hover: none)").matches;
 
         this.sun = new Sun();
         this.addChild(this.sun);
@@ -120,7 +115,7 @@ export class MainScreen extends Container {
     };
 
     private handlePointerMove(event: FederatedPointerEvent) {
-        if (this.paused) return;
+        if (this.paused || event.pointerType !== "mouse") return;
         const localPos = this.mainContainer.toLocal(event.global);
         this.rocket.setTarget(localPos.x, localPos.y);
     }

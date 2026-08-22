@@ -334,7 +334,9 @@ func (g *Game) BroadcastWorldState() {
 }
 
 func (g *Game) randomSpawnPositionLocked() (float32, float32) {
-	for {
+	const maxAttempts = 100
+
+	for range maxAttempts {
 		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 
@@ -369,6 +371,7 @@ func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 			return x, y
 		}
 	}
+	return -MapHalfSize + 100, -MapHalfSize + 100
 }
 
 func (g *Game) handlePlayerCollisions() {

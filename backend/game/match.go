@@ -31,8 +31,10 @@ func (g *Game) startMatchLocked() {
 		player.Alive = false
 	}
 
+	occupied := NewCollisionGrid()
+
 	for _, player := range g.Players {
-		spawnX, spawnY := g.randomSpawnPositionLocked()
+		spawnX, spawnY := g.randomSpawnPositionLocked(occupied)
 
 		player.X = spawnX
 		player.Y = spawnY
@@ -47,6 +49,7 @@ func (g *Game) startMatchLocked() {
 		player.InputY = 0
 
 		player.Energy = 100
+		player.EnergyDepletedFor = 0
 		player.SizeLevel = 1
 		player.Radius = 16
 
@@ -54,6 +57,8 @@ func (g *Game) startMatchLocked() {
 		player.DashCooldown = 0
 
 		player.Alive = true
+
+		occupied.Insert(player)
 
 		player.QueueLifecyclePacket(buildMatchResetPacket())
 	}

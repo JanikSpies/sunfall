@@ -31,32 +31,37 @@ func main() {
 		last := time.Now()
 
 		for now := range ticker.C {
-			dt := now.Sub(last).Seconds()
-			last = now
+			func() {
+				defer recoverAndLog("tick loop")
 
-			world.Update(dt)
-			world.BroadcastWorldState()
-		}
-	}()
+				dt := now.Sub(last).Seconds()
+				last = now
 
-	radarTicker := time.NewTicker(time.Second)
-	go func() {
-		for range radarTicker.C {
-			world.BroadcastRadar()
+				world.Update(dt)
+				world.BroadcastWorldState()
+			}()
 		}
 	}()
 
 	matchStateTicker := time.NewTicker(time.Second / 10)
 	go func() {
 		for range matchStateTicker.C {
-			world.BroadcastMatchState()
+			func() {
+				defer recoverAndLog("match state ticker")
+
+				world.BroadcastMatchState()
+			}()
 		}
 	}()
 
 	pingTimeoutTicker := time.NewTicker(5 * time.Second)
 	go func() {
 		for range pingTimeoutTicker.C {
-			world.RemoveTimedOutPlayers()
+			func() {
+				defer recoverAndLog("ping timeout ticker")
+
+				world.RemoveTimedOutPlayers()
+			}()
 		}
 	}()
 
@@ -82,6 +87,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		Alive:      true,
 		Conn:       conn,
 		Send:       make(chan []byte, 32),
+		WorldState: make(chan []byte, 1),
 		Lifecycle:  make(chan []byte, 4),
 		Disconnect: make(chan struct{}),
 		Done:       make(chan struct{}),
@@ -102,8 +108,8 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	go player.WriteLoop()
 
-	player.Send <- world.BuildConnectedPacket(&player)
-	player.Send <- world.BuildMatchStatePacket()
+	player.QueueLifecyclePacket(world.BuildConnectedPacket(&player))
+	player.QueueLifecyclePacket(world.BuildMatchStatePacket())
 
 	for {
 		messageType, data, err := conn.Read(context.Background())
@@ -144,6 +150,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 		}
+	}
+}
+
+func recoverAndLog(context string) {
+	if r := recover(); r != nil {
+		log.Printf("recovered panic in %s: %v", context, r)
 	}
 }
 

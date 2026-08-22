@@ -37,13 +37,17 @@ func (g *Game) AddPlayer(player *Player) bool {
 		return false
 	}
 
-	spawnX, spawnY := g.randomSpawnPositionLocked()
+	occupied := NewCollisionGrid()
+	occupied.Rebuild(g.Players)
+
+	spawnX, spawnY := g.randomSpawnPositionLocked(occupied)
 
 	player.ID = playerID
 	player.X = spawnX
 	player.Y = spawnY
 	player.Rotation = randomSpawnRotation()
 	player.Alive = g.Phase == PhaseSupernova
+	player.EnergyDepletedFor = 0
 
 	g.Players[player.ID] = player
 
@@ -54,12 +58,17 @@ func randomSpawnRotation() float32 {
 	return float32(rand.Float64() * 2 * math.Pi)
 }
 
-func (g *Game) randomSpawnPositionLocked() (float32, float32) {
+func (g *Game) randomSpawnPositionLocked(occupied *CollisionGrid) (float32, float32) {
 	const maxAttempts = 100
 
 	for range maxAttempts {
-		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
-		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
+		minimumRadius := g.Sun.Radius + 200
+		radiusSquared := float64(minimumRadius*minimumRadius) +
+			rand.Float64()*float64(SpawnRadius*SpawnRadius-minimumRadius*minimumRadius)
+		radius := math.Sqrt(radiusSquared)
+		angle := rand.Float64() * 2 * math.Pi
+		x := float32(math.Cos(angle) * radius)
+		y := float32(math.Sin(angle) * radius)
 
 		distanceToSun := float32(math.Sqrt(float64(x*x + y*y)))
 
@@ -67,46 +76,24 @@ func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 			continue
 		}
 
-		valid := true
-
-		for _, existing := range g.Players {
-			if !existing.Alive {
-				continue
-			}
-
-			dx := x - existing.X
-			dy := y - existing.Y
-
-			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-
-			if distance < existing.Radius+100 {
-				valid = false
-				break
-			}
+		if occupied.AnyPlayerWithin(x, y, 100) {
+			continue
 		}
 
-		if valid {
-			return x, y
-		}
+		return x, y
 	}
 	return g.fallbackSpawnPositionLocked()
 }
 
 func (g *Game) fallbackSpawnPositionLocked() (float32, float32) {
-	candidates := [][2]float32{
-		{-MapHalfSize + 100, -MapHalfSize + 100},
-		{MapHalfSize - 100, -MapHalfSize + 100},
-		{-MapHalfSize + 100, MapHalfSize - 100},
-		{MapHalfSize - 100, MapHalfSize - 100},
-	}
-
-	bestX := candidates[0][0]
-	bestY := candidates[0][1]
+	bestX := SpawnRadius
+	bestY := float32(0)
 	bestDistance := float32(-1)
 
-	for _, candidate := range candidates {
-		x := candidate[0]
-		y := candidate[1]
+	for index := range 8 {
+		angle := float64(index) * 2 * math.Pi / 8
+		x := float32(math.Cos(angle)) * SpawnRadius
+		y := float32(math.Sin(angle)) * SpawnRadius
 
 		nearestPlayerDistance := float32(math.MaxFloat32)
 

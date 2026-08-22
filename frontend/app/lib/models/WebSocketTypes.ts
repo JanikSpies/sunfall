@@ -7,7 +7,6 @@ export enum WebSocketTypes {
     INPUT = 0x04,
     WORLD_STATE = 0x05,
     DEATH = 0x06,
-    RADAR = 0x08,
     MATCH_STATE = 0x09,
     MATCH_RESET = 0x0A,
 }

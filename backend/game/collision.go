@@ -3,57 +3,54 @@ package game
 import "math"
 
 func (g *Game) handlePlayerCollisions() {
-	players := make([]*Player, 0, len(g.Players))
+	g.collisionGrid.Rebuild(g.Players)
+	g.collisionGrid.ForEachCandidate(resolvePlayerCollision)
+}
 
-	for _, player := range g.Players {
-		if player.Alive {
-			players = append(players, player)
-		}
+func resolvePlayerCollision(a, b *Player) {
+	if !a.Alive || !b.Alive {
+		return
 	}
 
-	for i := 0; i < len(players); i++ {
-		for j := i + 1; j < len(players); j++ {
-			a := players[i]
-			b := players[j]
+	dx := b.X - a.X
+	dy := b.Y - a.Y
+	minDistance := a.Radius + b.Radius
+	distanceSquared := dx*dx + dy*dy
 
-			if !a.Alive || !b.Alive {
-				continue
-			}
-
-			dx := b.X - a.X
-			dy := b.Y - a.Y
-
-			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-			minDistance := a.Radius + b.Radius
-
-			if distance >= minDistance || distance == 0 {
-				continue
-			}
-
-			nx := dx / distance
-			ny := dy / distance
-
-			overlap := minDistance - distance
-			push := overlap / 2
-
-			a.X -= nx * push
-			a.Y -= ny * push
-
-			b.X += nx * push
-			b.Y += ny * push
-
-			baseBounce := float32(250)
-
-			totalRadius := a.Radius + b.Radius
-
-			aForce := baseBounce * (b.Radius / totalRadius)
-			bForce := baseBounce * (a.Radius / totalRadius)
-
-			a.KnockbackX -= nx * aForce
-			a.KnockbackY -= ny * aForce
-
-			b.KnockbackX += nx * bForce
-			b.KnockbackY += ny * bForce
-		}
+	if distanceSquared >= minDistance*minDistance {
+		return
 	}
+
+	var nx, ny, distance float32
+
+	if distanceSquared == 0 {
+		if a.ID < b.ID {
+			nx = 1
+		} else {
+			nx = -1
+		}
+	} else {
+		distance = float32(math.Sqrt(float64(distanceSquared)))
+		nx = dx / distance
+		ny = dy / distance
+	}
+
+	overlap := minDistance - distance
+	totalRadius := a.Radius + b.Radius
+	aPush := overlap * (b.Radius / totalRadius)
+	bPush := overlap * (a.Radius / totalRadius)
+
+	a.X -= nx * aPush
+	a.Y -= ny * aPush
+	b.X += nx * bPush
+	b.Y += ny * bPush
+
+	const baseBounce float32 = 250
+	aForce := baseBounce * (b.Radius / totalRadius)
+	bForce := baseBounce * (a.Radius / totalRadius)
+
+	a.KnockbackX -= nx * aForce
+	a.KnockbackY -= ny * aForce
+	b.KnockbackX += nx * bForce
+	b.KnockbackY += ny * bForce
 }

@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -23,13 +24,14 @@ type Player struct {
 	InputX int8
 	InputY int8
 
-	Alive         bool
-	DashCooldown  float32
-	DashRequested bool
-	Energy        float32
-	Radius        float32
-	Rotation      float32
-	SizeLevel     uint8
+	Alive             bool
+	DashCooldown      float32
+	DashRequested     bool
+	Energy            float32
+	EnergyDepletedFor float32
+	Radius            float32
+	Rotation          float32
+	SizeLevel         uint8
 
 	Conn       *websocket.Conn
 	Disconnect chan struct{}
@@ -37,6 +39,7 @@ type Player struct {
 	LastPing   time.Time
 	Lifecycle  chan []byte
 	Send       chan []byte
+	WorldState chan []byte
 
 	disconnectOnce sync.Once
 	doneOnce       sync.Once
@@ -44,10 +47,11 @@ type Player struct {
 }
 
 func (p *Player) WriteLoop() {
+	defer recoverAndLog("player write loop")
+
 	for {
 		var data []byte
 
-		// Lifecycle packets take precedence over replaceable state updates.
 		select {
 		case <-p.Done:
 			return
@@ -64,6 +68,7 @@ func (p *Player) WriteLoop() {
 				return
 			case data = <-p.Lifecycle:
 			case data = <-p.Send:
+			case data = <-p.WorldState:
 			}
 		}
 
@@ -87,6 +92,39 @@ func (p *Player) WriteLoop() {
 	}
 }
 
+func (p *Player) QueueLatestWorldState(data []byte) {
+	if p.WorldState == nil {
+		return
+	}
+
+	select {
+	case p.WorldState <- data:
+		return
+	default:
+	}
+
+	select {
+	case <-p.WorldState:
+	default:
+	}
+
+	select {
+	case p.WorldState <- data:
+	default:
+	}
+}
+
+func (p *Player) ClearPendingWorldState() {
+	if p.WorldState == nil {
+		return
+	}
+
+	select {
+	case <-p.WorldState:
+	default:
+	}
+}
+
 func (p *Player) QueueLifecyclePacket(data []byte) {
 	select {
 	case p.Lifecycle <- data:
@@ -103,6 +141,12 @@ func (p *Player) RequestDisconnect() {
 	p.disconnectOnce.Do(func() {
 		close(p.Disconnect)
 	})
+}
+
+func recoverAndLog(context string) {
+	if r := recover(); r != nil {
+		log.Printf("recovered panic in %s: %v", context, r)
+	}
 }
 
 func sizeLevelForEnergy(energy float32) uint8 {
@@ -123,7 +167,7 @@ func sizeLevelForEnergy(energy float32) uint8 {
 func radiusForSizeLevel(level uint8) float32 {
 	switch level {
 	case 5:
-		return 40
+		return MaxPlayerRadius
 	case 4:
 		return 34
 	case 3:

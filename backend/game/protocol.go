@@ -12,7 +12,6 @@ const (
 	PacketInput      byte = 4
 	PacketWorldState byte = 5
 	PacketDeath      byte = 6
-	PacketRadar      byte = 8
 	PacketMatchState byte = 9
 	PacketMatchReset byte = 10
 )
@@ -20,8 +19,9 @@ const (
 type DeathReason uint8
 
 const (
-	DeathBySun       DeathReason = 1
-	DeathByBlackHole DeathReason = 2
+	DeathBySun             DeathReason = 1
+	DeathByBlackHole       DeathReason = 2
+	DeathByEnergyDepletion DeathReason = 3
 )
 
 func buildConnectedPacket(player *Player) []byte {
@@ -37,6 +37,43 @@ func buildConnectedPacket(player *Player) []byte {
 	return buf
 }
 
+func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
+	buf := make([]byte, 3+(len(indexes)*20))
+	buf[0] = PacketWorldState
+	binary.BigEndian.PutUint16(buf[1:3], uint16(len(indexes)))
+
+	offset := 3
+
+	for _, index := range indexes {
+		player := snapshot.Players[index]
+
+		binary.BigEndian.PutUint16(buf[offset:offset+2], player.ID)
+		offset += 2
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.X))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Y))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Rotation))
+		offset += 4
+
+		binary.BigEndian.PutUint32(buf[offset:offset+4], math.Float32bits(player.Energy))
+		offset += 4
+
+		buf[offset] = player.SizeLevel
+		offset++
+
+		if player.DashAvailable {
+			buf[offset] = 1
+		}
+		offset++
+	}
+
+	return buf
+}
+
 func buildDeathPacket(reason DeathReason) []byte {
 	return []byte{PacketDeath, byte(reason)}
 }
@@ -47,9 +84,14 @@ func buildMatchStatePacket(world *Game) []byte {
 	buf[0] = PacketMatchState
 	buf[1] = byte(world.Phase)
 
+	remaining := MatchDuration - world.MatchTime
+	if remaining < 0 {
+		remaining = 0
+	}
+
 	binary.BigEndian.PutUint32(
 		buf[2:6],
-		math.Float32bits(world.MatchTime),
+		math.Float32bits(remaining),
 	)
 
 	binary.BigEndian.PutUint32(

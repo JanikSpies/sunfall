@@ -62,6 +62,24 @@ func (g *Game) BroadcastMatchState() {
 	}
 }
 
+func (g *Game) BroadcastScoreboard() {
+	g.mu.RLock()
+	data := buildScoreboardPacket(g.Scoreboard)
+
+	players := make([]*Player, 0, len(g.Players))
+	for _, player := range g.Players {
+		players = append(players, player)
+	}
+	g.mu.RUnlock()
+
+	for _, player := range players {
+		select {
+		case player.Send <- data:
+		default:
+		}
+	}
+}
+
 func (g *Game) RemoveTimedOutPlayers() {
 	now := time.Now()
 

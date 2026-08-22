@@ -84,6 +84,23 @@ export class BinaryCodec {
                 };
             }
 
+            case WebSocketTypes.SCOREBOARD: {
+                const entryCount = view.getUint16(1);
+                const entries = [];
+                let offset = 3;
+                for (let i = 0; i < entryCount; i++) {
+                    entries.push({
+                        id: view.getUint16(offset),
+                        energy: view.getFloat32(offset + 2),
+                    });
+                    offset += 6;
+                }
+                return {
+                    type: WebSocketTypes.SCOREBOARD,
+                    entries: entries,
+                };
+            }
+
             case WebSocketTypes.MATCH_STATE:
                 return {
                     type: WebSocketTypes.MATCH_STATE,

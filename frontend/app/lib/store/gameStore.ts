@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
-import {DeathReason, DecodedMessage, WebSocketTypes} from '../models/WebSocketTypes';
+import {DeathReason, DecodedMessage, ScoreboardEntry, WebSocketTypes} from '../models/WebSocketTypes';
 
 interface DeathEvent {
     reason: DeathReason;
@@ -14,6 +14,7 @@ interface GameState {
     worldPhase: number;
     matchTimer: number;
     sunRadius: number;
+    scoreboard: ScoreboardEntry[];
     deathEvent: DeathEvent | null;
     matchResetSeq: number;
     playerName: string;
@@ -32,6 +33,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     worldPhase: 0,
     matchTimer: 0,
     sunRadius: 150,
+    scoreboard: [],
     deathEvent: null,
     matchResetSeq: 0,
     playerName: "",
@@ -53,6 +55,8 @@ export const useGameStore = create<GameState>((set, get) => ({
             set({ localPlayerId: message.id, isDead: false });
         } else if (message.type === WebSocketTypes.WORLD_STATE) {
             set({ players: message.players });
+        } else if (message.type === WebSocketTypes.SCOREBOARD) {
+            set({ scoreboard: message.entries });
         } else if (message.type === WebSocketTypes.MATCH_STATE) {
             set({
                 worldPhase: message.worldPhase,

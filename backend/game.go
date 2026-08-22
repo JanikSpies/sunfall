@@ -11,6 +11,8 @@ import (
 type MatchPhase uint8
 
 const (
+	MaxPlayers = 1000
+
 	PlayerSpeed         = 200.0
 	MapHalfSize float32 = 2000
 

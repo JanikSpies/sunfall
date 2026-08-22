@@ -229,7 +229,7 @@ export class GameMap extends Container {
 
   /** Set the sun radius */
   public setSunRadius(radius: number) {
-    this.sun.setRadius(radius);
+    this.sun.setScale(radius);
   }
 
   /** Update map elements like the sun */

@@ -1,4 +1,4 @@
-import { PlayerState } from "./PlayerState";
+import {PlayerState} from "./PlayerState";
 
 export enum WebSocketTypes {
     PING = 0x01,
@@ -15,13 +15,17 @@ export enum WebSocketTypes {
 export interface ScoreboardEntry {
     id: number;
     energy: number;
+export enum DeathReason {
+    SUN = 1,
+    BLACK_HOLE = 2,
+    ENERGY_DEPLETION = 3,
 }
 
 export type PongMessage = { type: WebSocketTypes.PONG }
 export type ConnectedMessage = { type: WebSocketTypes.CONNECTED; id: number; x: number; y: number; direction: number }
 export type WorldStateMessage = { type: WebSocketTypes.WORLD_STATE; playerCount: number, players: Record<number, PlayerState> }
-export type DeathMessage = { type: WebSocketTypes.DEATH; deadId: number; killerId: number }
 export type ScoreboardMessage = { type: WebSocketTypes.SCOREBOARD; entries: ScoreboardEntry[] }
+export type DeathMessage = { type: WebSocketTypes.DEATH; deadId?: number; killerId?: number; reason?: DeathReason }
 export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE, worldPhase: number, matchTimer: number, sunRadius: number }
 export type MatchResetMessage = { type: WebSocketTypes.MATCH_RESET }
 

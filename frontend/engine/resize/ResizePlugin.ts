@@ -1,12 +1,7 @@
-import { ExtensionType } from "pixi.js";
-import type {
-  Application,
-  ApplicationOptions,
-  ExtensionMetadata,
-  ResizePluginOptions,
-} from "pixi.js";
+import type {Application, ApplicationOptions, ExtensionMetadata, ResizePluginOptions,} from "pixi.js";
+import {ExtensionType} from "pixi.js";
 
-import { resize } from "./resize";
+import {resize} from "./resize";
 
 // Custom utility type:
 export type DeepRequired<T> = Required<{
@@ -63,9 +58,17 @@ export class CreationResizePlugin {
       {
         set(dom: Window | HTMLElement) {
           globalThis.removeEventListener("resize", app.queueResize);
+          if (globalThis.visualViewport) {
+            globalThis.visualViewport.removeEventListener("resize", app.queueResize);
+          }
+          globalThis.removeEventListener("orientationchange", app.queueResize);
           this._resizeTo = dom;
           if (dom) {
             globalThis.addEventListener("resize", app.queueResize);
+            if (globalThis.visualViewport) {
+              globalThis.visualViewport.addEventListener("resize", app.queueResize);
+            }
+            globalThis.addEventListener("orientationchange", app.queueResize);
             app.resize();
           }
         },
@@ -159,6 +162,10 @@ export class CreationResizePlugin {
     const app = this as unknown as Application;
 
     globalThis.removeEventListener("resize", app.queueResize);
+    if (globalThis.visualViewport) {
+      globalThis.visualViewport.removeEventListener("resize", app.queueResize);
+    }
+    globalThis.removeEventListener("orientationchange", app.queueResize);
     this._cancelResize!();
     this._cancelResize = null;
     app.queueResize = null as unknown as () => void;

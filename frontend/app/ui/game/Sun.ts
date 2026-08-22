@@ -3,7 +3,7 @@ import {Container, Sprite, Texture} from "pixi.js";
 
 const defaultSunOptions = {
     /** Initial scale of the sun */
-    scale: 2,
+    scale: 1,
     /** Rotation speed in radians per second for circle 1 */
     circle1RotationSpeed: 0.04,
     /** Rotation speed in radians per second for circle 2 */
@@ -19,8 +19,7 @@ type SunOptions = typeof defaultSunOptions;
  * a static outer circle base, and two independently rotating inner circles.
  */
 export class Sun extends Container {
-    public static readonly BASE_RADIUS = 750;
-    private _radius: number = 150;
+    private _sunScale: number = 1;
 
     public perimeter: Sprite;
     public outerCircle: Sprite;
@@ -32,7 +31,7 @@ export class Sun extends Container {
 
     constructor(options: Partial<SunOptions> = {}) {
         super();
-        const opts = { ...defaultSunOptions, ...options };
+        const opts = {...defaultSunOptions, ...options};
 
         this.perimeter = new Sprite({
             texture: Texture.from("sun-perimeter.svg"),
@@ -59,24 +58,37 @@ export class Sun extends Container {
         this.addChild(this.circle1);
         this.addChild(this.circle2);
 
-        this.scale.set(opts.scale);
-        this._radius = opts.scale * Sun.BASE_RADIUS;
+        this.setSunScale(opts.scale);
 
         this.circle1RotationSpeed = opts.circle1RotationSpeed;
         this.circle2RotationSpeed = opts.circle2RotationSpeed;
         this.growthSpeed = opts.growthSpeed;
     }
 
-    /** Set the exact sun radius in world units */
-    public setRadius(radius: number): void {
-        this._radius = radius;
-        const scale = radius / Sun.BASE_RADIUS;
+    /** Set the exact sun scale in world units (for scale 1 the sun is 500px by 500px) */
+    public setSunScale(scale: number): void {
+        this._sunScale = scale;
         this.scale.set(scale);
+    }
+
+    /** Set the sun scale (alias for setSunScale) */
+    public setScale(scale: number): void {
+        this.setSunScale(scale);
+    }
+
+    /** Set the sun radius (compatibility method) */
+    public setRadius(radius: number): void {
+        this.setSunScale(radius);
+    }
+
+    /** Get the current sun scale in world units */
+    public get sunScale(): number {
+        return this._sunScale;
     }
 
     /** Get the exact current radius in world units */
     public get radius(): number {
-        return this._radius;
+        return this._sunScale / 2;
     }
 
     /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2) uniformly */

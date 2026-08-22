@@ -38,7 +38,7 @@ func buildConnectedPacket(player *Player) []byte {
 }
 
 func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
-	buf := make([]byte, 3+(len(indexes)*20))
+	buf := make([]byte, 3+(len(indexes)*21))
 	buf[0] = PacketWorldState
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(indexes)))
 

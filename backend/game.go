@@ -165,7 +165,7 @@ func (g *Game) BuildWorldState() []byte {
 		}
 	}
 
-	buf := make([]byte, 3+(playerCount*12))
+	buf := make([]byte, 3+(playerCount*17))
 
 	buf[0] = PacketWorldState
 	binary.BigEndian.PutUint16(buf[1:3], uint16(playerCount))
@@ -194,6 +194,15 @@ func (g *Game) BuildWorldState() []byte {
 			math.Float32bits(player.Y),
 		)
 		offset += 4
+
+		binary.BigEndian.PutUint32(
+			buf[offset:offset+4],
+			math.Float32bits(player.Energy),
+		)
+		offset += 4
+
+		buf[offset] = player.SizeLevel
+		offset++
 	}
 
 	return buf

@@ -61,10 +61,7 @@ func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 		x := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 		y := float32(rand.Float64()*float64(MapHalfSize*2) - float64(MapHalfSize))
 
-		dx := x - g.Sun.X
-		dy := y - g.Sun.Y
-
-		distanceToSun := float32(math.Sqrt(float64(dx*dx + dy*dy)))
+		distanceToSun := float32(math.Sqrt(float64(x*x + y*y)))
 
 		if distanceToSun <= g.Sun.Radius+200 {
 			continue

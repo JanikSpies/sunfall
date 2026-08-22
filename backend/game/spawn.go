@@ -37,7 +37,10 @@ func (g *Game) AddPlayer(player *Player) bool {
 		return false
 	}
 
-	spawnX, spawnY := g.randomSpawnPositionLocked()
+	occupied := NewCollisionGrid()
+	occupied.Rebuild(g.Players)
+
+	spawnX, spawnY := g.randomSpawnPositionLocked(occupied)
 
 	player.ID = playerID
 	player.X = spawnX
@@ -55,7 +58,7 @@ func randomSpawnRotation() float32 {
 	return float32(rand.Float64() * 2 * math.Pi)
 }
 
-func (g *Game) randomSpawnPositionLocked() (float32, float32) {
+func (g *Game) randomSpawnPositionLocked(occupied *CollisionGrid) (float32, float32) {
 	const maxAttempts = 100
 
 	for range maxAttempts {
@@ -73,27 +76,11 @@ func (g *Game) randomSpawnPositionLocked() (float32, float32) {
 			continue
 		}
 
-		valid := true
-
-		for _, existing := range g.Players {
-			if !existing.Alive {
-				continue
-			}
-
-			dx := x - existing.X
-			dy := y - existing.Y
-
-			distance := float32(math.Sqrt(float64(dx*dx + dy*dy)))
-
-			if distance < existing.Radius+100 {
-				valid = false
-				break
-			}
+		if occupied.AnyPlayerWithin(x, y, 100) {
+			continue
 		}
 
-		if valid {
-			return x, y
-		}
+		return x, y
 	}
 	return g.fallbackSpawnPositionLocked()
 }

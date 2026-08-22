@@ -11,6 +11,10 @@ func (g *Game) Update(dt float64) {
 		return
 	}
 
+	if elapsed > MaxTickElapsed {
+		elapsed = MaxTickElapsed
+	}
+
 	defer g.publishVisibilitySnapshotLocked()
 
 	if g.Phase == PhaseFinished {

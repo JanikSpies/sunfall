@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -46,6 +47,8 @@ type Player struct {
 }
 
 func (p *Player) WriteLoop() {
+	defer recoverAndLog("player write loop")
+
 	for {
 		var data []byte
 
@@ -138,6 +141,12 @@ func (p *Player) RequestDisconnect() {
 	p.disconnectOnce.Do(func() {
 		close(p.Disconnect)
 	})
+}
+
+func recoverAndLog(context string) {
+	if r := recover(); r != nil {
+		log.Printf("recovered panic in %s: %v", context, r)
+	}
 }
 
 func sizeLevelForEnergy(energy float32) uint8 {

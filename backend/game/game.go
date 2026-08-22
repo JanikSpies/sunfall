@@ -32,6 +32,7 @@ const (
 	MatchDuration     float32 = 10 * 60
 	FinishedDuration  float32 = 5
 	BlackHoleDuration float32 = 20
+	MaxTickElapsed    float32 = 0.1
 
 	PhaseSupernova MatchPhase = 1
 	PhaseBlackHole MatchPhase = 2

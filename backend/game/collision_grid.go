@@ -53,6 +53,28 @@ func (grid *CollisionGrid) Rebuild(players map[uint16]*Player) {
 	}
 }
 
+func (grid *CollisionGrid) AnyPlayerWithin(x, y, margin float32) bool {
+	searchRadius := margin + MaxPlayerRadius
+	minimum := cellCoord(x-searchRadius, y-searchRadius, CollisionCellSize)
+	maximum := cellCoord(x+searchRadius, y+searchRadius, CollisionCellSize)
+
+	for coordY := minimum.Y; coordY <= maximum.Y; coordY++ {
+		for coordX := minimum.X; coordX <= maximum.X; coordX++ {
+			for _, player := range grid.buckets[CellCoord{X: coordX, Y: coordY}] {
+				dx := player.X - x
+				dy := player.Y - y
+				threshold := player.Radius + margin
+
+				if dx*dx+dy*dy < threshold*threshold {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func (grid *CollisionGrid) ForEachCandidate(visit func(a, b *Player)) {
 	for _, coord := range grid.occupied {
 		bucket := grid.buckets[coord]

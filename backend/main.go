@@ -31,32 +31,48 @@ func main() {
 		last := time.Now()
 
 		for now := range ticker.C {
-			dt := now.Sub(last).Seconds()
-			last = now
+			func() {
+				defer recoverAndLog("tick loop")
 
-			world.Update(dt)
-			world.BroadcastWorldState()
+				dt := now.Sub(last).Seconds()
+				last = now
+
+				world.Update(dt)
+				world.BroadcastWorldState()
+			}()
 		}
 	}()
 
 	radarTicker := time.NewTicker(time.Second)
 	go func() {
 		for range radarTicker.C {
-			world.BroadcastRadar()
+			func() {
+				defer recoverAndLog("radar ticker")
+
+				world.BroadcastRadar()
+			}()
 		}
 	}()
 
 	matchStateTicker := time.NewTicker(time.Second / 10)
 	go func() {
 		for range matchStateTicker.C {
-			world.BroadcastMatchState()
+			func() {
+				defer recoverAndLog("match state ticker")
+
+				world.BroadcastMatchState()
+			}()
 		}
 	}()
 
 	pingTimeoutTicker := time.NewTicker(5 * time.Second)
 	go func() {
 		for range pingTimeoutTicker.C {
-			world.RemoveTimedOutPlayers()
+			func() {
+				defer recoverAndLog("ping timeout ticker")
+
+				world.RemoveTimedOutPlayers()
+			}()
 		}
 	}()
 
@@ -146,6 +162,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			default:
 			}
 		}
+	}
+}
+
+func recoverAndLog(context string) {
+	if r := recover(); r != nil {
+		log.Printf("recovered panic in %s: %v", context, r)
 	}
 }
 

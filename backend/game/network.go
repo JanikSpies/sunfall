@@ -20,33 +20,6 @@ func (g *Game) BuildWorldConfigPacket() []byte {
 	return buildWorldConfigPacket()
 }
 
-func (g *Game) BuildWorldState() []byte {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	indexes := make([]int, len(g.snapshot.Players))
-	for index := range indexes {
-		indexes[index] = index
-	}
-
-	return buildWorldStatePacket(g.snapshot, indexes)
-}
-
-func (g *Game) BuildWorldStateFor(player *Player) []byte {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	viewerIndex, exists := g.snapshot.ByID[player.ID]
-	if !exists {
-		return nil
-	}
-
-	viewer := g.snapshot.Players[viewerIndex]
-	visible := g.snapshot.QueryCircle(viewer.X, viewer.Y, VisibilityRadius, nil)
-
-	return buildWorldStatePacket(g.snapshot, visible)
-}
-
 func (g *Game) BroadcastWorldState() {
 	g.mu.RLock()
 	snapshot := g.snapshot

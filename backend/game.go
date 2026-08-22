@@ -555,7 +555,7 @@ func (g *Game) ResetMatch() {
 	g.Sun.BlackHoleRadius = 80
 
 	for _, player := range g.Players {
-		g.killPlayer(player)
+		player.Alive = false
 	}
 
 	for _, player := range g.Players {
@@ -579,7 +579,7 @@ func (g *Game) ResetMatch() {
 		player.DashRequested = false
 		player.DashCooldown = 0
 
-		g.killPlayer(player)
+		player.Alive = false
 	}
 }
 

@@ -31,7 +31,10 @@ services:
         protocol: tcp
         mode: host
     networks:
-      - project_network
+      project_network:
+        aliases:
+          - sunfall.io
+          - www.sunfall.io
     deploy:
       restart_policy:
         condition: on-failure

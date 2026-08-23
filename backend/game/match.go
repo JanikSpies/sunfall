@@ -89,7 +89,7 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 		return
 	}
 
-	player.Alive = false
+	delete(g.Players, player.ID)
 
 	player.QueueLifecyclePacket(buildDeathPacket(reason))
 }

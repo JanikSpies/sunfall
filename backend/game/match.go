@@ -25,7 +25,7 @@ func (g *Game) startMatchLocked() {
 
 	g.MatchTime = 0
 
-	g.Sun.Radius = g.Sun.StartRadius
+	g.Sun.Radius = SunStartRadius
 
 	for _, player := range g.Players {
 		player.Alive = false

@@ -44,7 +44,7 @@ const (
 	PhaseFinished  MatchPhase = 3
 
 	SupernovaGravityReach         float32 = 5000
-	SupernovaGravityStrengthScale float32 = 0.6
+	SupernovaGravityStrengthScale float32 = 0.4
 
 	BlackHolePullStart        float32 = 1800
 	BlackHolePullMax          float32 = 3600
@@ -77,10 +77,8 @@ func NewGame() *Game {
 		collisionGrid: NewCollisionGrid(),
 
 		Sun: Sun{
-			Radius:             SunStartRadius,
-			Scale:              1,
-			StartRadius:        SunStartRadius,
-			BlackHoleEndRadius: BlackHoleEndRadius,
+			Radius: SunStartRadius,
+			Scale:  1,
 		},
 
 		Phase: PhaseSupernova,

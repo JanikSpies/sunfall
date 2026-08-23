@@ -105,7 +105,7 @@ export class MainScreen extends Container {
         this.on("pointermove", this.handlePointerMove, this);
 
         if (this.isTouchDevice) {
-            this.virtualJoystick = new VirtualJoystick();
+            this.virtualJoystick = new VirtualJoystick({radius: 100, knobRadius: 40});
             this.virtualJoystick.onMove = (dx, dy) => {
                 if (useGameStore.getState().isDead || !this.rocket) return;
 
@@ -121,7 +121,7 @@ export class MainScreen extends Container {
             };
             this.addChild(this.virtualJoystick);
 
-            this.dashButton = new DashButton();
+            this.dashButton = new DashButton({radius: 100});
             this.dashButton.onDash = () => {
                 if (useGameStore.getState().isDead || !this.rocket || !this.rocket.canDash()) return;
                 this.rocket.dash();
@@ -397,15 +397,15 @@ export class MainScreen extends Container {
         this.energyBar.y = height - 50;
 
         if (this.virtualJoystick) {
-            const joyPadX = 115;
-            const joyPadY = 115;
+            const joyPadX = 150;
+            const joyPadY = 150;
             this.virtualJoystick.x = joyPadX;
             this.virtualJoystick.y = height - joyPadY;
         }
 
         if (this.dashButton) {
-            const btnPadX = 90;
-            const btnPadY = 90;
+            const btnPadX = 150;
+            const btnPadY = 150;
             this.dashButton.x = width - btnPadX;
             this.dashButton.y = height - btnPadY;
         }

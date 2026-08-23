@@ -62,9 +62,10 @@ func (g *Game) randomSpawnPositionLocked(occupied *CollisionGrid) (float32, floa
 	const maxAttempts = 100
 
 	for range maxAttempts {
-		minimumRadius := g.Sun.Radius + 200
+		maximumRadius := g.Sun.Radius + MaxSpawnBuffer
+		minimumRadius := g.Sun.Radius + MinSpawnBuffer
 		radiusSquared := float64(minimumRadius*minimumRadius) +
-			rand.Float64()*float64(SpawnRadius*SpawnRadius-minimumRadius*minimumRadius)
+			rand.Float64()*float64(maximumRadius*maximumRadius-minimumRadius*minimumRadius)
 		radius := math.Sqrt(radiusSquared)
 		angle := rand.Float64() * 2 * math.Pi
 		x := float32(math.Cos(angle) * radius)
@@ -86,14 +87,15 @@ func (g *Game) randomSpawnPositionLocked(occupied *CollisionGrid) (float32, floa
 }
 
 func (g *Game) fallbackSpawnPositionLocked() (float32, float32) {
-	bestX := SpawnRadius
+	spawnRadius := g.Sun.Radius + MaxSpawnBuffer
+	bestX := spawnRadius
 	bestY := float32(0)
 	bestDistance := float32(-1)
 
 	for index := range 8 {
 		angle := float64(index) * 2 * math.Pi / 8
-		x := float32(math.Cos(angle)) * SpawnRadius
-		y := float32(math.Sin(angle)) * SpawnRadius
+		x := float32(math.Cos(angle)) * spawnRadius
+		y := float32(math.Sin(angle)) * spawnRadius
 
 		nearestPlayerDistance := float32(math.MaxFloat32)
 

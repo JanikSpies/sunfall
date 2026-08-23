@@ -13,13 +13,14 @@ const (
 
 	PlayerSpeed             = 200.0
 	MaxPlayerRadius float32 = 40
-	SpawnRadius     float32 = 2000
+	MaxSpawnBuffer  float32 = 1000
+	MinSpawnBuffer  float32 = 500
 
 	CollisionCellSize   float32 = 128
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	SunGrowthRate       float32 = 1.0
+	SunGrowthRate       float32 = 2.5
 	SunStartRadius      float32 = 300
 	BlackHoleEndRadius  float32 = 150
 	BlackHoleShrinkRate float32 = -10.0
@@ -33,7 +34,7 @@ const (
 	DashForce            float32 = 700
 	KnockbackDecay       float32 = 6
 
-	MatchDuration     float32 = 10 * 60
+	MatchDuration     float32 = 4 * 60
 	FinishedDuration  float32 = 5
 	BlackHoleDuration float32 = 20
 	MaxTickElapsed    float32 = 0.1

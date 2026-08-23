@@ -9,11 +9,6 @@ func (g *Game) updatePlayerEnergyLocked(
 
 	neutralEnergyDistance := NeutralEnergyDistance * g.Sun.Scale
 	factor := (neutralEnergyDistance - distanceFromSun) / neutralEnergyDistance
-	if factor > 1 {
-		factor = 1
-	} else if factor < -1 {
-		factor = -1
-	}
 	energyChange := factor * MaxEnergyGain * elapsed
 	previousEnergy := player.Energy
 	player.Energy += energyChange

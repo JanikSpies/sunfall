@@ -7,3 +7,18 @@
 5. Multibyte numbers use BigEndian.
 6. Positions / energy / radii use float32.
 7. Player IDs use uint16.
+
+## Protocol allocation
+
+| Packet           | Value |
+| ---------------- | ----: |
+| PacketPing       |     1 |
+| PacketPong       |     2 |
+| PacketConnected  |     3 |
+| PacketInput      |     4 |
+| PacketWorldState |     5 |
+| PacketDeath      |     6 |
+| PacketScoreboard |     7 |
+| PacketMatchState |     9 |
+| PacketMatchReset |    10 |
+| PacketKill       |    11 |

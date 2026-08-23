@@ -1,6 +1,10 @@
 import {animate} from "motion";
 import {Container, type DestroyOptions, Graphics, Sprite, Texture, type Ticker} from "pixi.js";
+import {engine} from "../../getEngine";
 import type {PlayerState} from "../../lib/models/PlayerState";
+
+// TODO: placeholder SFX for all rocket actions — swap for per-action sounds later.
+const ACTION_SFX = "main/sounds/sfx-press.wav";
 
 const BASE_SCALE = 0.5;
 const ENERGY_CRITICAL_THRESHOLD = 20;
@@ -224,6 +228,8 @@ export class BaseRocket extends Container {
   // ---- Boost (Dash) ----
 
   public playBoost(): void {
+    engine().audio.sfx.play(ACTION_SFX);
+
     animate(
       this.image.scale,
       {x: [BASE_SCALE, BASE_SCALE * 0.8, BASE_SCALE], y: [BASE_SCALE, BASE_SCALE * 1.45, BASE_SCALE]},
@@ -268,6 +274,8 @@ export class BaseRocket extends Container {
   // ---- Dash-Ready ----
 
   public playDashReady(): void {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
     const ring = new Graphics().circle(0, 0, width * 0.55).stroke({width: 3, color: 0x38bdf8});
     ring.alpha = 0.9;
@@ -282,6 +290,8 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — no bump signal exists client-side yet.
 
   private playBumpEffect(dir: Vector2, opts: BumpOptions): void {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
     const local = this.toLocalDirection(dir);
     const angle = Math.atan2(local.y, local.x);
@@ -344,6 +354,8 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — no real trigger event exists yet.
 
   public playEnergyReset(): void {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
     const flash = new Graphics().circle(0, 0, width * 0.6).fill({color: 0xef4444});
     flash.alpha = 0.85;
@@ -363,6 +375,8 @@ export class BaseRocket extends Container {
   // ---- Energy-critical (warning pulse) ----
 
   private playEnergyCriticalPulse(): void {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
     const flash = new Graphics().circle(0, 0, width * 0.6).fill({color: 0xff2d55});
     flash.alpha = 0.55;
@@ -380,6 +394,8 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — needs a decoded DEATH reason.
 
   public async playFallingIntoSun(): Promise<void> {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const currentRotation = this.image.rotation;
 
     await Promise.all([
@@ -400,6 +416,8 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — needs a decoded DEATH message.
 
   public async playDyingExplosion(): Promise<void> {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
 
     const flash = new Graphics().circle(0, 0, width * 0.6).fill({color: 0xff4444});
@@ -428,6 +446,8 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — needs a decoded MATCH_RESET message.
 
   public async playRespawn(): Promise<void> {
+    engine().audio.sfx.play(ACTION_SFX);
+
     const width = this.baseWidth;
 
     this.image.alpha = 0;

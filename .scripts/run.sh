@@ -49,7 +49,6 @@ function setup {
     export LE_HOST
     export IMAGE_PATH_BACKEND
     export IMAGE_PATH_FRONTEND
-    export IMAGE_PATH_BOT
 
     test_docker_setup
 
@@ -75,10 +74,9 @@ function setup {
     echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
     docker pull "$IMAGE_PATH_BACKEND"
     docker pull "$IMAGE_PATH_FRONTEND"
-    docker pull "$IMAGE_PATH_BOT"
 
     echo "Command: docker stack deploy -c docker-compose.yml --with-registry-auth $STACK_NAME"
-    IMAGE_PATH_BACKEND=$IMAGE_PATH_BACKEND IMAGE_PATH_FRONTEND=$IMAGE_PATH_FRONTEND IMAGE_PATH_BOT=$IMAGE_PATH_BOT docker stack deploy -c docker-compose.yml --with-registry-auth "$STACK_NAME"
+    IMAGE_PATH_BACKEND=$IMAGE_PATH_BACKEND IMAGE_PATH_FRONTEND=$IMAGE_PATH_FRONTEND docker stack deploy -c docker-compose.yml --with-registry-auth "$STACK_NAME"
 
     docker logout ghcr.io
 }

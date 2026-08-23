@@ -58,17 +58,13 @@ export class CreationResizePlugin {
       {
         set(dom: Window | HTMLElement) {
           globalThis.removeEventListener("resize", app.queueResize);
-          if (globalThis.visualViewport) {
-            globalThis.visualViewport.removeEventListener("resize", app.queueResize);
-          }
           globalThis.removeEventListener("orientationchange", app.queueResize);
+          globalThis.removeEventListener("focusout", app.queueResize);
           this._resizeTo = dom;
           if (dom) {
             globalThis.addEventListener("resize", app.queueResize);
-            if (globalThis.visualViewport) {
-              globalThis.visualViewport.addEventListener("resize", app.queueResize);
-            }
             globalThis.addEventListener("orientationchange", app.queueResize);
+            globalThis.addEventListener("focusout", app.queueResize);
             app.resize();
           }
         },
@@ -105,6 +101,18 @@ export class CreationResizePlugin {
 
       // clear queue resize
       this._cancelResize!();
+
+      // Skip resizing if an input or editable element is currently focused (e.g. mobile virtual keyboard opened)
+      const activeEl = typeof document !== "undefined" ? document.activeElement : null;
+      const isInputActive =
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          (activeEl as HTMLElement).isContentEditable);
+
+      if (isInputActive && app.renderer?.width && app.renderer?.height) {
+        return;
+      }
 
       let canvasWidth: number;
       let canvasHeight: number;
@@ -162,10 +170,8 @@ export class CreationResizePlugin {
     const app = this as unknown as Application;
 
     globalThis.removeEventListener("resize", app.queueResize);
-    if (globalThis.visualViewport) {
-      globalThis.visualViewport.removeEventListener("resize", app.queueResize);
-    }
     globalThis.removeEventListener("orientationchange", app.queueResize);
+    globalThis.removeEventListener("focusout", app.queueResize);
     this._cancelResize!();
     this._cancelResize = null;
     app.queueResize = null as unknown as () => void;

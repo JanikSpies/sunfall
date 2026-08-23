@@ -26,6 +26,24 @@
           }
         },
         {
+          "alias": ["main/sounds/game_music.m4a", "game_music.m4a"],
+          "src": ["main/sounds/game_music.m4a"],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": ["main/sounds/lobby_music.m4a", "lobby_music.m4a"],
+          "src": ["main/sounds/lobby_music.m4a"],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
           "alias": ["main/sounds/sfx-hover.wav", "sfx-hover.wav"],
           "src": ["main/sounds/sfx-hover.ogg", "main/sounds/sfx-hover.mp3"],
           "data": {

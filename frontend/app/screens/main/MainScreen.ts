@@ -463,7 +463,7 @@ export class MainScreen extends Container {
     /** Show screen with animations */
     public async show(): Promise<void> {
         window.addEventListener("keydown", this.handleKeyDown);
-        engine().audio.bgm.play("main/sounds/bgm-main.mp3", {volume: 0.5});
+        engine().audio.bgm.play("main/sounds/game_music.m4a", {volume: 0.5});
 
         const elementsToAnimate: Container[] = [
             this.settingsButton,

@@ -27,6 +27,7 @@ const (
 	NeutralEnergyDistance      float32 = 750
 	MaxEnergyGain              float32 = 5
 	EnergyDepletionGracePeriod float32 = 5
+	EnergyDrainAcceleration float32 = 1.0
 
 	DashCooldownDuration float32 = 0.5
 	DashEnergyCost       float32 = 50

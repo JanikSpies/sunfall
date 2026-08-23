@@ -7,19 +7,28 @@ func (g *Game) updatePlayerEnergyLocked(
 ) bool {
 	distanceFromSun := distance - g.Sun.Radius - player.Radius
 
-	// Fixed-width energy band measured from the sun's surface: gain up to
-	// NeutralEnergyDistance out, break even there, then lose more the further
-	// past it you are. The band tracks the surface as the sun grows but no
-	// longer widens with it (previously scaled by Sun.Scale, which ballooned
-	// the gain zone up to 6x and meant players almost never lost energy).
+	// Fixed-width band from the sun's surface. factor is +1 at the surface and
+	// falls to 0 at NeutralEnergyDistance (the break-even edge).
 	neutralEnergyDistance := NeutralEnergyDistance
 	factor := (neutralEnergyDistance - distanceFromSun) / neutralEnergyDistance
-	if factor > 1 {
-		factor = 1
-	} else if factor < -1 {
-		factor = -1
+
+	var energyChange float32
+	if factor >= 0 {
+		// Gain zone: linear, capped at the surface rate.
+		if factor > 1 {
+			factor = 1
+		}
+		energyChange = factor * MaxEnergyGain * elapsed
+	} else {
+		// Loss zone: drain accelerates the further out you stray. overshoot is
+		// how many neutral-widths past the edge you are; the quadratic term
+		// means straying far empties you fast instead of a flat trickle, so the
+		// map's far reaches are unsurvivable.
+		overshoot := -factor
+		drainRate := MaxEnergyGain * overshoot * (1 + overshoot*EnergyDrainAcceleration)
+		energyChange = -drainRate * elapsed
 	}
-	energyChange := factor * MaxEnergyGain * elapsed
+
 	previousEnergy := player.Energy
 	player.Energy += energyChange
 

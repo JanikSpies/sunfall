@@ -26,7 +26,7 @@ func main() {
 	}
 	websocketOptions.OriginPatterns = originPatterns
 
-	ticker := time.NewTicker(time.Second / 30)
+	ticker := time.NewTicker(time.Second / 60)
 	go func() {
 		last := time.Now()
 

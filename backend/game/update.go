@@ -48,6 +48,14 @@ func (g *Game) Update(dt float64) {
 			continue
 		}
 
+		if player.LastHitTimer > 0 {
+			player.LastHitTimer -= elapsed
+			if player.LastHitTimer <= 0 {
+				player.LastHitTimer = 0
+				player.LastHitBy = 0
+			}
+		}
+
 		g.updatePlayerMovement(player, elapsed)
 
 		dx := -player.X

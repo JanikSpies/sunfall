@@ -34,6 +34,10 @@ const (
 	DashForce            float32 = 1200
 	KnockbackDecay       float32 = 6
 
+	KillEnergyReward  float32 = 0.5 // fraction of the victim's energy the killer absorbs
+	KillCreditWindow  float32 = 2   // seconds a hit stays attributable to a kill
+	HitSpeedThreshold float32 = 300 // min closing speed for a hit to count as a kill setup
+
 	MatchDuration     float32 = 4 * 60
 	FinishedDuration  float32 = 5
 	BlackHoleDuration float32 = 20

@@ -34,6 +34,8 @@ type Player struct {
 	Radius            float32
 	Rotation          float32
 	SizeLevel         uint8
+	LastHitBy    uint16
+	LastHitTimer float32
 
 	Conn       *websocket.Conn
 	Disconnect chan struct{}

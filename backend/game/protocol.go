@@ -15,6 +15,7 @@ const (
 	PacketScoreboard byte = 7
 	PacketMatchState byte = 9
 	PacketMatchReset byte = 10
+	PacketKill       byte = 11
 )
 
 type DeathReason uint8
@@ -96,6 +97,23 @@ func buildWorldStatePacket(snapshot *VisibilitySnapshot, indexes []int) []byte {
 
 func buildDeathPacket(reason DeathReason) []byte {
 	return []byte{PacketDeath, byte(reason)}
+}
+
+// buildKillPacket notifies the killer that they eliminated someone and how much
+// energy they absorbed. Layout: [PacketKill | victimID(2) | energyGained(4) |
+// nameLen(1) | victimName].
+func buildKillPacket(victimID uint16, victimName string, energyGained float32) []byte {
+	nameBytes := []byte(victimName)
+	nameLen := uint8(len(nameBytes))
+
+	buf := make([]byte, 8+int(nameLen))
+	buf[0] = PacketKill
+	binary.BigEndian.PutUint16(buf[1:3], victimID)
+	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(energyGained))
+	buf[7] = nameLen
+	copy(buf[8:], nameBytes)
+
+	return buf
 }
 
 func buildMatchStatePacket(world *Game) []byte {

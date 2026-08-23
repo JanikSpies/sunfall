@@ -56,6 +56,9 @@ func (g *Game) startMatchLocked() {
 		player.DashRequested = false
 		player.DashCooldown = 0
 
+		player.LastHitBy = 0
+		player.LastHitTimer = 0
+
 		player.Alive = true
 
 		occupied.Insert(player)
@@ -89,7 +92,40 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 		return
 	}
 
+	g.creditKillLocked(player, reason)
+
 	delete(g.Players, player.ID)
 
 	player.QueueLifecyclePacket(buildDeathPacket(reason))
+}
+
+// creditKillLocked transfers a share of the victim's energy to whoever knocked
+// them in, if that hit is still within the credit window. Only sun deaths are
+// attributed: energy depletion is self-inflicted, and black-hole deaths at the
+// match finish are a mass event, not a kill.
+func (g *Game) creditKillLocked(victim *Player, reason DeathReason) {
+	if reason != DeathBySun {
+		return
+	}
+
+	if victim.LastHitTimer <= 0 || victim.LastHitBy == 0 {
+		return
+	}
+
+	killer, ok := g.Players[victim.LastHitBy]
+	if !ok || killer == victim {
+		return
+	}
+
+	reward := victim.Energy * KillEnergyReward
+	if reward <= 0 {
+		return
+	}
+
+	killer.Energy += reward
+
+	select {
+	case killer.Send <- buildKillPacket(victim.ID, victim.Name, reward):
+	default:
+	}
 }

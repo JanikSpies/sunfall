@@ -109,8 +109,6 @@ services:
       BOT_INPUT_RATE: 20
     build:
       context: bot
-    env_file:
-      - backend/.env
     networks:
       - project_network
     deploy:

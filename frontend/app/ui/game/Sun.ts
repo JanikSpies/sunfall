@@ -87,9 +87,12 @@ export class Sun extends Container {
         return this._sunScale;
     }
 
+    /** Base radius of the sun in world units when scale is 1 */
+    public static readonly BASE_RADIUS: number = 300;
+
     /** Get the exact current radius in world units */
     public get radius(): number {
-        return this._sunScale / 2;
+        return Sun.BASE_RADIUS * this._sunScale;
     }
 
     /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2) uniformly */

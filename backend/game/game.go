@@ -20,13 +20,11 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	SunGrowthRate       float32 = 0.3
-	SunStartRadius      float32 = 300
-	BlackHoleEndRadius  float32 = 150
-	BlackHoleShrinkRate float32 = -10.0
+	SunStartRadius     float32 = 300
+	BlackHoleEndRadius float32 = 150
 
 	NeutralEnergyDistance      float32 = 750
-	MaxEnergyGain              float32 = 20
+	MaxEnergyGain              float32 = 5
 	EnergyDepletionGracePeriod float32 = 5
 
 	DashCooldownDuration float32 = 0.5
@@ -47,12 +45,12 @@ const (
 	PhaseBlackHole MatchPhase = 2
 	PhaseFinished  MatchPhase = 3
 
-	SupernovaGravityReach         float32 = 5000
-	SupernovaGravityStrengthScale float32 = 0.2
+	SupernovaGravityReach         float32 = 10000
+	SupernovaGravityStrengthScale float32 = 0.1
 
-	BlackHolePullStart        float32 = 1800
-	BlackHolePullMax          float32 = 3600
-	BlackHoleRampTime         float32 = 8
+	BlackHolePullStart        float32 = 3600
+	BlackHolePullMax          float32 = 7200
+	BlackHoleRampTime         float32 = 15
 	BlackHoleCollapseDuration float32 = 3
 )
 

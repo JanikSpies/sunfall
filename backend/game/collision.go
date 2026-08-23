@@ -86,12 +86,22 @@ func resolvePlayerCollision(a, b *Player) {
 	const baseBounce float32 = 200
 	const bounceTransfer float32 = 2.5
 
+	// bumpBoost adds extra knockback to soft, slow contacts (little bumps),
+	// fading linearly to zero by bumpFadeSpeed. Since bumpFadeSpeed sits below
+	// dash-impact speeds, dash hits are left completely unchanged.
+	const bumpBoost float32 = 500
+	const bumpFadeSpeed float32 = 500
+
 	var bounce float32
 	if overlapping {
 		bounce = baseBounce
 	}
 	if approach > 0 {
 		bounce += approach * bounceTransfer
+
+		if approach < bumpFadeSpeed {
+			bounce += bumpBoost * (1 - approach/bumpFadeSpeed)
+		}
 	}
 
 	aForce := bounce * (b.Radius / physical)

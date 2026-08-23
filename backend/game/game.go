@@ -20,7 +20,7 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	SunGrowthRate       float32 = 2.5
+	SunGrowthRate       float32 = 2
 	SunStartRadius      float32 = 300
 	BlackHoleEndRadius  float32 = 150
 	BlackHoleShrinkRate float32 = -10.0
@@ -44,7 +44,7 @@ const (
 	PhaseFinished  MatchPhase = 3
 
 	SupernovaGravityReach         float32 = 5000
-	SupernovaGravityStrengthScale float32 = 0.4
+	SupernovaGravityStrengthScale float32 = 0.2
 
 	BlackHolePullStart        float32 = 1800
 	BlackHolePullMax          float32 = 3600

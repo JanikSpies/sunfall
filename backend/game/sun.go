@@ -25,6 +25,7 @@ func (s *Sun) update(phase MatchPhase, phaseElapsed float32) {
 			progress := phaseElapsed / BlackHoleCollapseDuration
 
 			s.calc(progress, BlackHoleEndRadius, BlackHoleShrinkRate)
+			println("bla")
 			return
 		}
 

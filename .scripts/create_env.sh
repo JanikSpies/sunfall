@@ -35,10 +35,11 @@ create_deployment_env() {
 
   IMAGE_NAME_BACKEND=$(echo "${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}-backend" | tr '[:upper:]' '[:lower:]')
   IMAGE_NAME_FRONTEND=$(echo "${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}-frontend" | tr '[:upper:]' '[:lower:]')
+  IMAGE_NAME_BOT=$(echo "${GITHUB_REPOSITORY#${GITHUB_REPOSITORY_OWNER}/}-bot" | tr '[:upper:]' '[:lower:]')
   IMAGE_OWNER=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
   echo "IMAGE_PATH_BACKEND=ghcr.io/${IMAGE_OWNER}/${IMAGE_NAME_BACKEND}:latest" >> $env_file_deployment
   echo "IMAGE_PATH_FRONTEND=ghcr.io/${IMAGE_OWNER}/${IMAGE_NAME_FRONTEND}:latest" >> $env_file_deployment
-  echo "IMAGE_PATH_BOT=ghcr.io/${IMAGE_OWNER}/${IMAGE_PATH_BOT}:latest" >> $env_file_deployment
+  echo "IMAGE_PATH_BOT=ghcr.io/${IMAGE_OWNER}/${IMAGE_NAME_BOT}:latest" >> $env_file_deployment
 
   echo "GITHUB_TOKEN=$GITHUB_TOKEN" >> $env_file_deployment
   echo "GITHUB_ACTOR=$GITHUB_ACTOR" >> $env_file_deployment

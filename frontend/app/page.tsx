@@ -8,7 +8,7 @@ const GameCanvas = dynamic(() => import("./components/GameCanvas"), {
 
 export default function Home() {
     return (
-        <main>
+        <main className="h-screen w-screen absolute">
             <GameCanvas />
         </main>
     );

@@ -80,10 +80,8 @@ export class MainScreen extends Container {
         this.timer = new Timer({text: "00:00"});
         this.addChild(this.timer);
 
-        if (!this.isTouchDevice) {
-            this.scoreboard = new Scoreboard();
-            this.addChild(this.scoreboard);
-        }
+        this.scoreboard = new Scoreboard();
+        this.addChild(this.scoreboard);
 
         this.energyBar = new EnergyBar();
         this.addChild(this.energyBar);

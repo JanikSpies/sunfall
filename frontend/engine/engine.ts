@@ -53,6 +53,7 @@ export class CreationEngine extends Application {
     try {
       await Assets.init({ manifest, basePath: "assets" });
       await Assets.loadBundle("preload");
+      await Assets.load("/blue-button.png");
 
       const allBundles = (manifest as { bundles: Array<{ name: string }> }).bundles.map(
         (item) => item.name,

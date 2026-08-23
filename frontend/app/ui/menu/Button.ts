@@ -21,7 +21,7 @@ export class Button extends FancyButton {
     const opts = { ...defaultButtonOptions, ...options };
 
     super({
-      defaultView: "button.png",
+      defaultView: "/blue-button.png",
       nineSliceSprite: [38, 50, 38, 50],
       anchor: 0.5,
       text: new Label({

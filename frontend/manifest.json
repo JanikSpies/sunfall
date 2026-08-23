@@ -8,13 +8,8 @@
       "name": "main",
       "assets": [
         {
-          "alias": [
-            "main/logo-white.svg",
-            "logo-white.svg"
-          ],
-          "src": [
-            "main/logo-white.svg"
-          ],
+          "alias": ["main/logo-white.svg", "logo-white.svg"],
+          "src": ["main/logo-white.svg"],
           "data": {
             "tags": {
               "m": true
@@ -22,14 +17,8 @@
           }
         },
         {
-          "alias": [
-            "main/sounds/bgm-main.mp3",
-            "bgm-main.mp3"
-          ],
-          "src": [
-            "main/sounds/bgm-main.ogg",
-            "main/sounds/bgm-main.mp3"
-          ],
+          "alias": ["main/sounds/bgm-main.mp3", "bgm-main.mp3"],
+          "src": ["main/sounds/bgm-main.ogg", "main/sounds/bgm-main.mp3"],
           "data": {
             "tags": {
               "m": true
@@ -37,14 +26,8 @@
           }
         },
         {
-          "alias": [
-            "main/sounds/sfx-hover.wav",
-            "sfx-hover.wav"
-          ],
-          "src": [
-            "main/sounds/sfx-hover.ogg",
-            "main/sounds/sfx-hover.mp3"
-          ],
+          "alias": ["main/sounds/sfx-hover.wav", "sfx-hover.wav"],
+          "src": ["main/sounds/sfx-hover.ogg", "main/sounds/sfx-hover.mp3"],
           "data": {
             "tags": {
               "m": true
@@ -52,14 +35,8 @@
           }
         },
         {
-          "alias": [
-            "main/sounds/sfx-press.wav",
-            "sfx-press.wav"
-          ],
-          "src": [
-            "main/sounds/sfx-press.ogg",
-            "main/sounds/sfx-press.mp3"
-          ],
+          "alias": ["main/sounds/sfx-press.wav", "sfx-press.wav"],
+          "src": ["main/sounds/sfx-press.ogg", "main/sounds/sfx-press.mp3"],
           "data": {
             "tags": {
               "m": true
@@ -67,10 +44,7 @@
           }
         },
         {
-          "alias": [
-            "main/ui",
-            "ui"
-          ],
+          "alias": ["main/ui", "ui"],
           "src": [
             "main/ui@0.5x.webp.json",
             "main/ui@0.5x.png.json",
@@ -90,9 +64,7 @@
             "main/spaceship_stage_1.svg",
             "spaceship_stage_1.svg"
           ],
-          "src": [
-            "main/game/spaceship_stage_1.svg"
-          ],
+          "src": ["main/game/spaceship_stage_1.svg"],
           "data": {
             "tags": {
               "m": true
@@ -105,9 +77,7 @@
             "main/spaceship_stage_2.svg",
             "spaceship_stage_2.svg"
           ],
-          "src": [
-            "main/game/spaceship_stage_2.svg"
-          ],
+          "src": ["main/game/spaceship_stage_2.svg"],
           "data": {
             "tags": {
               "m": true
@@ -120,9 +90,7 @@
             "main/spaceship_stage_3.svg",
             "spaceship_stage_3.svg"
           ],
-          "src": [
-            "main/game/spaceship_stage_3.svg"
-          ],
+          "src": ["main/game/spaceship_stage_3.svg"],
           "data": {
             "tags": {
               "m": true
@@ -135,9 +103,7 @@
             "main/spaceship_stage_4.svg",
             "spaceship_stage_4.svg"
           ],
-          "src": [
-            "main/game/spaceship_stage_4.svg"
-          ],
+          "src": ["main/game/spaceship_stage_4.svg"],
           "data": {
             "tags": {
               "m": true
@@ -150,9 +116,7 @@
             "main/sun-pointer-ship-1.svg",
             "sun-pointer-ship-1.svg"
           ],
-          "src": [
-            "main/game/sun-pointer-ship-1.svg"
-          ],
+          "src": ["main/game/sun-pointer-ship-1.svg"],
           "data": {
             "tags": {
               "m": true
@@ -165,9 +129,7 @@
             "main/sun-pointer-ship-2.svg",
             "sun-pointer-ship-2.svg"
           ],
-          "src": [
-            "main/game/sun-pointer-ship-2.svg"
-          ],
+          "src": ["main/game/sun-pointer-ship-2.svg"],
           "data": {
             "tags": {
               "m": true
@@ -180,9 +142,7 @@
             "main/sun-pointer-ship-3.svg",
             "sun-pointer-ship-3.svg"
           ],
-          "src": [
-            "main/game/sun-pointer-ship-3.svg"
-          ],
+          "src": ["main/game/sun-pointer-ship-3.svg"],
           "data": {
             "tags": {
               "m": true
@@ -195,9 +155,7 @@
             "main/sun-pointer-ship-4.svg",
             "sun-pointer-ship-4.svg"
           ],
-          "src": [
-            "main/game/sun-pointer-ship-4.svg"
-          ],
+          "src": ["main/game/sun-pointer-ship-4.svg"],
           "data": {
             "tags": {
               "m": true
@@ -210,9 +168,7 @@
             "main/sun-circle-outer.svg",
             "sun-circle-outer.svg"
           ],
-          "src": [
-            "main/game/sun-circle-outer.svg"
-          ],
+          "src": ["main/game/sun-circle-outer.svg"],
           "data": {
             "tags": {
               "m": true
@@ -225,9 +181,7 @@
             "main/sun-circle-1.svg",
             "sun-circle-1.svg"
           ],
-          "src": [
-            "main/game/sun-circle-1.svg"
-          ],
+          "src": ["main/game/sun-circle-1.svg"],
           "data": {
             "tags": {
               "m": true
@@ -240,9 +194,7 @@
             "main/sun-circle-2.svg",
             "sun-circle-2.svg"
           ],
-          "src": [
-            "main/game/sun-circle-2.svg"
-          ],
+          "src": ["main/game/sun-circle-2.svg"],
           "data": {
             "tags": {
               "m": true
@@ -255,9 +207,7 @@
             "main/sun-perimeter.svg",
             "sun-perimeter.svg"
           ],
-          "src": [
-            "main/game/sun-perimeter.svg"
-          ],
+          "src": ["main/game/sun-perimeter.svg"],
           "data": {
             "tags": {
               "m": true
@@ -270,9 +220,7 @@
             "main/energy-hud.svg",
             "energy-hud.svg"
           ],
-          "src": [
-            "main/game/energy-hud.svg"
-          ],
+          "src": ["main/game/energy-hud.svg"],
           "data": {
             "tags": {
               "m": true
@@ -285,9 +233,7 @@
             "main/energy-hud-backdrop.svg",
             "energy-hud-backdrop.svg"
           ],
-          "src": [
-            "main/game/energy-hud-backdrop.svg"
-          ],
+          "src": ["main/game/energy-hud-backdrop.svg"],
           "data": {
             "tags": {
               "m": true
@@ -300,13 +246,8 @@
       "name": "preload",
       "assets": [
         {
-          "alias": [
-            "preload/logo.svg",
-            "logo.svg"
-          ],
-          "src": [
-            "preload/logo.svg"
-          ],
+          "alias": ["preload/logo.svg", "logo.svg"],
+          "src": ["preload/logo.svg"],
           "data": {
             "tags": {
               "m": true
@@ -319,9 +260,7 @@
             "ScienceGothic",
             "ScienceGothic-VariableFont_CTRS,slnt,wdth,wght.ttf"
           ],
-          "src": [
-            "ScienceGothic-VariableFont_CTRS,slnt,wdth,wght.ttf"
-          ],
+          "src": ["ScienceGothic-VariableFont_CTRS,slnt,wdth,wght.ttf"],
           "data": {
             "family": "Science Gothic"
           }

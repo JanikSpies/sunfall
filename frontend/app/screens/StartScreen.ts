@@ -6,7 +6,6 @@ import {Input} from "@pixi/ui";
 import {engine} from "../getEngine";
 import {initNetwork, useGameStore} from "../lib/store/gameStore";
 import {Button} from "../ui/menu/Button";
-import {Label} from "../ui/menu/Label";
 import {MainScreen} from "./main/MainScreen";
 
 /** Start Screen with player name input and play action */
@@ -14,7 +13,6 @@ export class StartScreen extends Container {
     public static assetBundles = ["main"];
 
     private logo: Sprite;
-    private titleLabel: Label;
     private nameInput: Input;
     private playButton: Button;
     private contentContainer: Container;
@@ -28,21 +26,9 @@ export class StartScreen extends Container {
         this.logo = new Sprite({
             texture: Texture.from("logo.svg"),
             anchor: 0.5,
-            scale: 0.22,
+            scale: 0.15,
         });
         this.contentContainer.addChild(this.logo);
-
-        this.titleLabel = new Label({
-            text: "SUNFALL",
-            style: {
-                fontSize: 42,
-                fill: 0xffffff,
-                fontWeight: "bold",
-                fontFamily: "Science Gothic",
-                letterSpacing: 4,
-            },
-        });
-        this.contentContainer.addChild(this.titleLabel);
 
         const inputBg = new Graphics()
             .roundRect(0, 0, 300, 56, 14)
@@ -98,8 +84,7 @@ export class StartScreen extends Container {
 
         this.contentContainer.position.set(centerX, centerY);
 
-        this.logo.position.set(0, -140);
-        this.titleLabel.position.set(0, -55);
+        this.logo.position.set(0, -200);
         this.nameInput.position.set(0, 20);
         this.playButton.position.set(0, 105);
     }

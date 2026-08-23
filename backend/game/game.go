@@ -20,7 +20,7 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	SunGrowthRate       float32 = 2
+	SunGrowthRate       float32 = 0.3
 	SunStartRadius      float32 = 300
 	BlackHoleEndRadius  float32 = 150
 	BlackHoleShrinkRate float32 = -10.0

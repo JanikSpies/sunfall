@@ -19,7 +19,12 @@ const (
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
-	NeutralEnergyDistance      float32 = 500
+	SunGrowthRate       float32 = 1.0
+	SunStartRadius      float32 = 300
+	BlackHoleEndRadius  float32 = 150
+	BlackHoleShrinkRate float32 = -10.0
+
+	NeutralEnergyDistance      float32 = 750
 	MaxEnergyGain              float32 = 20
 	EnergyDepletionGracePeriod float32 = 5
 
@@ -71,10 +76,10 @@ func NewGame() *Game {
 		collisionGrid: NewCollisionGrid(),
 
 		Sun: Sun{
-			Radius:             300,
+			Radius:             SunStartRadius,
 			Scale:              1,
-			StartRadius:        300,
-			BlackHoleEndRadius: 150,
+			StartRadius:        SunStartRadius,
+			BlackHoleEndRadius: BlackHoleEndRadius,
 		},
 
 		Phase: PhaseSupernova,

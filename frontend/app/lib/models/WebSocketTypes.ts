@@ -14,6 +14,7 @@ export enum WebSocketTypes {
 
 export interface ScoreboardEntry {
     id: number;
+    name: string;
     energy: number;
 }
 

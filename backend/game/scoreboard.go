@@ -4,6 +4,7 @@ import "sort"
 
 type ScoreboardEntry struct {
 	ID     uint16
+	Name   string
 	Energy float32
 }
 
@@ -17,6 +18,7 @@ func (g *Game) updateScoreboardLocked() {
 
 		entries = append(entries, ScoreboardEntry{
 			ID:     player.ID,
+			Name:   player.Name,
 			Energy: player.Energy,
 		})
 	}

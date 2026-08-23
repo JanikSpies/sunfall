@@ -216,6 +216,19 @@
         },
         {
           "alias": [
+            "main/game/black-hole.svg",
+            "main/black-hole.svg",
+            "black-hole.svg"
+          ],
+          "src": ["main/game/black-hole.svg"],
+          "data": {
+            "tags": {
+              "m": true
+            }
+          }
+        },
+        {
+          "alias": [
             "main/game/energy-hud.svg",
             "main/energy-hud.svg",
             "energy-hud.svg"

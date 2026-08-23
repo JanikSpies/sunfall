@@ -26,6 +26,7 @@ export class Sun extends Container {
     public outerCircle: Sprite;
     public circle1: Sprite;
     public circle2: Sprite;
+    public blackHole: Sprite;
     public circle1RotationSpeed: number;
     public circle2RotationSpeed: number;
     public growthSpeed: number;
@@ -54,20 +55,51 @@ export class Sun extends Container {
             anchor: 0.5,
         });
 
+        this.blackHole = new Sprite({
+            texture: Texture.from("black-hole.svg"),
+            anchor: 0.5,
+        });
+        this.blackHole.visible = false;
+
         this.addChild(this.perimeter);
         this.addChild(this.outerCircle);
         this.addChild(this.circle1);
         this.addChild(this.circle2);
+        this.addChild(this.blackHole);
 
-        this.setSunScale(opts.scale);
+        this._sunScale = opts.scale;
+        this.scale.set(opts.scale * this.BACKEND_TRANSFORM_FACTOR);
 
         this.circle1RotationSpeed = opts.circle1RotationSpeed;
         this.circle2RotationSpeed = opts.circle2RotationSpeed;
         this.growthSpeed = opts.growthSpeed;
     }
 
+    /** Show standard sun components and hide the black hole */
+    public showSun(): void {
+        this.perimeter.visible = true;
+        this.outerCircle.visible = true;
+        this.circle1.visible = true;
+        this.circle2.visible = true;
+        this.blackHole.visible = false;
+    }
+
+    /** Hide standard sun components and show the black hole */
+    public showBlackHole(): void {
+        this.perimeter.visible = false;
+        this.outerCircle.visible = false;
+        this.circle1.visible = false;
+        this.circle2.visible = false;
+        this.blackHole.visible = true;
+    }
+
     /** Set the exact sun scale in world units (for scale 1 the sun is 500px by 500px) */
     public setSunScale(scale: number): void {
+        if (scale > this._sunScale) {
+            this.showSun();
+        } else if (scale < this._sunScale) {
+            this.showBlackHole();
+        }
         this._sunScale = scale;
         this.scale.set(scale * this.BACKEND_TRANSFORM_FACTOR);
     }
@@ -95,12 +127,13 @@ export class Sun extends Container {
         return Sun.BASE_RADIUS * this._sunScale;
     }
 
-    /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2) uniformly */
+    /** Set the scale across all layers (perimeter, outer circle, circle 1, circle 2, black hole) uniformly */
     public setAllScales(scale: number) {
         this.perimeter.scale.set(scale);
         this.outerCircle.scale.set(scale);
         this.circle1.scale.set(scale);
         this.circle2.scale.set(scale);
+        this.blackHole.scale.set(scale);
     }
 
     /** Increase scale across all layers uniformly by a given delta amount */
@@ -113,6 +146,8 @@ export class Sun extends Container {
         this.circle1.scale.y += deltaScale;
         this.circle2.scale.x += deltaScale;
         this.circle2.scale.y += deltaScale;
+        this.blackHole.scale.x += deltaScale;
+        this.blackHole.scale.y += deltaScale;
     }
 
     /** Increase scale across all layers uniformly by a given delta amount (alias for grow) */
@@ -182,6 +217,22 @@ export class Sun extends Container {
     /** Get current circle 2 scale */
     public get circle2Scale(): number {
         return this.circle2.scale.x;
+    }
+
+    /** Set the black hole scale factor */
+    public setBlackHoleScale(scale: number) {
+        this.blackHole.scale.set(scale);
+    }
+
+    /** Increase black hole scale by a given delta amount */
+    public growBlackHole(deltaScale: number) {
+        this.blackHole.scale.x += deltaScale;
+        this.blackHole.scale.y += deltaScale;
+    }
+
+    /** Get current black hole scale */
+    public get blackHoleScale(): number {
+        return this.blackHole.scale.x;
     }
 
     /** Advance rotation of inner circles and update unified growth if configured */

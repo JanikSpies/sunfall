@@ -29,9 +29,9 @@ const (
 	MaxEnergyGain              float32 = 20
 	EnergyDepletionGracePeriod float32 = 5
 
-	DashCooldownDuration float32 = 0.75
+	DashCooldownDuration float32 = 0.5
 	DashEnergyCost       float32 = 25
-	DashForce            float32 = 700
+	DashForce            float32 = 1200
 	KnockbackDecay       float32 = 6
 
 	MatchDuration     float32 = 4 * 60

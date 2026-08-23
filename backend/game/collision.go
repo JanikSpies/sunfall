@@ -45,9 +45,29 @@ func resolvePlayerCollision(a, b *Player) {
 	b.X += nx * bPush
 	b.Y += ny * bPush
 
-	const baseBounce float32 = 250
-	aForce := baseBounce * (b.Radius / totalRadius)
-	bForce := baseBounce * (a.Radius / totalRadius)
+	// How fast the two are closing along the collision normal, using each
+	// player's full velocity (movement input + knockback). A committed dash
+	// carries a large closing speed here; two players drifting together carry
+	// almost none. baseBounce is the floor so gentle bumps still separate.
+	const baseBounce float32 = 300
+	const bounceTransfer float32 = 0.6
+
+	aVX := a.VX + a.KnockbackX
+	aVY := a.VY + a.KnockbackY
+	bVX := b.VX + b.KnockbackX
+	bVY := b.VY + b.KnockbackY
+
+	approach := (aVX-bVX)*nx + (aVY-bVY)*ny
+	if approach < 0 {
+		approach = 0
+	}
+
+	bounce := baseBounce + approach*bounceTransfer
+
+	// Split by size: lighter (smaller) players get thrown further, so slamming
+	// a small enemy launches them hard, while ramming a big one barely moves it.
+	aForce := bounce * (b.Radius / totalRadius)
+	bForce := bounce * (a.Radius / totalRadius)
 
 	a.KnockbackX -= nx * aForce
 	a.KnockbackY -= ny * aForce

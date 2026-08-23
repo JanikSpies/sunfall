@@ -90,6 +90,7 @@ export class StartScreen extends Container {
     }
 
     public async show() {
+        engine().audio.bgm.play("main/sounds/lobby_music.m4a", { volume: 0.5 });
         this.contentContainer.alpha = 0;
         await animate(
             this.contentContainer,

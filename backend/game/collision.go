@@ -1,131 +1,90 @@
 package game
 
-func (g *Game) enterPhaseLocked(next MatchPhase) {
-	valid := false
+import "math"
 
-	switch g.Phase {
-	case PhaseSupernova:
-		valid = next == PhaseBlackHole
-	case PhaseBlackHole:
-		valid = next == PhaseFinished
-	case PhaseFinished:
-		valid = next == PhaseSupernova
-	}
-
-	if !valid {
-		panic("invalid match phase transition")
-	}
-
-	g.Phase = next
-	g.PhaseElapsed = 0
+func (g *Game) handlePlayerCollisions() {
+	g.collisionGrid.Rebuild(g.Players)
+	g.collisionGrid.ForEachCandidate(resolvePlayerCollision)
 }
 
-func (g *Game) startMatchLocked() {
-	g.enterPhaseLocked(PhaseSupernova)
-
-	g.MatchTime = 0
-
-	g.Sun.Radius = SunStartRadius
-
-	for _, player := range g.Players {
-		player.Alive = false
+func resolvePlayerCollision(a, b *Player) {
+	if !a.Alive || !b.Alive {
+		return
 	}
 
-	occupied := NewCollisionGrid()
+	dx := b.X - a.X
+	dy := b.Y - a.Y
+	minDistance := a.Radius + b.Radius
+	distanceSquared := dx*dx + dy*dy
 
-	for _, player := range g.Players {
-		spawnX, spawnY := g.randomSpawnPositionLocked(occupied)
-
-		player.X = spawnX
-		player.Y = spawnY
-		player.Rotation = randomSpawnRotation()
-
-		player.VX = 0
-		player.VY = 0
-		player.KnockbackX = 0
-		player.KnockbackY = 0
-
-		player.InputX = 0
-		player.InputY = 0
-
-		player.Energy = 100
-		player.EnergyDepletedFor = 0
-		player.SizeLevel = 1
-		player.Radius = 16
-
-		player.DashRequested = false
-		player.DashCooldown = 0
-
-		player.LastHitBy = 0
-		player.LastHitTimer = 0
-
-		player.Alive = true
-
-		occupied.Insert(player)
-
-		player.QueueLifecyclePacket(buildMatchResetPacket())
-	}
-}
-
-func (g *Game) finishMatchLocked() {
-	for _, player := range g.Players {
-		g.killPlayer(player, DeathByBlackHole)
+	if distanceSquared >= minDistance*minDistance {
+		return
 	}
 
-	g.enterPhaseLocked(PhaseFinished)
-}
+	var nx, ny, distance float32
 
-func (g *Game) alivePlayerCountLocked() int {
-	aliveCount := 0
+	if distanceSquared == 0 {
+		if a.ID < b.ID {
+			nx = 1
+		} else {
+			nx = -1
+		}
+	} else {
+		distance = float32(math.Sqrt(float64(distanceSquared)))
+		nx = dx / distance
+		ny = dy / distance
+	}
 
-	for _, player := range g.Players {
-		if player.Alive {
-			aliveCount++
+	overlap := minDistance - distance
+	totalRadius := a.Radius + b.Radius
+	aPush := overlap * (b.Radius / totalRadius)
+	bPush := overlap * (a.Radius / totalRadius)
+
+	a.X -= nx * aPush
+	a.Y -= ny * aPush
+	b.X += nx * bPush
+	b.Y += ny * bPush
+
+	// baseBounce is the floor so gentle bumps still separate; the rest scales
+	// with how fast the two are closing, so a committed dash launches the
+	// target proportionally to the impact.
+	const baseBounce float32 = 300
+	const bounceTransfer float32 = 0.6
+
+	aVX := a.VX + a.KnockbackX
+	aVY := a.VY + a.KnockbackY
+	bVX := b.VX + b.KnockbackX
+	bVY := b.VY + b.KnockbackY
+
+	// Closing speed along the normal, and how fast each player is driving into
+	// the other. The faster driver is the aggressor and "owns" the hit.
+	approach := (aVX-bVX)*nx + (aVY-bVY)*ny
+	aIntoB := aVX*nx + aVY*ny
+	bIntoA := -(bVX*nx + bVY*ny)
+
+	// Only a genuine shove (dash-speed impact) tags a victim for kill credit;
+	// passive drifting stays below the threshold and never attributes a kill.
+	if approach > HitSpeedThreshold {
+		if aIntoB >= bIntoA {
+			b.LastHitBy = a.ID
+			b.LastHitTimer = KillCreditWindow
+		} else {
+			a.LastHitBy = b.ID
+			a.LastHitTimer = KillCreditWindow
 		}
 	}
 
-	return aliveCount
-}
-
-func (g *Game) killPlayer(player *Player, reason DeathReason) {
-	if !player.Alive {
-		return
+	if approach < 0 {
+		approach = 0
 	}
 
-	g.creditKillLocked(player, reason)
+	bounce := baseBounce + approach*bounceTransfer
 
-	delete(g.Players, player.ID)
+	aForce := bounce * (b.Radius / totalRadius)
+	bForce := bounce * (a.Radius / totalRadius)
 
-	player.QueueLifecyclePacket(buildDeathPacket(reason))
-}
-
-// creditKillLocked transfers a share of the victim's energy to whoever knocked
-// them in, if that hit is still within the credit window. Only sun deaths are
-// attributed: energy depletion is self-inflicted, and black-hole deaths at the
-// match finish are a mass event, not a kill.
-func (g *Game) creditKillLocked(victim *Player, reason DeathReason) {
-	if reason != DeathBySun {
-		return
-	}
-
-	if victim.LastHitTimer <= 0 || victim.LastHitBy == 0 {
-		return
-	}
-
-	killer, ok := g.Players[victim.LastHitBy]
-	if !ok || killer == victim {
-		return
-	}
-
-	reward := victim.Energy * KillEnergyReward
-	if reward <= 0 {
-		return
-	}
-
-	killer.Energy += reward
-
-	select {
-	case killer.Send <- buildKillPacket(victim.ID, victim.Name, reward):
-	default:
-	}
+	a.KnockbackX -= nx * aForce
+	a.KnockbackY -= ny * aForce
+	b.KnockbackX += nx * bForce
+	b.KnockbackY += ny * bForce
 }

@@ -30,7 +30,7 @@ const (
 	EnergyDepletionGracePeriod float32 = 5
 
 	DashCooldownDuration float32 = 0.5
-	DashEnergyCost       float32 = 25
+	DashEnergyCost       float32 = 50
 	DashForce            float32 = 1200
 	KnockbackDecay       float32 = 6
 

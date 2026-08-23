@@ -108,7 +108,7 @@ services:
       BOT_DURATION: 20m
       BOT_INPUT_RATE: 20
     build:
-      context: backend
+      context: bot
     env_file:
       - backend/.env
     networks:

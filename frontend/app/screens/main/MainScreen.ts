@@ -306,7 +306,7 @@ export class MainScreen extends Container {
 
     /** Update rocket's sun pointer indicator based on sun visibility in viewport */
     private updateSunPointer() {
-        if (this.screenWidth <= 0 || this.screenHeight <= 0) return;
+        if (this.screenWidth <= 0 || this.screenHeight <= 0 || !this.rocket) return;
 
         const sun = this.gameMap.sun;
         const centerX = this.screenWidth * 0.5;
@@ -317,21 +317,19 @@ export class MainScreen extends Container {
         const screenSunY = centerY + (sun.y - this.rocket.y);
 
         // Visible radius of the sun
-        const sunScale = sun.radius;
+        const sunRadius = sun.radius;
 
-        // Check if the sun intersects the screen viewport rectangle [0, screenWidth] x [0, screenHeight]
-        const isSunOnScreen =
-            screenSunX + sunScale >= 0 &&
-            screenSunX - sunScale <= this.screenWidth &&
-            screenSunY + sunScale >= 0 &&
-            screenSunY - sunScale <= this.screenHeight;
+        // Check if the circular sun intersects the screen viewport rectangle [0, screenWidth] x [0, screenHeight]
+        const clampX = Math.max(0, Math.min(screenSunX, this.screenWidth));
+        const clampY = Math.max(0, Math.min(screenSunY, this.screenHeight));
+        const dx = screenSunX - clampX;
+        const dy = screenSunY - clampY;
+        const isSunOnScreen = dx * dx + dy * dy <= sunRadius * sunRadius;
 
         if (isSunOnScreen) {
             this.rocket.setSunPointer(false);
         } else {
-            const dx = sun.x - this.rocket.x;
-            const dy = sun.y - this.rocket.y;
-            const angleToSun = Math.atan2(dy, dx);
+            const angleToSun = Math.atan2(sun.y - this.rocket.y, sun.x - this.rocket.x);
             this.rocket.setSunPointer(true, angleToSun);
         }
     }
@@ -438,7 +436,7 @@ export class MainScreen extends Container {
     }
 
     /** Set energy current value and optional level */
-    public setEnergy(current: number, level?: number): void {
+    public setEnergy(current: number, level: number): void {
         this.energyBar.setValueForLevel(current, level);
     }
 

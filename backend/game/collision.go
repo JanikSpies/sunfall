@@ -14,10 +14,16 @@ func resolvePlayerCollision(a, b *Player) {
 
 	dx := b.X - a.X
 	dy := b.Y - a.Y
-	minDistance := a.Radius + b.Radius
 	distanceSquared := dx*dx + dy*dy
 
-	if distanceSquared >= minDistance*minDistance {
+	physical := a.Radius + b.Radius
+
+	// Players connect within a hit range wider than their physical radius, so a
+	// fast dash lands reliably instead of needing a near-perfect center-on-center
+	// overlap. Bodies still only *separate* at the true radius (below).
+	hitDistance := physical * PlayerHitScale
+
+	if distanceSquared >= hitDistance*hitDistance {
 		return
 	}
 
@@ -35,35 +41,36 @@ func resolvePlayerCollision(a, b *Player) {
 		ny = dy / distance
 	}
 
-	overlap := minDistance - distance
-	totalRadius := a.Radius + b.Radius
-	aPush := overlap * (b.Radius / totalRadius)
-	bPush := overlap * (a.Radius / totalRadius)
+	overlapping := distance < physical
 
-	a.X -= nx * aPush
-	a.Y -= ny * aPush
-	b.X += nx * bPush
-	b.Y += ny * bPush
-
-	// baseBounce is the floor so gentle bumps still separate; the rest scales
-	// with how fast the two are closing, so a committed dash launches the
-	// target proportionally to the impact.
-	const baseBounce float32 = 300
-	const bounceTransfer float32 = 0.6
+	// Push apart only on real overlap -- keeps ships from floating apart across
+	// the wider hit range.
+	if overlapping {
+		overlap := physical - distance
+		a.X -= nx * overlap * (b.Radius / physical)
+		a.Y -= ny * overlap * (b.Radius / physical)
+		b.X += nx * overlap * (a.Radius / physical)
+		b.Y += ny * overlap * (a.Radius / physical)
+	}
 
 	aVX := a.VX + a.KnockbackX
 	aVY := a.VY + a.KnockbackY
 	bVX := b.VX + b.KnockbackX
 	bVY := b.VY + b.KnockbackY
 
-	// Closing speed along the normal, and how fast each player is driving into
-	// the other. The faster driver is the aggressor and "owns" the hit.
 	approach := (aVX-bVX)*nx + (aVY-bVY)*ny
+
+	// Near each other but neither overlapping nor closing: just proximity, so
+	// apply nothing. Lets players group up without repelling; only a genuine
+	// impact (or a true overlap) transfers force.
+	if approach <= 0 && !overlapping {
+		return
+	}
+
 	aIntoB := aVX*nx + aVY*ny
 	bIntoA := -(bVX*nx + bVY*ny)
 
-	// Only a genuine shove (dash-speed impact) tags a victim for kill credit;
-	// passive drifting stays below the threshold and never attributes a kill.
+	// Significant impact tags the player who got driven into, for kill credit.
 	if approach > HitSpeedThreshold {
 		if aIntoB >= bIntoA {
 			b.LastHitBy = a.ID
@@ -74,14 +81,21 @@ func resolvePlayerCollision(a, b *Player) {
 		}
 	}
 
-	if approach < 0 {
-		approach = 0
+	// baseBounce is a small floor to unstick overlapping bodies; the launch
+	// comes from bounceTransfer scaling with how fast the attacker hit.
+	const baseBounce float32 = 200
+	const bounceTransfer float32 = 2.5
+
+	var bounce float32
+	if overlapping {
+		bounce = baseBounce
+	}
+	if approach > 0 {
+		bounce += approach * bounceTransfer
 	}
 
-	bounce := baseBounce + approach*bounceTransfer
-
-	aForce := bounce * (b.Radius / totalRadius)
-	bForce := bounce * (a.Radius / totalRadius)
+	aForce := bounce * (b.Radius / physical)
+	bForce := bounce * (a.Radius / physical)
 
 	a.KnockbackX -= nx * aForce
 	a.KnockbackY -= ny * aForce

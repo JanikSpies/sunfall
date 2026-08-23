@@ -8,8 +8,8 @@ var collisionNeighborOffsets = [...]CellCoord{
 }
 
 func init() {
-	if CollisionCellSize <= 2*MaxPlayerRadius {
-		panic("CollisionCellSize must exceed 2*MaxPlayerRadius or ForEachCandidate can miss collisions across non-adjacent cells")
+	if CollisionCellSize <= 2*MaxPlayerRadius*PlayerHitScale {
+		panic("CollisionCellSize must exceed 2*MaxPlayerRadius*PlayerHitScale or ForEachCandidate can miss collisions across non-adjacent cells")
 	}
 }
 

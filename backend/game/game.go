@@ -16,7 +16,8 @@ const (
 	MaxSpawnBuffer  float32 = 1000
 	MinSpawnBuffer  float32 = 500
 
-	CollisionCellSize   float32 = 128
+	CollisionCellSize   float32 = 160
+	PlayerHitScale      float32 = 1.6
 	VisibilityChunkSize float32 = 512
 	VisibilityRadius    float32 = 1280
 
@@ -30,7 +31,7 @@ const (
 	DashCooldownDuration float32 = 0.5
 	DashEnergyCost       float32 = 50
 	DashForce            float32 = 1200
-	KnockbackDecay       float32 = 6
+	KnockbackDecay       float32 = 3
 
 	KillEnergyReward  float32 = 0.5 // fraction of the victim's energy the killer absorbs
 	KillCreditWindow  float32 = 2   // seconds a hit stays attributable to a kill

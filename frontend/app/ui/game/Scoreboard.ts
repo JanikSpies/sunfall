@@ -53,7 +53,8 @@ export class Scoreboard extends Container {
         continue;
       }
 
-      row.text = `${i + 1}. Player ${entry.id}  ${Math.round(entry.energy)}`;
+      const name = entry.name || `Player ${entry.id}`;
+      row.text = `${i + 1}. ${name}  ${Math.round(entry.energy)}`;
       row.style.fill = entry.id === localPlayerId ? LOCAL_PLAYER_COLOR : OTHER_PLAYER_COLOR;
     }
   }

@@ -88,12 +88,16 @@ export class BinaryCodec {
                 const entryCount = view.getUint16(1);
                 const entries = [];
                 let offset = 3;
+                const decoder = new TextDecoder();
                 for (let i = 0; i < entryCount; i++) {
-                    entries.push({
-                        id: view.getUint16(offset),
-                        energy: view.getFloat32(offset + 2),
-                    });
-                    offset += 6;
+                    const id = view.getUint16(offset);
+                    const energy = view.getFloat32(offset + 2);
+                    const nameLen = view.getUint8(offset + 6);
+                    const nameBytes = new Uint8Array(buffer, offset + 7, nameLen);
+                    const name = decoder.decode(nameBytes) || "Player";
+
+                    entries.push({ id, name, energy });
+                    offset += 7 + nameLen;
                 }
                 return {
                     type: WebSocketTypes.SCOREBOARD,

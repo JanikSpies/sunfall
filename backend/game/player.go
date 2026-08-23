@@ -155,11 +155,9 @@ func recoverAndLog(context string) {
 
 func sizeLevelForEnergy(energy float32) uint8 {
 	switch {
-	case energy >= 5000:
-		return 5
-	case energy >= 2000:
+	case energy >= 4000:
 		return 4
-	case energy >= 1000:
+	case energy >= 1500:
 		return 3
 	case energy >= 500:
 		return 2

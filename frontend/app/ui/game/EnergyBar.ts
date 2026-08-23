@@ -3,33 +3,29 @@ import {type ColorSource, Container, Graphics, Sprite, Texture} from "pixi.js";
 /**
  * Minimum energy threshold for each energy / size level.
  * Level 1: 0
- * Level 2: 200
- * Level 3: 350
- * Level 4: 600
- * Level 5: 1000
+ * Level 2: 500
+ * Level 3: 1500
+ * Level 4: 4000
  */
 export const ENERGY_LEVEL_MIN: Record<number, number> = {
   1: 0,
-  2: 200,
-  3: 350,
-  4: 600,
-  5: 1000,
+  2: 500,
+  3: 1500,
+  4: 4000,
 };
 
 /**
  * Maximum energy threshold for each energy / size level.
- * Level 1: < 200 (max: 200)
- * Level 2: >= 200 (max: 350)
- * Level 3: >= 350 (max: 600)
- * Level 4: >= 600 (max: 1000)
- * Level 5: >= 1000 (max: 1000)
+ * Level 1: < 500 (max: 500)
+ * Level 2: >= 500 (max: 1500)
+ * Level 3: >= 1500 (max: 3000)
+ * Level 4: >= 3000 (max: 6000)
  */
 export const ENERGY_LEVEL_MAX: Record<number, number> = {
-  1: 200,
-  2: 350,
-  3: 600,
-  4: 1000,
-  5: 1000,
+  1: 500,
+  2: 1500,
+  3: 3000,
+  4: 6000,
 };
 
 /**
@@ -53,17 +49,6 @@ export function getEnergyCapacityForLevel(level: number): number {
   const min = getMinEnergyForLevel(level);
   const max = getMaxEnergyForLevel(level);
   return Math.max(0, max - min);
-}
-
-/**
- * Calculate the energy level (1-5) for a given energy amount.
- */
-export function sizeLevelForEnergy(energy: number): number {
-  if (energy >= 1000) return 5;
-  if (energy >= 600) return 4;
-  if (energy >= 350) return 3;
-  if (energy >= 200) return 2;
-  return 1;
 }
 
 export interface EnergyBarOptions {
@@ -260,17 +245,15 @@ export class EnergyBar extends Container {
 
   /**
    * Set energy value and update max according to energy level.
-   * Energy progress is relative to the current level range:
-   * e.g., for Level 2 (200-350 energy), 200 energy gives a relative value of 0 (0% progress).
+   * Energy progress is relative to the current level range
    */
-  public setValueForLevel(current: number, level?: number): void {
-    const currentLevel = level ?? sizeLevelForEnergy(current);
-    const min = getMinEnergyForLevel(currentLevel);
-    const max = getMaxEnergyForLevel(currentLevel);
+  public setValueForLevel(current: number, level: number): void {
+    const min = getMinEnergyForLevel(level);
+    const max = getMaxEnergyForLevel(level);
     const capacity = Math.max(0, max - min);
 
     if (capacity <= 0) {
-      // Max level (Level 5)
+      // Max level (Level 4)
       this._maxValue = 0;
       this._value = Math.max(0, current - min);
       this._progress = 1;

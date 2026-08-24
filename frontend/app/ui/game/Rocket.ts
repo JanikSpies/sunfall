@@ -24,10 +24,6 @@ export class Rocket extends BaseRocket {
   public applyPlayerState(state: PlayerState): void {
     super.applyBaseState(state);
     this.arrow.texture = Texture.from(`sun-pointer-ship-${this.getStage()}.svg`);
-    this.x = state.x;
-    this.y = state.y;
-    this.rotation = state.rotation + Math.PI / 2;
-    this.setStage(state.size);
     this.dashAvailable = state.dashAvailable;
   }
 

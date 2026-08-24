@@ -11,6 +11,12 @@ const ENERGY_CRITICAL_THRESHOLD = 20;
 const ENERGY_CRITICAL_INTERVAL = 1.2;
 const TRAIL_HISTORY = 12;
 
+/** How quickly the rendered ship eases toward the latest server state, in 1/seconds (higher = snappier). */
+const POSITION_SMOOTH_RATE = 20;
+const ROTATION_SMOOTH_RATE = 20;
+/** Position deltas beyond this are treated as a teleport (respawn/match reset) and snapped instead of eased. */
+const TELEPORT_DISTANCE = 300;
+
 export interface Vector2 {
   x: number;
   y: number;
@@ -66,6 +72,14 @@ interface BumpOptions {
   fragmentColor?: number;
 }
 
+/** Shortest-path angle interpolation, so a ship never spins the long way round when crossing the -PI/PI seam. */
+function lerpAngle(a: number, b: number, t: number): number {
+  let diff = (b - a) % (Math.PI * 2);
+  if (diff > Math.PI) diff -= Math.PI * 2;
+  else if (diff < -Math.PI) diff += Math.PI * 2;
+  return a + diff * t;
+}
+
 function lerpColor(a: number, b: number, t: number): number {
   const ar = (a >> 16) & 0xff;
   const ag = (a >> 8) & 0xff;
@@ -100,6 +114,11 @@ export class BaseRocket extends Container {
   private prevDashAvailable = false;
   private energyCriticalArmed = false;
   private energyCriticalTimer = 0;
+
+  private hasServerState = false;
+  private targetX = 0;
+  private targetY = 0;
+  private targetRotation = 0;
 
   constructor() {
     super();
@@ -167,9 +186,20 @@ export class BaseRocket extends Container {
 
   /** Apply authoritative server PlayerState (position, rotation, stage) and react to effect-relevant fields */
   protected applyBaseState(state: PlayerState): void {
-    this.x = state.x;
-    this.y = state.y;
-    this.rotation = state.rotation + Math.PI / 2;
+    this.targetX = state.x;
+    this.targetY = state.y;
+    this.targetRotation = state.rotation + Math.PI / 2;
+
+    // Snap on first state (avoids sliding in from origin) or on a large jump (respawn/match reset),
+    // otherwise let update() ease toward the target so gaps in server updates don't read as freeze-then-jump.
+    const distance = Math.hypot(this.targetX - this.x, this.targetY - this.y);
+    if (!this.hasServerState || distance > TELEPORT_DISTANCE) {
+      this.x = this.targetX;
+      this.y = this.targetY;
+      this.rotation = this.targetRotation;
+    }
+    this.hasServerState = true;
+
     this.setStage(state.size);
 
     if (state.dashed) {
@@ -188,10 +218,23 @@ export class BaseRocket extends Container {
     this.energyCriticalArmed = isCritical;
   }
 
-  /** Per-frame effect upkeep: engine trail redraw and energy-critical heartbeat */
+  /** Per-frame effect upkeep: position/rotation easing, engine trail redraw and energy-critical heartbeat */
   public update(time: Ticker): void {
+    this.updateInterpolation(time.deltaMS / 1000);
     this.updateTrail();
     this.updateEnergyCritical(time.deltaMS / 1000);
+  }
+
+  /** Ease the rendered transform toward the latest server state, decoupled from when packets actually arrive */
+  private updateInterpolation(elapsedSeconds: number): void {
+    if (!this.hasServerState) return;
+
+    const posT = 1 - Math.exp(-POSITION_SMOOTH_RATE * elapsedSeconds);
+    this.x += (this.targetX - this.x) * posT;
+    this.y += (this.targetY - this.y) * posT;
+
+    const rotT = 1 - Math.exp(-ROTATION_SMOOTH_RATE * elapsedSeconds);
+    this.rotation = lerpAngle(this.rotation, this.targetRotation, rotT);
   }
 
   private updateEnergyCritical(elapsedSeconds: number): void {
@@ -544,6 +587,11 @@ export class BaseRocket extends Container {
     this.prevDashAvailable = false;
     this.energyCriticalArmed = false;
     this.energyCriticalTimer = 0;
+
+    this.hasServerState = false;
+    this.targetX = 0;
+    this.targetY = 0;
+    this.targetRotation = 0;
 
     this.trailPoints = this.engines.map(() => []);
     this.trailGraphics.clear();

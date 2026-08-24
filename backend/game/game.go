@@ -25,7 +25,8 @@ const (
 	BlackHoleEndRadius float32 = 150
 
 	NeutralEnergyDistance      float32 = 750
-	MaxEnergyGain              float32 = 5
+	MaxEnergyGain              float32 = 20
+	EnergyDrainBaseRate float32 = 15
 	EnergyDepletionGracePeriod float32 = 5
 	EnergyDrainAcceleration float32 = 1.0
 

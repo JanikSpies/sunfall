@@ -25,7 +25,7 @@ func (g *Game) updatePlayerEnergyLocked(
 		// means straying far empties you fast instead of a flat trickle, so the
 		// map's far reaches are unsurvivable.
 		overshoot := -factor
-		drainRate := MaxEnergyGain * overshoot * (1 + overshoot*EnergyDrainAcceleration)
+		drainRate := EnergyDrainBaseRate * overshoot * (1 + overshoot*EnergyDrainAcceleration)
 		energyChange = -drainRate * elapsed
 	}
 

@@ -123,7 +123,7 @@ func (g *Game) updatePlayerMovement(player *Player, elapsed float32) {
 
 	length := math.Hypot(inputX, inputY)
 
-	if length > 1 {
+	if length > 0 {
 		inputX /= length
 		inputY /= length
 	}

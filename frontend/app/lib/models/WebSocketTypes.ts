@@ -10,6 +10,7 @@ export enum WebSocketTypes {
     SCOREBOARD = 0x07,
     MATCH_STATE = 0x09,
     MATCH_RESET = 0x0A,
+    KILL = 0x0B,
 }
 
 export interface ScoreboardEntry {
@@ -32,6 +33,14 @@ export type ScoreboardMessage = { type: WebSocketTypes.SCOREBOARD; entries: Scor
 export type DeathMessage = { type: WebSocketTypes.DEATH; deadId?: number; killerId?: number; reason?: DeathReason }
 export type MatchStateMessage = { type: WebSocketTypes.MATCH_STATE, worldPhase: number, matchTimer: number, sunScale: number }
 export type MatchResetMessage = { type: WebSocketTypes.MATCH_RESET }
+export type KillMessage = {
+    type: WebSocketTypes.KILL;
+    victimId: number;
+    victimName: string;
+    energyGained: number;
+    victimX: number;
+    victimY: number;
+}
 
 export type DecodedMessage =
     | PongMessage
@@ -40,4 +49,5 @@ export type DecodedMessage =
     | DeathMessage
     | ScoreboardMessage
     | MatchStateMessage
-    | MatchResetMessage;
+    | MatchResetMessage
+    | KillMessage;

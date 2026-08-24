@@ -20,7 +20,6 @@ Go to [localhost](localhost).
 
 Profit.
 
-
 ## Bots
 
 ### Local

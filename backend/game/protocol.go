@@ -99,19 +99,22 @@ func buildDeathPacket(reason DeathReason) []byte {
 	return []byte{PacketDeath, byte(reason)}
 }
 
-// buildKillPacket notifies the killer that they eliminated someone and how much
-// energy they absorbed. Layout: [PacketKill | victimID(2) | energyGained(4) |
-// nameLen(1) | victimName].
-func buildKillPacket(victimID uint16, victimName string, energyGained float32) []byte {
+// buildKillPacket notifies the killer that they eliminated someone, how much
+// energy they absorbed, and where the victim died (so the client can play an
+// effect from that point back to the killer). Layout: [PacketKill | victimID(2)
+// | energyGained(4) | victimX(4) | victimY(4) | nameLen(1) | victimName].
+func buildKillPacket(victimID uint16, victimName string, energyGained float32, victimX, victimY float32) []byte {
 	nameBytes := []byte(victimName)
 	nameLen := uint8(len(nameBytes))
 
-	buf := make([]byte, 8+int(nameLen))
+	buf := make([]byte, 16+int(nameLen))
 	buf[0] = PacketKill
 	binary.BigEndian.PutUint16(buf[1:3], victimID)
 	binary.BigEndian.PutUint32(buf[3:7], math.Float32bits(energyGained))
-	buf[7] = nameLen
-	copy(buf[8:], nameBytes)
+	binary.BigEndian.PutUint32(buf[7:11], math.Float32bits(victimX))
+	binary.BigEndian.PutUint32(buf[11:15], math.Float32bits(victimY))
+	buf[15] = nameLen
+	copy(buf[16:], nameBytes)
 
 	return buf
 }

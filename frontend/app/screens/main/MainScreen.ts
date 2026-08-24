@@ -12,6 +12,7 @@ import {DashButton} from "../../ui/game/DashButton";
 import {Timer} from "../../ui/game/Timer";
 import {EnergyBar} from "../../ui/game/EnergyBar";
 import {Scoreboard} from "../../ui/game/Scoreboard";
+import {PingDisplay} from "../../ui/game/PingDisplay";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
 import {DeathReason} from "@/app/lib/models/WebSocketTypes";
@@ -28,6 +29,7 @@ export class MainScreen extends Container {
     public mainContainer: Container;
     public timer: Timer;
     public energyBar: EnergyBar;
+    private pingDisplay: PingDisplay;
     private scoreboard?: Scoreboard;
     private gameMap: GameMap;
     private settingsButton: FancyButton;
@@ -80,6 +82,9 @@ export class MainScreen extends Container {
         this.timer = new Timer({text: "00:00"});
         this.addChild(this.timer);
 
+        this.pingDisplay = new PingDisplay();
+        this.addChild(this.pingDisplay);
+
         this.scoreboard = new Scoreboard();
         this.addChild(this.scoreboard);
 
@@ -97,6 +102,7 @@ export class MainScreen extends Container {
             this.timer.setTime(state.matchTimer);
             this.gameMap.setSunScale(state.sunScale);
             this.scoreboard?.setEntries(state.scoreboard, state.localPlayerId);
+            this.pingDisplay.setPing(state.ping);
             this.handleLifecycleEvents(state);
         });
 
@@ -360,6 +366,7 @@ export class MainScreen extends Container {
         this.virtualJoystick?.reset();
         this.dashButton?.reset();
         this.energyBar.reset();
+        this.pingDisplay.reset();
         this.scoreboard?.setEntries([], null);
         for (const enemyRocket of this.enemyRockets.values()) {
             this.gameMap.removeChild(enemyRocket);
@@ -381,6 +388,8 @@ export class MainScreen extends Container {
         this.mainContainer.y = centerY;
         this.settingsButton.x = width - 30;
         this.settingsButton.y = 30;
+        this.pingDisplay.x = width - 30;
+        this.pingDisplay.y = 62;
         this.timer.x = centerX;
         this.timer.y = 30;
 
@@ -469,6 +478,7 @@ export class MainScreen extends Container {
             this.settingsButton,
             this.timer,
             this.energyBar,
+            this.pingDisplay,
         ];
         if (this.scoreboard) elementsToAnimate.push(this.scoreboard);
         if (this.virtualJoystick) elementsToAnimate.push(this.virtualJoystick);

@@ -19,10 +19,12 @@ interface GameState {
     matchResetSeq: number;
     playerName: string;
     isDead: boolean;
+    ping: number;
     setPlayerName: (name: string) => void;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
     setMatchState: (worldPhase: number, matchTimer: number, sunScale: number) => void;
+    setPing: (ms: number) => void;
     resetGame: () => void;
     handleMessage: (message: DecodedMessage) => void;
 }
@@ -38,10 +40,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     matchResetSeq: 0,
     playerName: "",
     isDead: false,
+    ping: 0,
     setPlayerName: (name) => set({ playerName: name }),
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
     setMatchState: (worldPhase, matchTimer, sunScale) => set({ worldPhase, matchTimer, sunScale }),
+    setPing: (ms) => set({ ping: ms }),
     resetGame: () => set({
         players: {},
         localPlayerId: null,
@@ -51,6 +55,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         sunScale: 1,
         deathEvent: null,
         matchResetSeq: 0,
+        ping: 0,
     }),
     handleMessage: (message: DecodedMessage) => {
         if (message.type === WebSocketTypes.CONNECTED) {
@@ -87,9 +92,15 @@ export const initNetwork = (playerName?: string) => {
     if (network) {
         network.setUrl(wsUrl);
     } else {
-        network = new NetworkTransport(wsUrl, (message: DecodedMessage) => {
-            useGameStore.getState().handleMessage(message);
-        });
+        network = new NetworkTransport(
+            wsUrl,
+            (message: DecodedMessage) => {
+                useGameStore.getState().handleMessage(message);
+            },
+            (latencyMs: number) => {
+                useGameStore.getState().setPing(Math.round(latencyMs));
+            },
+        );
     }
 
     network.connect();

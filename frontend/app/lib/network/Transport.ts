@@ -1,5 +1,5 @@
 import {BinaryCodec} from "./BinaryCodec";
-import {DecodedMessage} from "../models/WebSocketTypes";
+import {DecodedMessage, WebSocketTypes} from "../models/WebSocketTypes";
 
 export class NetworkTransport {
     private socket: WebSocket | null = null;
@@ -7,12 +7,15 @@ export class NetworkTransport {
     private pingIntervalId: number | null = null;
     private reconnectTimeoutId: number | null = null;
     private manualDisconnect = false;
+    private lastPingSentAt: number | null = null;
 
-    private onStateUpdate: (message: DecodedMessage) => void; 
+    private onStateUpdate: (message: DecodedMessage) => void;
+    private onPing?: (latencyMs: number) => void;
 
-    constructor(url: string, onStateUpdate: (message: DecodedMessage) => void) {
+    constructor(url: string, onStateUpdate: (message: DecodedMessage) => void, onPing?: (latencyMs: number) => void) {
         this.url = url;
         this.onStateUpdate = onStateUpdate;
+        this.onPing = onPing;
     }
 
     public setUrl(url: string) {
@@ -62,8 +65,11 @@ export class NetworkTransport {
             return;
         }
         const decoded = BinaryCodec.decodeMessage(event.data);
-        
+
         if (decoded) {
+            if (decoded.type === WebSocketTypes.PONG && this.lastPingSentAt !== null) {
+                this.onPing?.(performance.now() - this.lastPingSentAt);
+            }
             this.onStateUpdate(decoded);
         }
     }
@@ -100,7 +106,8 @@ export class NetworkTransport {
 
     private sendPing() {
         const pingBuffer = BinaryCodec.encodePing();
-        
+
+        this.lastPingSentAt = performance.now();
         this.send(pingBuffer);
     }
 

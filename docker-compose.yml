@@ -73,7 +73,6 @@ services:
       - frontend/.env
     ports:
       - "3000:3000"
-    command: "npm start"
     networks:
       - project_network
     deploy:

@@ -1,37 +1,37 @@
-FROM node:20-alpine as base
-RUN apk add --no-cache g++ make py3-pip libc6-compat
+FROM node:24-alpine AS base
 WORKDIR /app
-COPY package*.json ./
-EXPOSE 3000
 
-FROM base as builder
-WORKDIR /app
-COPY . .
+# Native-module build toolchain lives only in this stage. dev and builder need
+# it to run `npm ci`; the production image below never inherits from here, so
+# it never pays for it.
+FROM base AS deps
+RUN apk add --no-cache g++ make py3-pip libc6-compat
+COPY package*.json ./
 RUN npm ci
+
+FROM deps AS dev
+ENV NODE_ENV=development
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
+FROM deps AS builder
+COPY . .
 RUN npm run build
 
-FROM base as production
-WORKDIR /app
-
+FROM base AS production
 ENV NODE_ENV=production
 
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nextjs -u 1001 -G nodejs
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
 
-# Copy built files and set permissions after the user exists
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.env .env
+# output: "standalone" (next.config.ts) traces the real runtime dependency
+# graph at build time, so this is the app plus only the packages it actually
+# needs at runtime -- not the full node_modules with every devDependency.
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Ensure permissions are correct now
-RUN chown -R nextjs:nodejs /app
 USER nextjs
-CMD ["npm", "start"]
-
-FROM base as dev
-ENV NODE_ENV=development
-RUN npm install
-COPY . .
-CMD npm run dev
+EXPOSE 3000
+CMD ["node", "server.js"]

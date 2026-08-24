@@ -88,7 +88,10 @@ export class MainScreen extends Container {
         this.scoreboard = new Scoreboard();
         this.addChild(this.scoreboard);
 
-        this.energyBar = new EnergyBar();
+        // The engine renders at a minimum internal resolution (see resizeOptions in GameCanvas)
+        // and scales that down to fit the real screen -- on phones that downscale is much more
+        // aggressive than on desktop, so touch devices need a bigger bar to end up readable.
+        this.energyBar = new EnergyBar({scale: this.isTouchDevice ? 1.5 : 1.35});
         this.addChild(this.energyBar);
 
         this.gameMap = new GameMap();
@@ -399,7 +402,15 @@ export class MainScreen extends Container {
         }
 
         this.energyBar.x = centerX;
-        this.energyBar.y = height - 50;
+        if (this.isTouchDevice) {
+            // Bottom of the screen is taken by the joystick/dash buttons, and the middle is the
+            // play field itself -- anything placed there sits on top of other ships. Tuck the bar
+            // under the scoreboard/timer row instead, where nothing else is drawn.
+            const topHudBottom = 30 + (this.scoreboard?.height ?? 0);
+            this.energyBar.y = topHudBottom + 40 + this.energyBar.height * 0.5;
+        } else {
+            this.energyBar.y = height - 70;
+        }
 
         if (this.virtualJoystick) {
             const joyPadX = 150;

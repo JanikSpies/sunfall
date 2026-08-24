@@ -13,6 +13,7 @@ import {Timer} from "../../ui/game/Timer";
 import {EnergyBar} from "../../ui/game/EnergyBar";
 import {Scoreboard} from "../../ui/game/Scoreboard";
 import {PingDisplay} from "../../ui/game/PingDisplay";
+import {playEnergyStealEffect} from "../../ui/game/EnergyStealEffect";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
 import {network, useGameStore} from "@/app/lib/store/gameStore";
 import {DeathReason} from "@/app/lib/models/WebSocketTypes";
@@ -38,6 +39,7 @@ export class MainScreen extends Container {
     private dyingEnemyIds: Set<number> = new Set();
     private lastDeathSeq = 0;
     private lastMatchResetSeq = 0;
+    private lastKillSeq = 0;
     private virtualJoystick?: VirtualJoystick;
     private dashButton?: DashButton;
     private isTouchDevice = isMobile.phone;
@@ -208,6 +210,7 @@ export class MainScreen extends Container {
     public prepare() {
         this.lastDeathSeq = 0;
         this.lastMatchResetSeq = 0;
+        this.lastKillSeq = 0;
         this.createRocket();
         const state = useGameStore.getState();
         this.handleDeathState(state.isDead);
@@ -269,6 +272,19 @@ export class MainScreen extends Container {
             this.lastMatchResetSeq = state.matchResetSeq;
             if (this.rocket) {
                 void this.rocket.playRespawn();
+            }
+        }
+
+        if (state.killEvent && state.killEvent.seq !== this.lastKillSeq) {
+            this.lastKillSeq = state.killEvent.seq;
+            if (this.rocket) {
+                playEnergyStealEffect(
+                    this.gameMap,
+                    state.killEvent.victimX,
+                    state.killEvent.victimY,
+                    this.rocket.x,
+                    this.rocket.y,
+                );
             }
         }
     }
@@ -361,6 +377,7 @@ export class MainScreen extends Container {
         this.destroyRocket();
         this.lastDeathSeq = 0;
         this.lastMatchResetSeq = 0;
+        this.lastKillSeq = 0;
         this.inputState = {x: 100, y: 0, dash: false};
         this.gameMap.reset();
         this.virtualJoystick?.reset();

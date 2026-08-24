@@ -125,7 +125,7 @@ func (g *Game) creditKillLocked(victim *Player, reason DeathReason) {
 	killer.Energy += reward
 
 	select {
-	case killer.Send <- buildKillPacket(victim.ID, victim.Name, reward):
+	case killer.Send <- buildKillPacket(victim.ID, victim.Name, reward, victim.X, victim.Y):
 	default:
 	}
 }

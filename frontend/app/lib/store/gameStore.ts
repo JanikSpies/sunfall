@@ -8,6 +8,14 @@ interface DeathEvent {
     seq: number;
 }
 
+interface KillEvent {
+    victimName: string;
+    energyGained: number;
+    victimX: number;
+    victimY: number;
+    seq: number;
+}
+
 interface GameState {
     localPlayerId: number | null;
     players: Record<number, PlayerState>;
@@ -16,6 +24,7 @@ interface GameState {
     sunScale: number;
     scoreboard: ScoreboardEntry[];
     deathEvent: DeathEvent | null;
+    killEvent: KillEvent | null;
     matchResetSeq: number;
     playerName: string;
     isDead: boolean;
@@ -37,6 +46,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     sunScale: 1,
     scoreboard: [],
     deathEvent: null,
+    killEvent: null,
     matchResetSeq: 0,
     playerName: "",
     isDead: false,
@@ -54,6 +64,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         matchTimer: 0,
         sunScale: 1,
         deathEvent: null,
+        killEvent: null,
         matchResetSeq: 0,
         ping: 0,
     }),
@@ -78,6 +89,16 @@ export const useGameStore = create<GameState>((set, get) => ({
             }
         } else if (message.type === WebSocketTypes.MATCH_RESET) {
             set({ matchResetSeq: get().matchResetSeq + 1, isDead: false, deathEvent: null });
+        } else if (message.type === WebSocketTypes.KILL) {
+            set({
+                killEvent: {
+                    victimName: message.victimName,
+                    energyGained: message.energyGained,
+                    victimX: message.victimX,
+                    victimY: message.victimY,
+                    seq: get().killEvent ? get().killEvent!.seq + 1 : 1,
+                },
+            });
         }
     },
 }));

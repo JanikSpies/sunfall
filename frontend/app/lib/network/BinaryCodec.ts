@@ -155,6 +155,31 @@ export class BinaryCodec {
             case WebSocketTypes.MATCH_RESET:
                 return { type: WebSocketTypes.MATCH_RESET };
 
+            case WebSocketTypes.KILL: {
+                if (view.byteLength < 16) return null;
+
+                const victimId = view.getUint16(1);
+                const energyGained = view.getFloat32(3);
+                const victimX = view.getFloat32(7);
+                const victimY = view.getFloat32(11);
+                const nameLen = view.getUint8(15);
+
+                let victimName = "Player";
+                if (view.byteLength >= 16 + nameLen) {
+                    const nameBytes = new Uint8Array(buffer, 16, nameLen);
+                    victimName = BinaryCodec.textDecoder.decode(nameBytes) || "Player";
+                }
+
+                return {
+                    type: WebSocketTypes.KILL,
+                    victimId,
+                    victimName,
+                    energyGained,
+                    victimX,
+                    victimY,
+                };
+            }
+
             default:
                 return null;
         }

@@ -84,5 +84,49 @@ services:
         max_attempts: 3
         window: 120s
 
+  prod_bot:
+    image: ${IMAGE_PATH_BOT}
+    environment:
+      # Talks to prod_backend directly over the internal overlay network -- not
+      # through sunfall.io -- so this actually load-tests the game server instead
+      # of the reverse proxy / DNS / whatever sits in front of the public domain.
+      BOT_URL: "ws://prod_backend:8080/ws"
+      BOT_REACTION_MIN: 90ms
+      BOT_REACTION_MAX: 320ms
+      BOT_TARGET_COMMIT_MIN: 600ms
+      BOT_TARGET_COMMIT_MAX: 2500ms
+      BOT_MISTAKE_CHANCE: 0.035
+      BOT_PANIC_DISTANCE: 180
+      BOT_COMFORT_MARGIN: 240
+      BOT_AGGRESSIVE_RATIO: 0.30
+      BOT_CHASE_DISTANCE: 900
+      BOT_DASH_CHANCE: 0.025
+      BOT_IDLE_CHANCE: 0.08
+      BOT_IDLE_MIN: 250ms
+      BOT_IDLE_MAX: 1800ms
+      BOT_DIRECTION_MIN: 700ms
+      BOT_DIRECTION_MAX: 3500ms
+      BOT_INPUT_JITTER: 0.15
+      BOT_COUNT: 10
+      BOT_SPAWN_RATE: 50
+      BOT_DURATION: 20m
+      BOT_INPUT_RATE: 20
+    build:
+      context: bot
+    networks:
+      - project_network
+    deploy:
+      mode: replicated
+      # Off by default -- this spins up a load test against the live server, not
+      # something that should run on every deploy. Turn it on for a run with:
+      #   docker service scale <stack>_prod_bot=1
+      # or by exporting BOT_REPLICAS before deploying.
+      replicas: ${BOT_REPLICAS:-0}
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
 volumes:
   prod-backend-shared:

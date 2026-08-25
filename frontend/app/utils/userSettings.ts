@@ -5,6 +5,7 @@ import { engine } from "../getEngine";
 const KEY_VOLUME_MASTER = "volume-master";
 const KEY_VOLUME_BGM = "volume-bgm";
 const KEY_VOLUME_SFX = "volume-sfx";
+const KEY_TUTORIAL_SEEN = "tutorial-seen";
 
 /**
  * Persistent user settings of volumes.
@@ -47,6 +48,16 @@ class UserSettings {
   public setSfxVolume(value: number) {
     engine().audio.sfx.setVolume(value);
     storage.setNumber(KEY_VOLUME_SFX, value);
+  }
+
+  /** Whether the player has already dismissed the how-to-play tutorial */
+  public hasSeenTutorial() {
+    return storage.getBool(KEY_TUTORIAL_SEEN) ?? false;
+  }
+
+  /** Mark the how-to-play tutorial as seen, so it won't show again */
+  public setTutorialSeen() {
+    storage.setBool(KEY_TUTORIAL_SEEN, true);
   }
 }
 

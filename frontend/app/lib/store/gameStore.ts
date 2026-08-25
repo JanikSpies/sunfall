@@ -29,11 +29,13 @@ interface GameState {
     playerName: string;
     isDead: boolean;
     ping: number;
+    showTutorial: boolean;
     setPlayerName: (name: string) => void;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
     setMatchState: (worldPhase: number, matchTimer: number, sunScale: number) => void;
     setPing: (ms: number) => void;
+    setShowTutorial: (value: boolean) => void;
     resetGame: () => void;
     handleMessage: (message: DecodedMessage) => void;
 }
@@ -51,11 +53,13 @@ export const useGameStore = create<GameState>((set, get) => ({
     playerName: "",
     isDead: false,
     ping: 0,
+    showTutorial: false,
     setPlayerName: (name) => set({ playerName: name }),
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
     setMatchState: (worldPhase, matchTimer, sunScale) => set({ worldPhase, matchTimer, sunScale }),
     setPing: (ms) => set({ ping: ms }),
+    setShowTutorial: (value) => set({ showTutorial: value }),
     resetGame: () => set({
         players: {},
         localPlayerId: null,

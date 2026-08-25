@@ -7,6 +7,7 @@ import {engine} from "../getEngine";
 import {initNetwork, useGameStore} from "../lib/store/gameStore";
 import {Button} from "../ui/menu/Button";
 import {MainScreen} from "./main/MainScreen";
+import {userSettings} from "../utils/userSettings";
 
 /** Start Screen with player name input and play action */
 export class StartScreen extends Container {
@@ -67,6 +68,13 @@ export class StartScreen extends Container {
         const rawName = this.nameInput.value?.trim();
         const name = rawName && rawName.length > 0 ? rawName : "Player";
         useGameStore.getState().setPlayerName(rawName || "");
+
+        if (!userSettings.hasSeenTutorial()) {
+            // Handled by <HowToPlayOverlay> (a plain React component, see app/components) --
+            // it calls initNetwork()/showScreen(MainScreen) itself once dismissed.
+            useGameStore.getState().setShowTutorial(true);
+            return;
+        }
 
         initNetwork(name);
 

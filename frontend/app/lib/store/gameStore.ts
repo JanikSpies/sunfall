@@ -109,10 +109,22 @@ export const useGameStore = create<GameState>((set, get) => ({
 
 export let network: NetworkTransport | null = null;
 
+// Stable for the lifetime of the page (not per play session): lets the server
+// recognize an automatic reconnect (see NetworkTransport.handleClose) as the
+// same player resuming, instead of spawning a duplicate "ghost" entity.
+let sessionId: string | null = null;
+
+const getSessionId = (): string => {
+    if (!sessionId) {
+        sessionId = crypto.randomUUID();
+    }
+    return sessionId;
+};
+
 export const initNetwork = (playerName?: string) => {
     const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
     const name = playerName || useGameStore.getState().playerName || 'Player';
-    const wsUrl = `${baseUrl}?name=${encodeURIComponent(name)}`;
+    const wsUrl = `${baseUrl}?name=${encodeURIComponent(name)}&session=${getSessionId()}`;
 
     if (network) {
         network.setUrl(wsUrl);

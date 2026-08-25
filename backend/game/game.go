@@ -94,15 +94,20 @@ func NewGame() *Game {
 	return game
 }
 
-func (g *Game) RemovePlayer(id uint16) bool {
+// RemovePlayer removes a player, but only if the map still points at this
+// exact connection's Player instance. A reconnect (see AddPlayer) can replace
+// the entry for the same ID with a fresh instance before the old connection's
+// own cleanup runs; in that case this is a no-op so the old connection's
+// teardown doesn't delete the player the new connection just took over.
+func (g *Game) RemovePlayer(player *Player) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
-	if _, exists := g.Players[id]; !exists {
+	if g.Players[player.ID] != player {
 		return false
 	}
 
-	delete(g.Players, id)
+	delete(g.Players, player.ID)
 
 	return true
 }

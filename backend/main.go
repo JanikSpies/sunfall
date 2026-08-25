@@ -100,8 +100,11 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		name = string(runes[:16])
 	}
 
+	session := strings.TrimSpace(r.URL.Query().Get("session"))
+
 	player := game.Player{
 		Name:       name,
+		SessionID:  session,
 		Energy:     100,
 		SizeLevel:  1,
 		Radius:     16,
@@ -121,7 +124,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer func() {
-		if world.RemovePlayer(player.ID) {
+		if world.RemovePlayer(&player) {
 			log.Println("Player disconnected:", player.ID)
 		}
 		player.CloseDone()

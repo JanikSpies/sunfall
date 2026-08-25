@@ -187,6 +187,13 @@ export class MainScreen extends Container {
             this.rocket?.setSunPointer(false);
 
             if (this.deathTimeoutId === null) {
+                // A popup (e.g. Settings) left open would otherwise be orphaned on top of
+                // StartScreen once we navigate away below -- close it the same way its own
+                // button would, before the death transition starts.
+                if (engine().navigation.currentPopup) {
+                    void engine().navigation.dismissPopup();
+                }
+
                 this.deathTimeoutId = window.setTimeout(async () => {
                     this.deathTimeoutId = null;
                     network?.disconnect();

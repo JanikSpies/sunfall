@@ -13,8 +13,11 @@ const (
 
 	PlayerSpeed             = 200.0
 	MaxPlayerRadius float32 = 40
-	MaxSpawnBuffer  float32 = 1000
-	MinSpawnBuffer  float32 = 500
+	// Kept inside NeutralEnergyDistance (750) so a fresh spawn always lands in
+	// the sun's gain zone -- otherwise new players could spawn already losing
+	// energy and get hit with the danger warning before they've even moved.
+	MaxSpawnBuffer float32 = 700
+	MinSpawnBuffer float32 = 300
 
 	CollisionCellSize   float32 = 160
 	PlayerHitScale      float32 = 1.6

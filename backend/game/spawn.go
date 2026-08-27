@@ -12,7 +12,9 @@ import (
 // and gameplay state, just handed to the new connection. The old connection
 // is then torn down via RequestDisconnect so its own cleanup finds it has
 // already been superseded (see RemovePlayer) and leaves the resumed player alone.
-func (g *Game) AddPlayer(player *Player) bool {
+// The resumed return value tells the caller not to treat this as a new
+// analytics session -- from that point of view a reconnect never happened.
+func (g *Game) AddPlayer(player *Player) (ok bool, resumed bool) {
 	g.mu.Lock()
 
 	if player.SessionID != "" {
@@ -35,6 +37,7 @@ func (g *Game) AddPlayer(player *Player) bool {
 			player.EnergyDepletedFor = old.EnergyDepletedFor
 			player.Radius = old.Radius
 			player.SizeLevel = old.SizeLevel
+			player.PeakEnergy = old.PeakEnergy
 
 			g.Players[player.ID] = player
 
@@ -42,13 +45,13 @@ func (g *Game) AddPlayer(player *Player) bool {
 
 			old.RequestDisconnect()
 
-			return true
+			return true, true
 		}
 	}
 
 	if len(g.Players) >= MaxPlayers {
 		g.mu.Unlock()
-		return false
+		return false, false
 	}
 
 	defer g.mu.Unlock()
@@ -74,7 +77,7 @@ func (g *Game) AddPlayer(player *Player) bool {
 	}
 
 	if !foundID {
-		return false
+		return false, false
 	}
 
 	occupied := NewCollisionGrid()
@@ -88,10 +91,11 @@ func (g *Game) AddPlayer(player *Player) bool {
 	player.Rotation = randomSpawnRotation()
 	player.Alive = g.Phase == PhaseSupernova
 	player.EnergyDepletedFor = 0
+	player.PeakEnergy = player.Energy
 
 	g.Players[player.ID] = player
 
-	return true
+	return true, false
 }
 
 func randomSpawnRotation() float32 {

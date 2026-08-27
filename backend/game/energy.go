@@ -31,6 +31,7 @@ func (g *Game) updatePlayerEnergyLocked(
 
 	previousEnergy := player.Energy
 	player.Energy += energyChange
+	player.trackPeakEnergy()
 
 	if player.Energy > 0 {
 		player.EnergyDepletedFor = 0

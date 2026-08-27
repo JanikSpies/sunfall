@@ -1,0 +1,18 @@
+apiVersion: 1
+
+datasources:
+  - name: Sunfall Postgres
+    uid: sunfall-postgres
+    type: postgres
+    access: proxy
+    url: ${GF_POSTGRES_HOST}:${GF_POSTGRES_PORT}
+    database: ${GF_POSTGRES_DB}
+    user: ${GF_POSTGRES_USER}
+    isDefault: true
+    editable: false
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1600
+      timescaledb: false
+    secureJsonData:
+      password: ${GF_POSTGRES_PASSWORD}

@@ -13,6 +13,11 @@ type Player struct {
 	ID        uint16
 	Name      string
 	SessionID string
+	ClientID  string
+
+	// PeakEnergy is a running high-water mark for analytics ("score reached")
+	// -- it only ever goes up, and isn't reset by a mid-session match restart.
+	PeakEnergy float32
 
 	X float32
 	Y float32
@@ -193,6 +198,12 @@ func (p *Player) LastPingTime() time.Time {
 	defer p.pingMu.RUnlock()
 
 	return p.LastPing
+}
+
+func (p *Player) trackPeakEnergy() {
+	if p.Energy > p.PeakEnergy {
+		p.PeakEnergy = p.Energy
+	}
 }
 
 func (p *Player) CloseDone() {

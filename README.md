@@ -20,6 +20,13 @@ Go to [localhost](localhost).
 
 Profit.
 
+## Analytics
+Analytics are available via [localhost/admin](localhost/admin) and [localhost/grafana](localhost/grafana)  
+
+### Local Credentials
+Username: `admin`  
+Password: `admin`
+
 ## Bots
 
 ### Local

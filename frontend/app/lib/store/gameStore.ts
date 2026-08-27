@@ -121,10 +121,31 @@ const getSessionId = (): string => {
     return sessionId;
 };
 
+const CLIENT_ID_STORAGE_KEY = "sunfall_client_id";
+
+// Persisted in localStorage (unlike sessionId above) so it survives page
+// reloads and new tabs -- it's how the analytics pipeline recognizes a
+// returning player without any account/login. Purely a stats tag: never used
+// for gameplay.
+const getClientId = (): string => {
+    try {
+        const existing = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
+        if (existing) return existing;
+
+        const fresh = crypto.randomUUID();
+        localStorage.setItem(CLIENT_ID_STORAGE_KEY, fresh);
+        return fresh;
+    } catch {
+        // Storage unavailable (private browsing, disabled storage, etc) -- fall
+        // back to a per-load id rather than breaking the connection over it.
+        return crypto.randomUUID();
+    }
+};
+
 export const initNetwork = (playerName?: string) => {
     const baseUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080/ws';
     const name = playerName || useGameStore.getState().playerName || 'Player';
-    const wsUrl = `${baseUrl}?name=${encodeURIComponent(name)}&session=${getSessionId()}`;
+    const wsUrl = `${baseUrl}?name=${encodeURIComponent(name)}&session=${getSessionId()}&client_id=${getClientId()}`;
 
     if (network) {
         network.setUrl(wsUrl);

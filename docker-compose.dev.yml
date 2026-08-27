@@ -5,8 +5,11 @@ services:
       target: prod
     environment:
       WS_ALLOWED_ORIGINS: "localhost,localhost:3000,127.0.0.1,127.0.0.1:3000"
+      DATABASE_URL: "postgres://sunfall:sunfall_dev@dev_postgres:5432/sunfall"
     ports:
       - "8080:8080"
+    depends_on:
+      - dev_postgres
 
   dev_frontend:
     build:
@@ -28,6 +31,100 @@ services:
       - ./dev-config/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ./dev-config/proxy.conf:/etc/nginx/proxy.conf:ro
     restart: unless-stopped
+
+  # Analytics stack -- see README for what each piece does. Dev credentials
+  # below are fixed, throwaway values (never used in prod), so there's no
+  # env file to copy for these three: just `docker compose up`.
+  dev_postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sunfall
+      POSTGRES_PASSWORD: sunfall_dev
+      POSTGRES_DB: sunfall
+    volumes:
+      - dev_postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  dev_admin:
+    build:
+      context: admin_panel
+      target: dev
+    environment:
+      DEBUG: "true"
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: "dev-only-not-a-real-secret"
+      DJANGO_ALLOWED_HOSTS: "*"
+      # nginx sends Host: localhost:80 (see dev-config/proxy.conf's
+      # $host:$server_port), but the browser's Origin header on the admin
+      # login POST is just http://localhost (no default port) -- Django's
+      # CSRF Origin check compares these and rejects the mismatch unless the
+      # browser's actual origin is explicitly trusted here.
+      DJANGO_CSRF_TRUSTED_ORIGINS: "http://localhost"
+      DATABASE_URL: "postgres://sunfall:sunfall_dev@dev_postgres:5432/sunfall"
+      DJANGO_SUPERUSER_USERNAME: admin
+      DJANGO_SUPERUSER_EMAIL: admin@example.com
+      DJANGO_SUPERUSER_PASSWORD: admin
+      # Grafana logs in as this OAuth2 client to offer "Sign in with Django" --
+      # see ensure_oauth_app and dev_grafana's GF_AUTH_GENERIC_OAUTH_* below.
+      OAUTH_CLIENT_ID: "grafana-dev-client-id"
+      OAUTH_CLIENT_SECRET: "grafana-dev-client-secret"
+      OAUTH_REDIRECT_URI: "http://localhost/graphs/login/generic_oauth"
+    volumes:
+      - ./admin_panel:/app
+    # Django rejects underscores in the Host header (fails RFC 1034/1035
+    # domain parsing before ALLOWED_HOSTS is even consulted -- "*" doesn't
+    # save it), so server-to-server callers (Grafana's token/userinfo calls
+    # below) need a hyphenated name instead of the plain service name.
+    networks:
+      default:
+        aliases:
+          - admin-internal
+    depends_on:
+      - dev_postgres
+
+  dev_grafana:
+    image: grafana/grafana-oss:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # Served under /graphs through dev_proxy (see dev-config/default.conf),
+      # not its own port -- these tell Grafana to generate its own links/assets
+      # with that prefix baked in instead of assuming it owns the domain root.
+      GF_SERVER_ROOT_URL: "http://localhost/graphs/"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      GF_POSTGRES_HOST: "dev_postgres"
+      GF_POSTGRES_PORT: "5432"
+      GF_POSTGRES_DB: "sunfall"
+      GF_POSTGRES_USER: "sunfall"
+      GF_POSTGRES_PASSWORD: "sunfall_dev"
+      # "Sign in with Django" -- Django is the OAuth2 provider (see
+      # admin_panel/config/urls.py + oauth_views.py). AUTH_URL is
+      # browser-facing so it has to go through the public localhost/admin
+      # path; TOKEN_URL and API_URL are called server-to-server by Grafana's
+      # backend, so the internal dev_admin hostname works directly.
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: "Django"
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: "grafana-dev-client-id"
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: "grafana-dev-client-secret"
+      GF_AUTH_GENERIC_OAUTH_SCOPES: "read"
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: "http://localhost/admin/o/authorize/"
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://admin-internal:8000/admin/o/token/"
+      GF_AUTH_GENERIC_OAUTH_API_URL: "http://admin-internal:8000/admin/o/userinfo"
+      GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH: "login"
+      GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH: "email"
+      GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH: "name"
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      # Django superusers land in Grafana as Admin, everyone else as Viewer.
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups, 'admin') && 'Admin' || 'Viewer'"
+    volumes:
+      - dev_grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - dev_postgres
+      - dev_admin
 
   dev_bot:
     profiles:
@@ -59,3 +156,7 @@ services:
       BOT_SPAWN_RATE: 50
       BOT_DURATION: 20m
       BOT_INPUT_RATE: 20
+
+volumes:
+  dev_postgres_data:
+  dev_grafana_data:

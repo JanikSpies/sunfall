@@ -1,6 +1,6 @@
 import {animate} from "motion";
 import type {ObjectTarget} from "motion/react";
-import {Container, Graphics, Sprite, Texture} from "pixi.js";
+import {Container, Graphics, isMobile, Sprite, Texture} from "pixi.js";
 import {Input} from "@pixi/ui";
 
 import {engine} from "../getEngine";
@@ -17,6 +17,13 @@ export class StartScreen extends Container {
     private nameInput: Input;
     private playButton: Button;
     private contentContainer: Container;
+
+    // The engine renders at a minimum internal resolution (see resizeOptions in
+    // GameCanvas) and scales that down to fit the real screen -- on phones that
+    // downscale is much more aggressive than on desktop, so a layout sized for
+    // desktop ends up tiny. Same problem the energy bar and enemy name labels
+    // needed a touch-device scale bump for.
+    private readonly isTouchDevice = isMobile.phone;
 
     constructor() {
         super();
@@ -91,6 +98,7 @@ export class StartScreen extends Container {
         const centerY = height * 0.5;
 
         this.contentContainer.position.set(centerX, centerY);
+        this.contentContainer.scale.set(this.isTouchDevice ? 1.6 : 1);
 
         this.logo.position.set(0, -200);
         this.nameInput.position.set(0, 20);

@@ -157,6 +157,13 @@ services:
       # underscores. AUTH_URL and ROOT_URL are browser-facing and must match
       # wherever Grafana actually ends up being reachable.
       GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001/}
+      # Required once Grafana sits behind nginx at /graphs (see prod nginx
+      # config) instead of being hit directly on :3001 -- without this,
+      # Grafana assumes it's served from "/" and its own asset links,
+      # redirects and cookie paths break under the subpath. GRAFANA_ROOT_URL
+      # must be set to the public subpath URL (e.g. https://sunfall.io/graphs/)
+      # for this to actually work.
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
       GF_AUTH_GENERIC_OAUTH_ENABLED: ${GRAFANA_OAUTH_ENABLED:-false}
       GF_AUTH_GENERIC_OAUTH_NAME: "Django"
       GF_AUTH_GENERIC_OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}

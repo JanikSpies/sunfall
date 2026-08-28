@@ -13,7 +13,7 @@ create_frontend_env() {
     echo "Creating dynamic .env file for frontend"
     echo "# Generated .env file for Frontend" > $env_file_frontend
 
-    echo "$SECRETS_JSON" | jq -r 'to_entries | map(select(.key | startswith("NEXT_"))) | .[] | "\(.key)=\"\(.value | gsub("\""; "\\\""))\""' >> $env_file_frontend
+    echo "$SECRETS_JSON" | jq -r 'to_entries | map(select(.key | startswith("NEXT_"))) | .[] | "\(.key)=\(.value)"' >> $env_file_frontend
     echo "$VARS_JSON" | jq -r 'to_entries | map(select(.key | startswith("NEXT_"))) | .[] | "\(.key)=\(.value)"' >> $env_file_frontend
 
     echo "Frontend .env file created successfully!"
@@ -24,7 +24,7 @@ create_backend_env() {
     echo "Creating dynamic .env file for backend"
     echo "# Generated .env file for Backend" > $env_file_backend
 
-    echo "$SECRETS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\"\(.value | gsub("\""; "\\\""))\""' >> $env_file_backend
+    echo "$SECRETS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $env_file_backend
     echo "$VARS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $env_file_backend
 
     echo "Backend .env file created successfully!"
@@ -38,7 +38,7 @@ create_admin_env() {
     echo "Creating dynamic .env file for admin panel"
     echo "# Generated .env file for Admin Panel" > $env_file_admin
 
-    echo "$SECRETS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\"\(.value | gsub("\""; "\\\""))\""' >> $env_file_admin
+    echo "$SECRETS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $env_file_admin
     echo "$VARS_JSON" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"' >> $env_file_admin
 
     echo "Admin panel .env file created successfully!"

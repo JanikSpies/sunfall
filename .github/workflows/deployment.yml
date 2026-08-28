@@ -11,6 +11,13 @@ on:
 jobs:
   build:
     runs-on: self-hosted
+    # The "Build" workflow also runs on pull_request (to validate the images
+    # build before merge), and workflow_run fires for every completed Build
+    # run regardless of what triggered it. Without this guard, opening or
+    # updating a PR into main would trigger a real prod deployment before the
+    # PR is even reviewed. Manual dispatch has no workflow_run event, so it's
+    # allowed through unconditionally.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'push' }}
 
     steps:
       - name: Pre-cleanup workspace

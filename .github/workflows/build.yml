@@ -8,7 +8,62 @@ on:
   pull_request:
 
 jobs:
+  test-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: [backend, bot]
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ${{ matrix.module }}/go.mod
+      - name: Run tests
+        working-directory: ${{ matrix.module }}
+        run: go test ./...
+
+  test-admin:
+    runs-on: ubuntu-latest
+    services:
+      # Mirrors dev_postgres in docker-compose.dev.yml -- manage.py test needs
+      # a real Postgres to create its throwaway test database against, even
+      # with zero tests defined yet.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: sunfall
+          POSTGRES_PASSWORD: sunfall_test
+          POSTGRES_DB: sunfall
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # DJANGO_DEBUG unlocks the insecure fallback SECRET_KEY in settings.py --
+      # fine here, this is a throwaway CI database, not a real deployment.
+      DJANGO_DEBUG: "true"
+      DATABASE_URL: "postgres://sunfall:sunfall_test@localhost:5432/sunfall"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        working-directory: admin_panel
+        run: |
+          pip install pipenv
+          pipenv install --system --deploy --ignore-pipfile
+      - name: Run tests
+        working-directory: admin_panel
+        run: python manage.py test
+
   push:
+    needs: [test-go, test-admin]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -47,9 +102,11 @@ jobs:
           docker build ./admin_panel --file ./admin_panel/Dockerfile --tag $IMAGE_NAME_ADMIN --label "runnumber=${GITHUB_RUN_ID}" --target prod
 
       - name: Log in to registry
+        if: ${{ github.event_name == 'push' }}
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push images
+        if: ${{ github.event_name == 'push' }}
         run: |
           IMAGE_ID_BACKEND=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_BACKEND
           IMAGE_ID_BACKEND=$(echo $IMAGE_ID_BACKEND | tr '[A-Z]' '[a-z]')

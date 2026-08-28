@@ -50,6 +50,22 @@ function setup {
     export IMAGE_PATH_BACKEND
     export IMAGE_PATH_FRONTEND
     export IMAGE_PATH_BOT
+    export IMAGE_PATH_ADMIN
+    # Consumed via ${VAR} substitution in docker-compose.yml (postgres,
+    # admin panel, grafana). Must be set as GitHub repo secrets/vars --
+    # see admin_panel/.example.env and the README.
+    export POSTGRES_USER
+    export POSTGRES_PASSWORD
+    export POSTGRES_DB
+    export GRAFANA_ADMIN_USER
+    export GRAFANA_ADMIN_PASSWORD
+    # "Sign in with Django" for Grafana -- see admin_panel/.example.env.
+    # Left unset, GRAFANA_OAUTH_ENABLED defaults to false in docker-compose.yml.
+    export GRAFANA_ROOT_URL
+    export GRAFANA_OAUTH_ENABLED
+    export GRAFANA_OAUTH_AUTH_URL
+    export OAUTH_CLIENT_ID
+    export OAUTH_CLIENT_SECRET
 
     test_docker_setup
 
@@ -76,9 +92,10 @@ function setup {
     docker pull "$IMAGE_PATH_BACKEND"
     docker pull "$IMAGE_PATH_FRONTEND"
     docker pull "$IMAGE_PATH_BOT"
+    docker pull "$IMAGE_PATH_ADMIN"
 
     echo "Command: docker stack deploy -c docker-compose.yml --with-registry-auth $STACK_NAME"
-    IMAGE_PATH_BACKEND=$IMAGE_PATH_BACKEND IMAGE_PATH_FRONTEND=$IMAGE_PATH_FRONTEND IMAGE_PATH_BOT=$IMAGE_PATH_BOT docker stack deploy -c docker-compose.yml --with-registry-auth "$STACK_NAME"
+    IMAGE_PATH_BACKEND=$IMAGE_PATH_BACKEND IMAGE_PATH_FRONTEND=$IMAGE_PATH_FRONTEND IMAGE_PATH_BOT=$IMAGE_PATH_BOT IMAGE_PATH_ADMIN=$IMAGE_PATH_ADMIN docker stack deploy -c docker-compose.yml --with-registry-auth "$STACK_NAME"
 
     docker logout ghcr.io
 }

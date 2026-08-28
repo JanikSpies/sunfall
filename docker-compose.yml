@@ -47,6 +47,7 @@ services:
     image: ${IMAGE_PATH_BACKEND}
     environment:
       WS_ALLOWED_ORIGINS: "https://sunfall.io,https://www.sunfall.io"
+      DATABASE_URL: "postgres://${POSTGRES_USER:-sunfall}:${POSTGRES_PASSWORD}@prod_postgres:5432/${POSTGRES_DB:-sunfall}"
     build:
       context: backend
     env_file:
@@ -78,6 +79,105 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  prod_postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sunfall}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-sunfall}
+    volumes:
+      - prod-postgres-data:/var/lib/postgresql/data
+    networks:
+      - project_network
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # Django admin panel -- read-only view over the analytics tables the
+  # backend's async writer fills in. Auth is Django's own login (no
+  # anonymous access to anything under /admin/).
+  prod_admin:
+    image: ${IMAGE_PATH_ADMIN}
+    build:
+      context: admin_panel
+      target: prod
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER:-sunfall}:${POSTGRES_PASSWORD}@prod_postgres:5432/${POSTGRES_DB:-sunfall}"
+    env_file:
+      - admin_panel/.env
+    ports:
+      - "8000:8000"
+    # Django rejects underscores in the Host header (fails RFC 1034/1035
+    # domain parsing before ALLOWED_HOSTS is even consulted), so
+    # server-to-server callers (Grafana's token/userinfo calls below) need a
+    # hyphenated name instead of the plain service name.
+    networks:
+      project_network:
+        aliases:
+          - admin-internal
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+
+  # Dashboards over the same Postgres data. Datasource + dashboards are
+  # provisioned as code (./grafana/provisioning), so a fresh deploy already
+  # has them -- nothing to click through by hand. Login is Grafana's own
+  # admin account; anonymous access and self-signup are both off.
+  prod_grafana:
+    image: grafana/grafana-oss:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_POSTGRES_HOST: "prod_postgres"
+      GF_POSTGRES_PORT: "5432"
+      GF_POSTGRES_DB: ${POSTGRES_DB:-sunfall}
+      GF_POSTGRES_USER: ${POSTGRES_USER:-sunfall}
+      GF_POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # "Sign in with Django" -- off by default (GRAFANA_OAUTH_ENABLED unset)
+      # until you've decided Grafana's real public URL; see README. TOKEN_URL
+      # and API_URL are called server-to-server, so they use prod_admin's
+      # hyphenated alias (admin-internal, see prod_admin above) rather than
+      # the plain service name -- Django rejects Host headers with
+      # underscores. AUTH_URL and ROOT_URL are browser-facing and must match
+      # wherever Grafana actually ends up being reachable.
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001/}
+      GF_AUTH_GENERIC_OAUTH_ENABLED: ${GRAFANA_OAUTH_ENABLED:-false}
+      GF_AUTH_GENERIC_OAUTH_NAME: "Django"
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: ${OAUTH_CLIENT_ID}
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: ${OAUTH_CLIENT_SECRET}
+      GF_AUTH_GENERIC_OAUTH_SCOPES: "read"
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: ${GRAFANA_OAUTH_AUTH_URL}
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://admin-internal:8000/admin/o/token/"
+      GF_AUTH_GENERIC_OAUTH_API_URL: "http://admin-internal:8000/admin/o/userinfo"
+      GF_AUTH_GENERIC_OAUTH_LOGIN_ATTRIBUTE_PATH: "login"
+      GF_AUTH_GENERIC_OAUTH_EMAIL_ATTRIBUTE_PATH: "email"
+      GF_AUTH_GENERIC_OAUTH_NAME_ATTRIBUTE_PATH: "name"
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(groups, 'admin') && 'Admin' || 'Viewer'"
+    volumes:
+      - prod-grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    networks:
+      - project_network
+    deploy:
       restart_policy:
         condition: on-failure
         delay: 5s
@@ -130,3 +230,5 @@ services:
 
 volumes:
   prod-backend-shared:
+  prod-postgres-data:
+  prod-grafana-data:

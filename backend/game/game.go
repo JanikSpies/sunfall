@@ -77,6 +77,8 @@ type Game struct {
 	collisionGrid *CollisionGrid
 	snapshot      *VisibilitySnapshot
 	tick          uint32
+
+	analytics chan<- any
 }
 
 func NewGame() *Game {
@@ -102,6 +104,15 @@ func NewGame() *Game {
 // the entry for the same ID with a fresh instance before the old connection's
 // own cleanup runs; in that case this is a no-op so the old connection's
 // teardown doesn't delete the player the new connection just took over.
+// PlayerCount reports how many players are currently connected, for periodic
+// concurrency sampling.
+func (g *Game) PlayerCount() int {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	return len(g.Players)
+}
+
 func (g *Game) RemovePlayer(player *Player) bool {
 	g.mu.Lock()
 	defer g.mu.Unlock()

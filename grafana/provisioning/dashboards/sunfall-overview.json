@@ -1,0 +1,168 @@
+{
+  "title": "Sunfall Overview",
+  "uid": "sunfall-overview",
+  "editable": true,
+  "timezone": "Europe/Zurich",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": { "from": "now-7d", "to": "now" },
+  "refresh": "5m",
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "At a glance",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Avg session length",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT avg(extract(epoch from (disconnected_at - connected_at))) AS \"avg_session_seconds\" FROM stats_playersession WHERE disconnected_at IS NOT NULL AND $__timeFilter(connected_at)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg score reached (peak energy)",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT avg(peak_energy) AS \"avg_peak_energy\" FROM stats_playersession WHERE $__timeFilter(connected_at)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Avg kills per session",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2 }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT (SELECT count(*)::float FROM stats_deathevent WHERE killer_session_id IS NOT NULL AND $__timeFilter(occurred_at)) / GREATEST((SELECT count(*) FROM stats_playersession WHERE $__timeFilter(connected_at)), 1) AS \"avg_kills_per_session\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Avg deaths per session",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 2 }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT (SELECT count(*)::float FROM stats_deathevent WHERE $__timeFilter(occurred_at)) / GREATEST((SELECT count(*) FROM stats_playersession WHERE $__timeFilter(connected_at)), 1) AS \"avg_deaths_per_session\"",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "Traffic over time",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 7 }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Sessions started per day",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "SELECT date_trunc('day', connected_at) AS time, count(*) AS \"sessions\" FROM stats_playersession WHERE $__timeFilter(connected_at) GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Concurrent players",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "custom": { "lineInterpolation": "stepAfter" } },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawSql": "SELECT sampled_at AS time, count AS \"concurrent players\" FROM stats_concurrentplayersample WHERE $__timeFilter(sampled_at) ORDER BY sampled_at",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "Deaths & players",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 16 }
+    },
+    {
+      "id": 10,
+      "type": "piechart",
+      "title": "Deaths by reason",
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT reason, count(*) AS deaths FROM stats_deathevent WHERE $__timeFilter(occurred_at) GROUP BY reason ORDER BY deaths DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Returning players",
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "SELECT count(*) AS \"returning_players\" FROM (SELECT client_id FROM stats_playersession WHERE client_id IS NOT NULL AND $__timeFilter(connected_at) GROUP BY client_id HAVING count(*) > 1) t",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "% of players returning",
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "sunfall-postgres" },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1, "max": 100, "min": 0 }, "overrides": [] },
+      "targets": [
+        {
+          "format": "table",
+          "rawSql": "WITH sessions_by_client AS (SELECT client_id, count(*) AS n FROM stats_playersession WHERE client_id IS NOT NULL AND $__timeFilter(connected_at) GROUP BY client_id) SELECT count(*) FILTER (WHERE n > 1)::float / GREATEST(count(*), 1) * 100 AS \"pct_returning\" FROM sessions_by_client",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

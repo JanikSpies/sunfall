@@ -21,6 +21,7 @@ jobs:
           echo "IMAGE_NAME_BACKEND=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-backend" >> $GITHUB_ENV
           echo "IMAGE_NAME_FRONTEND=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-frontend" >> $GITHUB_ENV
           echo "IMAGE_NAME_BOT=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-bot" >> $GITHUB_ENV
+          echo "IMAGE_NAME_ADMIN=${GITHUB_REPOSITORY#$GITHUB_REPOSITORY_OWNER/}-admin" >> $GITHUB_ENV
 
       - name: Create Dynamic .env File
         env:
@@ -41,6 +42,10 @@ jobs:
         run: |
           docker build ./bot --file ./bot/Dockerfile --tag $IMAGE_NAME_BOT --label "runnumber=${GITHUB_RUN_ID}"
 
+      - name: Build image admin panel
+        run: |
+          docker build ./admin_panel --file ./admin_panel/Dockerfile --tag $IMAGE_NAME_ADMIN --label "runnumber=${GITHUB_RUN_ID}" --target prod
+
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
@@ -52,12 +57,15 @@ jobs:
           IMAGE_ID_FRONTEND=$(echo $IMAGE_ID_FRONTEND | tr '[A-Z]' '[a-z]')
           IMAGE_ID_BOT=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_BOT
           IMAGE_ID_BOT=$(echo $IMAGE_ID_BOT | tr '[A-Z]' '[a-z]')
+          IMAGE_ID_ADMIN=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_ADMIN
+          IMAGE_ID_ADMIN=$(echo $IMAGE_ID_ADMIN | tr '[A-Z]' '[a-z]')
           VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
           [ "$VERSION" == "main" ] && VERSION=latest
           echo IMAGE_ID_BACKEND=$IMAGE_ID_BACKEND
           echo IMAGE_ID_FRONTEND=$IMAGE_ID_FRONTEND
           echo IMAGE_ID_BOT=$IMAGE_ID_BOT
+          echo IMAGE_ID_ADMIN=$IMAGE_ID_ADMIN
           echo VERSION=$VERSION
           docker tag $IMAGE_NAME_BACKEND $IMAGE_ID_BACKEND:$VERSION
           docker push $IMAGE_ID_BACKEND:$VERSION
@@ -65,6 +73,8 @@ jobs:
           docker push $IMAGE_ID_FRONTEND:$VERSION
           docker tag $IMAGE_NAME_BOT $IMAGE_ID_BOT:$VERSION
           docker push $IMAGE_ID_BOT:$VERSION
+          docker tag $IMAGE_NAME_ADMIN $IMAGE_ID_ADMIN:$VERSION
+          docker push $IMAGE_ID_ADMIN:$VERSION
 
       - name: Log out of registry
         run: docker logout ghcr.io

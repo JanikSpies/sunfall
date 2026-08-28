@@ -1,54 +1,39 @@
-# Sunfall
+<div align="center">
+  <img src="frontend/public/assets/main/logo-white.svg" width="140" alt="Sunfall" />
 
-BärnHäckt 2026 project of the OvoRocks team.
+  # Sunfall
 
-## Local Setup
+  BärnHäckt 2026 project of the OvoRocks team.
+</div>
 
-Make .env file from example.
+## Local setup
 
-```
+```bash
 cp frontend/.example.env frontend/.env.local
-```
-
-Launch docker containers.
-
-```Shell
 docker compose -f docker-compose.dev.yml up --build -d
 ```
 
-Go to [localhost](localhost).
-
-Profit.
+Go to [localhost](http://localhost). Profit.
 
 ## Analytics
-Analytics are available via [localhost/admin](localhost/admin) and [localhost/graphs](localhost/graphs)  
 
-### Local Credentials
-Username: `admin`  
-Password: `admin`
+- Admin: [localhost/admin](http://localhost/admin)
+- Grafana: [localhost/graphs](http://localhost/graphs)
+
+Local credentials: `admin` / `admin`
 
 ## Bots
 
-### Local
+**Local**
 
-Turn on:
-
-```Shell
-docker compose -f docker-compose.dev.yml --profile bots up --build -d
+```bash
+docker compose -f docker-compose.dev.yml --profile bots up --build -d   # on
+docker compose -f docker-compose.dev.yml stop dev_bot                   # off
 ```
 
-Turn off:
+**Server**
 
-```Shell
-docker compose -f docker-compose.dev.yml stop dev_bot
+```bash
+docker service scale sunfall_prod_bot=1   # on
+docker service scale sunfall_prod_bot=0   # off — do this when done!
 ```
-
-### Server
-
-Replicas is 0 by default. turn on like this:
-
-```Shell
-docker service scale sunfall_prod_bot=1
-```
-
-Scale back to 0 when done!

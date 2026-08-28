@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
 import {DeathReason, DecodedMessage, ScoreboardEntry, WebSocketTypes} from '../models/WebSocketTypes';
+import {MOBILE_DEFAULT_BOTTOM_RESERVED, MOBILE_DEFAULT_TOP_RESERVED} from '../layout/titleLayout';
 
 interface DeathEvent {
     reason: DeathReason;
@@ -30,12 +31,19 @@ interface GameState {
     isDead: boolean;
     ping: number;
     showTutorial: boolean;
+    onTitleScreen: boolean;
+    // Real rendered height of the mobile title-stats cards (see
+    // TitleStatsPanel), reported in so StartScreen can center its content in
+    // the actual space left between them instead of guessing.
+    titleCardReserved: { top: number; bottom: number };
     setPlayerName: (name: string) => void;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
     setMatchState: (worldPhase: number, matchTimer: number, sunScale: number) => void;
     setPing: (ms: number) => void;
     setShowTutorial: (value: boolean) => void;
+    setOnTitleScreen: (value: boolean) => void;
+    setTitleCardReserved: (top: number, bottom: number) => void;
     resetGame: () => void;
     handleMessage: (message: DecodedMessage) => void;
 }
@@ -54,12 +62,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     isDead: false,
     ping: 0,
     showTutorial: false,
+    // Defaults false, not true: LoadScreen shows first and has no reason to
+    // know about this flag -- StartScreen.show() is what actually flips it
+    // once the title screen (and its logo/name/play layout) is really up.
+    onTitleScreen: false,
+    titleCardReserved: { top: MOBILE_DEFAULT_TOP_RESERVED, bottom: MOBILE_DEFAULT_BOTTOM_RESERVED },
     setPlayerName: (name) => set({ playerName: name }),
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
     setMatchState: (worldPhase, matchTimer, sunScale) => set({ worldPhase, matchTimer, sunScale }),
     setPing: (ms) => set({ ping: ms }),
     setShowTutorial: (value) => set({ showTutorial: value }),
+    setOnTitleScreen: (value) => set({ onTitleScreen: value }),
+    setTitleCardReserved: (top, bottom) => set({ titleCardReserved: { top, bottom } }),
     resetGame: () => set({
         players: {},
         localPlayerId: null,
@@ -127,7 +142,7 @@ const CLIENT_ID_STORAGE_KEY = "sunfall_client_id";
 // reloads and new tabs -- it's how the analytics pipeline recognizes a
 // returning player without any account/login. Purely a stats tag: never used
 // for gameplay.
-const getClientId = (): string => {
+export const getClientId = (): string => {
     try {
         const existing = localStorage.getItem(CLIENT_ID_STORAGE_KEY);
         if (existing) return existing;

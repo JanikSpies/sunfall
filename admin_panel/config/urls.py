@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.shortcuts import redirect
 from django.urls import include, path
 
+from stats.views import player_stats
+
 from .oauth_views import UserInfoView
 
 urlpatterns = [
@@ -25,5 +27,8 @@ urlpatterns = [
     path("admin/o/userinfo", UserInfoView.as_view()),
     path("admin/o/userinfo/", UserInfoView.as_view(), name="userinfo"),
     path("admin/o/", include("oauth2_provider.urls", namespace="oauth2_provider")),
+    # Public, unauthenticated -- same "mounted under /admin/ for free nginx
+    # coverage" reasoning as above. Same ordering requirement too.
+    path("admin/stats/", player_stats, name="player-stats"),
     path("admin/", admin.site.urls),
 ]

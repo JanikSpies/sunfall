@@ -11,11 +11,22 @@ export class NetworkTransport {
 
     private onStateUpdate: (message: DecodedMessage) => void;
     private onPing?: (latencyMs: number) => void;
+    private shouldAutoReconnect?: () => boolean;
 
-    constructor(url: string, onStateUpdate: (message: DecodedMessage) => void, onPing?: (latencyMs: number) => void) {
+    constructor(
+        url: string,
+        onStateUpdate: (message: DecodedMessage) => void,
+        onPing?: (latencyMs: number) => void,
+        // Consulted only for an unrequested drop (see handleClose) -- lets the
+        // caller veto auto-reconnect for states where silently reviving the
+        // connection would be surprising, e.g. while the player is sitting on
+        // the death screen with nothing live to resume.
+        shouldAutoReconnect?: () => boolean,
+    ) {
         this.url = url;
         this.onStateUpdate = onStateUpdate;
         this.onPing = onPing;
+        this.shouldAutoReconnect = shouldAutoReconnect;
     }
 
     public setUrl(url: string) {
@@ -50,13 +61,16 @@ export class NetworkTransport {
             window.clearTimeout(this.reconnectTimeoutId);
             this.reconnectTimeoutId = null;
         }
-        this.cleanup();
+        // Actually close the socket before cleanup() nulls the reference --
+        // otherwise the underlying connection is just abandoned (never sent a
+        // close frame), left open and still delivering messages into this same
+        // onStateUpdate/onPing until the server's own ping timeout notices.
         if (this.socket) {
             this.socket.onclose = null;
             this.socket.onerror = null;
             this.socket.close();
-            this.socket = null;
         }
+        this.cleanup();
     }
 
     private handleMessage(event: MessageEvent) {
@@ -77,7 +91,7 @@ export class NetworkTransport {
     private handleClose(event: CloseEvent) {
         console.log(`WebSocket closed: ${event.code}.`);
         this.cleanup();
-        if (!this.manualDisconnect) {
+        if (!this.manualDisconnect && (this.shouldAutoReconnect?.() ?? true)) {
             console.log("Reconnecting in 2s");
             this.reconnectTimeoutId = window.setTimeout(() => this.connect(), 2000);
         }

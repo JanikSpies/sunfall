@@ -1,10 +1,10 @@
 <div align="center">
   <img src="frontend/public/assets/main/logo-white.svg" width="140" alt="Sunfall" />
-
-  # Sunfall
-
-  BärnHäckt 2026 project of the OvoRocks team.
 </div>
+
+# Sunfall
+
+BärnHäckt 2026 project of the OvoRocks team.
 
 ## Local setup
 

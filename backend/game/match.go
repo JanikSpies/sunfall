@@ -98,16 +98,31 @@ func (g *Game) killPlayer(player *Player, reason DeathReason) {
 
 	delete(g.Players, player.ID)
 
-	g.emitAnalytics(DeathAnalyticsEvent{
-		VictimID:          player.ID,
-		VictimName:        player.Name,
-		Reason:            reason,
-		KillerID:          killerID,
-		KillerName:        killerName,
-		EnergyTransferred: energyTransferred,
-		PeakEnergy:        player.PeakEnergy,
-		At:                time.Now(),
-	})
+	// See Player.IsBot: a bot's own death is never reported, and a bot
+	// getting kill credit for a human's death has that credit scrubbed from
+	// the event -- the human's death is still real and worth recording, the
+	// "killed by a bot" attribution isn't. The actual gameplay reward/kill
+	// packet above already went through untouched either way.
+	if !player.IsBot {
+		if killerID != nil {
+			if killer, ok := g.Players[*killerID]; ok && killer.IsBot {
+				killerID = nil
+				killerName = ""
+				energyTransferred = 0
+			}
+		}
+
+		g.emitAnalytics(DeathAnalyticsEvent{
+			VictimID:          player.ID,
+			VictimName:        player.Name,
+			Reason:            reason,
+			KillerID:          killerID,
+			KillerName:        killerName,
+			EnergyTransferred: energyTransferred,
+			PeakEnergy:        player.PeakEnergy,
+			At:                time.Now(),
+		})
+	}
 
 	player.QueueLifecyclePacket(buildDeathPacket(reason))
 }

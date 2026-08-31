@@ -104,13 +104,22 @@ func NewGame() *Game {
 // the entry for the same ID with a fresh instance before the old connection's
 // own cleanup runs; in that case this is a no-op so the old connection's
 // teardown doesn't delete the player the new connection just took over.
-// PlayerCount reports how many players are currently connected, for periodic
-// concurrency sampling.
+// PlayerCount reports how many real (non-bot) players are currently
+// connected, for periodic concurrency sampling -- see Player.IsBot for why
+// bots are excluded. This is currently PlayerCount's only caller, so there's
+// no other meaning of "player count" for it to conflict with.
 func (g *Game) PlayerCount() int {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	return len(g.Players)
+	count := 0
+	for _, player := range g.Players {
+		if !player.IsBot {
+			count++
+		}
+	}
+
+	return count
 }
 
 func (g *Game) RemovePlayer(player *Player) bool {

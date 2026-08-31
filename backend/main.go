@@ -137,11 +137,13 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	session := strings.TrimSpace(r.URL.Query().Get("session"))
 	clientID := strings.TrimSpace(r.URL.Query().Get("client_id"))
+	isBot := r.URL.Query().Get("bot") == "1"
 
 	player := game.Player{
 		Name:       name,
 		SessionID:  session,
 		ClientID:   clientID,
+		IsBot:      isBot,
 		Energy:     100,
 		SizeLevel:  1,
 		Radius:     16,
@@ -163,7 +165,9 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	// A resumed connection (see AddPlayer) picks up an existing player
 	// identity after a brief reconnect -- it isn't a new analytics session.
-	if !resumed {
+	// Bots (see Player.IsBot) never get a session event either way: running
+	// with or without them connected must look identical in analytics.
+	if !resumed && !player.IsBot {
 		emitAnalytics(game.SessionStartEvent{
 			PlayerID: player.ID,
 			Name:     player.Name,
@@ -175,10 +179,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if world.RemovePlayer(&player) {
 			log.Println("Player disconnected:", player.ID)
-			emitAnalytics(game.SessionEndEvent{
-				PlayerID: player.ID,
-				At:       time.Now(),
-			})
+			if !player.IsBot {
+				emitAnalytics(game.SessionEndEvent{
+					PlayerID: player.ID,
+					At:       time.Now(),
+				})
+			}
 		}
 		player.CloseDone()
 	}()

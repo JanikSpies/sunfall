@@ -36,6 +36,30 @@ const (
 	packetKill       byte = 11
 )
 
+// Mirrors backend/game/game.go's constants of the same name -- the bot has no
+// server-side access to them, so these are hardcoded to match.
+const (
+	sunStartRadius        = 300.0
+	neutralEnergyDistance = 750.0
+)
+
+// combatPhase is the bot's current top-level intention, decided once per
+// reaction tick in updateCombatPhase and read by both the steering (target
+// angle) and dash-decision code so the two stay consistent with each other.
+type combatPhase int
+
+const (
+	// No threat worth reacting to: hold station in the sun's gain zone.
+	phaseFarm combatPhase = iota
+	// Outmatched or unwilling to fight: run.
+	phaseEvade
+	// Maneuvering to the far side of the target (relative to the sun) before
+	// committing -- see updateCombatPhase for why the position matters.
+	phasePosition
+	// Aligned and close enough: dash straight at the target.
+	phaseStrike
+)
+
 type config struct {
 	URL             string
 	Bots            int
@@ -68,6 +92,7 @@ type config struct {
 	MistakeChance   float64
 	PanicDistance   float64
 	ComfortMargin   float64
+	AttackStandoff  float64
 }
 
 type counters struct {
@@ -97,23 +122,44 @@ type bot struct {
 	aggressive  bool
 	orbitSign   float64
 	personality personality
+	// Preferred distance from the sun's surface while farming, in the gain
+	// zone (0..neutralEnergyDistance). Set once at creation from personality
+	// so each bot consistently holds its own orbit instead of redrawing a
+	// random target radius every tick.
+	farmRadius float64
 
 	mu            sync.RWMutex
 	id            uint16
 	x             float32
 	y             float32
 	energy        float32
+	size          uint8
 	dashAvailable bool
-	nearestX      float32
-	nearestY      float32
-	nearestDist   float64
+
+	nearestX        float32
+	nearestY        float32
+	nearestDist     float64
+	nearestSize     uint8
+	nearestEnergy   float32
+	nearestRotation float32
+	// True while the nearest player is still within its post-dash cooldown
+	// (see backend/game/update.go) -- i.e. it very recently burst forward and
+	// is still carrying that velocity. Read by dodgeAngle.
+	nearestDashed bool
 	hasNearest    bool
-	phase         byte
-	sunScale      float32
-	targetX       float32
-	targetY       float32
-	targetDist    float64
-	hasTarget     bool
+
+	phase    byte
+	sunScale float32
+
+	combatPhase combatPhase
+	targetX     float32
+	targetY     float32
+	targetDist  float64
+	hasTarget   bool
+	// Flanking point computed in phasePosition: on the far side of the target
+	// from the sun, so the final approach into phaseStrike comes in sunward.
+	waypointX float32
+	waypointY float32
 }
 
 type personality struct {
@@ -180,6 +226,13 @@ func main() {
 				aggressive:  p.Aggression > 0.62,
 				orbitSign:   chooseSign(r),
 				personality: p,
+				// Well outside this bot's own panic margin (personalSunMargin) --
+				// otherwise the farming target and the sun-safety override fight
+				// each other right at the sun's edge, which is exactly backwards
+				// for a behavior that's supposed to be safer than free wandering.
+				// Still comfortably inside the gain zone (neutralEnergyDistance
+				// past the surface) for every personality.
+				farmRadius: personalSunMargin(cfg, p)*1.6 + r.Float64()*150,
 			}
 			b.run(ctx)
 		}(i)
@@ -222,7 +275,8 @@ func parseConfig() config {
 		TargetCommitMax: envDuration("BOT_TARGET_COMMIT_MAX", 2500*time.Millisecond),
 		MistakeChance:   envFloat("BOT_MISTAKE_CHANCE", 0.035),
 		PanicDistance:   envFloat("BOT_PANIC_DISTANCE", 180),
-		ComfortMargin:   envFloat("BOT_COMFORT_MARGIN", 240),
+		ComfortMargin:   envFloat("BOT_COMFORT_MARGIN", 160),
+		AttackStandoff:  envFloat("BOT_ATTACK_STANDOFF", 220),
 	}
 
 	flag.StringVar(&cfg.URL, "url", cfg.URL, "WebSocket endpoint (env BOT_URL)")
@@ -256,6 +310,7 @@ func parseConfig() config {
 	flag.Float64Var(&cfg.MistakeChance, "mistake-chance", cfg.MistakeChance, "chance of a small human-like input mistake per decision (env BOT_MISTAKE_CHANCE)")
 	flag.Float64Var(&cfg.PanicDistance, "panic-distance", cfg.PanicDistance, "distance at which cautious bots evade nearby players (env BOT_PANIC_DISTANCE)")
 	flag.Float64Var(&cfg.ComfortMargin, "comfort-margin", cfg.ComfortMargin, "preferred safety margin outside the sun (env BOT_COMFORT_MARGIN)")
+	flag.Float64Var(&cfg.AttackStandoff, "attack-standoff", cfg.AttackStandoff, "flanking distance past the target, further from the sun, before committing to a kill dash (env BOT_ATTACK_STANDOFF)")
 	flag.Parse()
 	return cfg
 }
@@ -294,6 +349,8 @@ func validateConfig(cfg config) error {
 		return errors.New("target commit range is invalid")
 	case !probability(cfg.MistakeChance):
 		return errors.New("mistake chance must be between 0 and 1")
+	case cfg.AttackStandoff <= 0:
+		return errors.New("attack standoff must be > 0")
 	case cfg.PanicDistance <= 0 || cfg.ComfortMargin <= 0:
 		return errors.New("panic distance and comfort margin must be > 0")
 	}
@@ -338,6 +395,10 @@ func (b *bot) runSession(parent context.Context) error {
 	}
 	q := wsURL.Query()
 	q.Set("name", name)
+	// Tells the backend this connection is synthetic load/demo traffic (see
+	// Player.IsBot) so it's excluded everywhere from analytics -- Grafana
+	// must look identical whether or not bots are running.
+	q.Set("bot", "1")
 	wsURL.RawQuery = q.Encode()
 
 	headers := http.Header{}
@@ -428,6 +489,8 @@ func (b *bot) parseConnected(data []byte) {
 	b.x = math.Float32frombits(binary.BigEndian.Uint32(data[3:7]))
 	b.y = math.Float32frombits(binary.BigEndian.Uint32(data[7:11]))
 	b.hasNearest = false
+	b.hasTarget = false
+	b.combatPhase = phaseFarm
 	b.mu.Unlock()
 }
 
@@ -448,6 +511,10 @@ func (b *bot) parseWorldState(data []byte) {
 	offset := 3
 	nearestDist := math.MaxFloat64
 	var nearestX, nearestY float32
+	var nearestSize uint8
+	var nearestEnergy float32
+	var nearestRotation float32
+	var nearestDashed bool
 	hasNearest := false
 
 	for i := 0; i < count; i++ {
@@ -458,8 +525,11 @@ func (b *bot) parseWorldState(data []byte) {
 		id := binary.BigEndian.Uint16(data[offset : offset+2])
 		x := math.Float32frombits(binary.BigEndian.Uint32(data[offset+2 : offset+6]))
 		y := math.Float32frombits(binary.BigEndian.Uint32(data[offset+6 : offset+10]))
+		rotation := math.Float32frombits(binary.BigEndian.Uint32(data[offset+10 : offset+14]))
 		energy := math.Float32frombits(binary.BigEndian.Uint32(data[offset+14 : offset+18]))
+		size := data[offset+18]
 		dashAvailable := data[offset+19] == 1
+		dashed := data[offset+20] == 1
 		nameLen := int(data[offset+21])
 		offset += 22
 		if offset+nameLen > len(data) {
@@ -471,6 +541,7 @@ func (b *bot) parseWorldState(data []byte) {
 			b.x = x
 			b.y = y
 			b.energy = energy
+			b.size = size
 			b.dashAvailable = dashAvailable
 			b.mu.Unlock()
 			myX, myY = x, y
@@ -481,6 +552,10 @@ func (b *bot) parseWorldState(data []byte) {
 			if d < nearestDist {
 				nearestDist = d
 				nearestX, nearestY = x, y
+				nearestSize = size
+				nearestEnergy = energy
+				nearestRotation = rotation
+				nearestDashed = dashed
 				hasNearest = true
 			}
 		}
@@ -491,6 +566,10 @@ func (b *bot) parseWorldState(data []byte) {
 	b.nearestX = nearestX
 	b.nearestY = nearestY
 	b.nearestDist = nearestDist
+	b.nearestSize = nearestSize
+	b.nearestEnergy = nearestEnergy
+	b.nearestRotation = nearestRotation
+	b.nearestDashed = nearestDashed
 	b.hasNearest = hasNearest
 	b.mu.Unlock()
 }
@@ -531,17 +610,23 @@ func (b *bot) inputLoop(ctx context.Context, conn *websocket.Conn) error {
 			reaction = time.Duration(float64(reaction) * b.personality.ReactionBias)
 			nextDecision = now.Add(reaction)
 
-			if !idle && now.After(actionUntil) && b.rng.Float64() < b.cfg.IdleChance*(1.25-b.personality.Impulsivity*0.5) {
+			b.mu.RLock()
+			inCombat := b.combatPhase == phasePosition || b.combatPhase == phaseStrike
+			b.mu.RUnlock()
+
+			// Never idle mid-maneuver -- a bot doesn't pause to stare into space
+			// while lining up or committing to a kill.
+			if !idle && !inCombat && now.After(actionUntil) && b.rng.Float64() < b.cfg.IdleChance*(1.25-b.personality.Impulsivity*0.5) {
 				idleUntil = now.Add(randomDuration(b.rng, b.cfg.IdleMin, b.cfg.IdleMax))
 				idle = true
 			}
 
 			if !idle {
 				if now.After(targetCommitUntil) {
-					b.refreshCommittedTarget()
+					b.updateCombatPhase()
 					targetCommitUntil = now.Add(randomDuration(b.rng, b.cfg.TargetCommitMin, b.cfg.TargetCommitMax))
 				}
-				targetAngle = b.chooseHumanTargetAngle(angle)
+				targetAngle = b.chooseHumanTargetAngle()
 				actionUntil = now.Add(randomDuration(b.rng, b.cfg.DirectionMin, b.cfg.DirectionMax))
 
 				// Occasional indecision / correction like a mouse or stick overshoot.
@@ -554,6 +639,31 @@ func (b *bot) inputLoop(ctx context.Context, conn *websocket.Conn) error {
 			}
 		}
 
+		// Reflex, not a decision: re-checked every tick regardless of the reaction
+		// cadence above. Farming and combat both now routinely put a bot right at
+		// the sun's edge, and a dash's momentum can carry it the rest of the way in
+		// well within one decision interval -- waiting for the next strategic
+		// decision to notice would be too slow.
+		b.mu.RLock()
+		panicX, panicY, panicSunScale, panicEnergy := b.x, b.y, b.sunScale, b.energy
+		b.mu.RUnlock()
+		dodging := false
+		if panicAngle, inDanger := b.sunPanicAngle(panicX, panicY, panicSunScale); inDanger {
+			// Imminent sun contact takes priority over everything else, dodge included.
+			targetAngle = panicAngle
+			idle = false
+		} else if dodgeAngle, shouldDodge := b.dodgeAngle(panicX, panicY); shouldDodge {
+			// An incoming dash is also a reflex-speed event -- worth reacting to
+			// on the same per-tick cadence as the sun/energy checks rather than
+			// waiting for the next strategic decision.
+			targetAngle = dodgeAngle
+			idle = false
+			dodging = true
+		} else if panicAngle, inDanger := b.energyPanicAngle(panicX, panicY, panicEnergy); inDanger {
+			targetAngle = panicAngle
+			idle = false
+		}
+
 		var xInput, yInput int8
 		dash := byte(0)
 
@@ -561,8 +671,14 @@ func (b *bot) inputLoop(ctx context.Context, conn *websocket.Conn) error {
 			b.stats.idleInputs.Add(1)
 		} else {
 			// Human steering is smooth but imperfect. Better "players" turn faster.
-			delta := normalizeAngle(targetAngle - angle)
+			// A dodge is a flinch, not a deliberate turn -- snap straight to it
+			// instead of easing in like every other maneuver, or the incoming
+			// dash is long past by the time the turn catches up.
 			maxTurn := 0.055 + 0.12*b.personality.TurnSkill + b.rng.Float64()*0.045
+			if dodging {
+				maxTurn = math.Pi
+			}
+			delta := normalizeAngle(targetAngle - angle)
 			if delta > maxTurn {
 				delta = maxTurn
 			} else if delta < -maxTurn {
@@ -578,31 +694,61 @@ func (b *bot) inputLoop(ctx context.Context, conn *websocket.Conn) error {
 			if magnitude > 1 {
 				magnitude = 1
 			}
+			// Full commitment while dodging -- same reasoning as maxTurn above.
+			if dodging {
+				magnitude = 1
+			}
 			xInput = int8(math.Round(math.Cos(angle) * 127 * magnitude))
 			yInput = int8(math.Round(math.Sin(angle) * 127 * magnitude))
 
 			b.mu.RLock()
 			dashAvailable := b.dashAvailable
 			targetDist := b.targetDist
-			hasTarget := b.hasTarget
+			phase := b.combatPhase
 			x, y := b.x, b.y
 			sunScale := b.sunScale
 			b.mu.RUnlock()
 
-			// Dash with context: chase, escape a close player, or recover from the sun edge.
+			// Dash with context: escape the sun edge, burst out of a close threat,
+			// close the gap to the flanking waypoint, or commit to the kill run.
+			// These read the same combatPhase chooseHumanTargetAngle just steered
+			// toward, so the dash always matches the maneuver in progress.
 			if dashAvailable {
 				distFromCenter := math.Hypot(float64(x), float64(y))
-				sunRadius := float64(sunScale) * 300.0
+				sunRadius := float64(sunScale) * sunStartRadius
 				nearSun := sunRadius > 0 && distFromCenter-sunRadius < b.cfg.ComfortMargin*0.55
-				panic := hasTarget && targetDist < b.cfg.PanicDistance
-				chasing := hasTarget && targetDist < b.cfg.ChaseDistance && b.personality.Aggression > 0.55
+
 				chance := b.cfg.DashChance * (0.35 + b.personality.Impulsivity)
-				if nearSun {
+				switch {
+				case nearSun:
 					chance *= 5.0
-				} else if panic && b.personality.Caution > 0.55 {
+				case dodging:
+					// The sidestep itself needs to be fast enough to actually clear
+					// the attacker's line before their dash reaches this bot --
+					// base movement speed alone often isn't, so lean hard on using
+					// its own dash to do it.
+					chance *= 4.5
+				case phase == phaseStrike:
+					// The kill run: committed far more readily than the other,
+					// lower-stakes dash chances, but not a near-certainty every
+					// single tick -- at high bot density near a tight, shared
+					// safety margin, a near-100% commit rate made literally every
+					// close encounter a kill (measured: 10 bots, avg lifespan
+					// under 2s). Some misses/near-misses are the point.
+					chance = 0.35 + b.personality.Aggression*0.25
+				case phase == phaseEvade && targetDist < b.cfg.PanicDistance:
 					chance *= 3.0
-				} else if chasing {
-					chance *= 2.2
+				case phase == phasePosition && targetDist > b.cfg.AttackStandoff*1.6:
+					// "Going out": burst toward the flanking waypoint instead of
+					// slowly flying there.
+					chance *= 2.5
+				case phase == phaseFarm:
+					// DashEnergyCost (50) against a max gain rate of 20/s -- a dash
+					// every few seconds "just because" (the old baseline chance,
+					// tuned back when bots never held a stable position anyway)
+					// eats most of what farming earns. Nothing to spend it on while
+					// calmly holding station, so mostly don't.
+					chance *= 0.1
 				}
 				if b.rng.Float64() < chance {
 					dash = 1
@@ -625,69 +771,321 @@ func (b *bot) inputLoop(ctx context.Context, conn *websocket.Conn) error {
 	}
 }
 
-func (b *bot) refreshCommittedTarget() {
+// updateCombatPhase decides what the bot is currently trying to do, based on
+// the nearest player last seen in parseWorldState. Both chooseHumanTargetAngle
+// (steering) and the dash decision in inputLoop read the result, so they never
+// disagree about what maneuver is in progress.
+func (b *bot) updateCombatPhase() {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.hasNearest && b.nearestDist <= b.cfg.ChaseDistance*1.25 {
-		b.targetX = b.nearestX
-		b.targetY = b.nearestY
-		b.targetDist = b.nearestDist
-		b.hasTarget = true
+
+	if !b.hasNearest || b.nearestDist > b.cfg.ChaseDistance {
+		b.hasTarget = false
+		b.combatPhase = phaseFarm
 		return
 	}
-	b.hasTarget = false
-	b.targetDist = math.MaxFloat64
+
+	x, y := b.x, b.y
+	tx, ty := b.nearestX, b.nearestY
+	nearestDist := b.nearestDist
+
+	// Multiple bots farming the same stretch of sun's gain zone are
+	// constantly within ChaseDistance of each other just by both doing
+	// exactly what they're supposed to -- that's normal, not a fight. Only
+	// someone genuinely invading personal space always gets a reaction
+	// (self-defense, regardless of energy or mood); everyone else sharing
+	// the patch is, by default, left alone to farm in peace.
+	const personalSpaceRadius = 150
+	invadingSpace := nearestDist < personalSpaceRadius
+	alreadyEngaged := b.combatPhase == phaseEvade || b.combatPhase == phasePosition || b.combatPhase == phaseStrike
+
+	if !invadingSpace && !alreadyEngaged {
+		// A fresh spawn starts on 100 energy; a strike dash alone costs
+		// DashEnergyCost (50), and positioning for one can wander outside the
+		// gain zone for a while. Without this, a bot that spots someone before
+		// it has ever farmed goes straight for a fight and starves mid-maneuver
+		// -- energy depletion, not the sun or the opponent, was the actual
+		// killer found by testing this.
+		const engageEnergyFloor = 150
+		if b.energy < engageEnergyFloor {
+			b.hasTarget = false
+			b.combatPhase = phaseFarm
+			return
+		}
+
+		// Most players sharing the same patch are just fellow farmers, not
+		// worth a fight -- only occasionally decide to actually start one.
+		// personality.Aggression shifts this per bot. Re-rolled on the same
+		// cadence this function itself runs at (TargetCommit*, see its call
+		// site), so a "not interested" decision sticks for a while instead of
+		// flip-flopping every tick a neighbor happens to be in range.
+		engageChance := 0.04 + 0.18*b.personality.Aggression
+		if b.rng.Float64() >= engageChance {
+			b.hasTarget = false
+			b.combatPhase = phaseFarm
+			return
+		}
+	}
+
+	b.targetX, b.targetY = tx, ty
+	b.targetDist = nearestDist
+	b.hasTarget = true
+
+	// Bigger opponents hit harder (resolvePlayerCollision splits knockback by
+	// each side's radius share), and more energy tends to mean more size
+	// headroom coming. Don't pick fights that are actually bad odds; do press
+	// an advantage against something smaller. Aggression/Caution give each
+	// bot its own risk tolerance around that baseline.
+	// energyEdge already weighs my own energy against theirs, and the separate
+	// energyPanicAngle reflex is the real safety net if a fight goes wrong
+	// while low -- lowEnergy alone shouldn't force a retreat here, or a bot
+	// would keep declining to defend the very patch it's low on energy from
+	// having farmed in the first place.
+	sizeEdge := float64(int(b.nearestSize) - int(b.size))
+	energyEdge := clampAbs((float64(b.nearestEnergy)-float64(b.energy))/2000, 0.3)
+	threat := b.personality.Caution - b.personality.Aggression + sizeEdge*0.22 + energyEdge
+	if threat >= 0.15 {
+		b.combatPhase = phaseEvade
+		return
+	}
+
+	// A dash's knockback lands along the attacker->victim line and continues
+	// past the victim (see resolvePlayerCollision), so an attacker standing
+	// further from the sun than the target sends it further out along
+	// roughly that same line when it strikes -- i.e. toward the sun on net --
+	// without needing to first line up on the target's exact radial line.
+	// That precise alignment was the actual bug here: it demanded the
+	// attacker basically be on the one ray passing through the sun and the
+	// target's *current* position, which sweeps past too fast to ever lock
+	// onto against a target orbiting tight and fast near the sun (small
+	// radius, same linear speed => high angular speed) -- bots would get
+	// right next to a close-orbiting target and just never pull the trigger.
+	outX, outY := normalize(float64(tx), float64(ty))
+	myDistFromCenter := math.Hypot(float64(x), float64(y))
+	targetDistFromCenter := math.Hypot(float64(tx), float64(ty))
+	outerPosition := myDistFromCenter > targetDistFromCenter*0.92
+
+	if outerPosition && b.targetDist <= b.cfg.AttackStandoff*1.3 {
+		b.combatPhase = phaseStrike
+		return
+	}
+
+	// Not outer-positioned yet (or not close enough): head for a point
+	// further out along the target's own radial line first ("going out"),
+	// which puts the final approach from there on a naturally-inward line
+	// ("turning in") without needing to hit that line exactly.
+	b.combatPhase = phasePosition
+	b.waypointX = tx + float32(outX*b.cfg.AttackStandoff)
+	b.waypointY = ty + float32(outY*b.cfg.AttackStandoff)
 }
 
-func (b *bot) chooseHumanTargetAngle(current float64) float64 {
+// sunPanicAngle is the bot's reflex, not a decision -- see its call site in
+// inputLoop for why it's checked every tick instead of at the slower
+// reaction-paced cadence chooseHumanTargetAngle runs at.
+func (b *bot) sunPanicAngle(x, y float32, sunScale float32) (float64, bool) {
+	distFromCenter := math.Hypot(float64(x), float64(y))
+	sunRadius := float64(sunScale) * sunStartRadius
+	personalMargin := personalSunMargin(b.cfg, b.personality)
+	if sunRadius <= 0 || distFromCenter-sunRadius >= personalMargin {
+		return 0, false
+	}
+	outward := math.Atan2(float64(y), float64(x))
+	// Panic is not perfectly radial: keep some tangential motion.
+	return outward + b.orbitSign*(0.10+0.35*(1-b.personality.Caution)) + (b.rng.Float64()*2-1)*0.08, true
+}
+
+// energyPanicAngle is the other emergency reflex, mirroring sunPanicAngle:
+// once energy is nearly gone, a near-direct beeline back to the sun (not the
+// gentler, partly-tangential correction farmAngle uses further out) is what
+// actually determines whether the 5s zero-energy grace period runs out.
+// Checked every tick for the same reason sunPanicAngle is.
+func (b *bot) energyPanicAngle(x, y, energy float32) (float64, bool) {
+	const criticalEnergy = 40
+	if energy > criticalEnergy || (x == 0 && y == 0) {
+		return 0, false
+	}
+	inward := math.Atan2(float64(y), float64(x)) + math.Pi
+	return inward + (b.rng.Float64()*2-1)*0.05, true
+}
+
+// dodgeAngle is a reflex, not a decision -- see its call site in inputLoop
+// for why it's checked every tick alongside sunPanicAngle/energyPanicAngle
+// instead of at the slower reaction-paced cadence.
+//
+// Triggered when the nearest player is close and Dashed is still set --
+// meaning it burst forward recently and, since Dashed stays true for the
+// whole post-dash cooldown (see backend/game/update.go), is very possibly
+// still carrying that velocity right now -- and its current heading
+// (Rotation, which tracks input direction, not a locked-on target) is aimed
+// roughly at this bot. A dash's knockback is a straight burst in whatever
+// direction the attacker was facing when it triggered, not homing, so
+// stepping out of that line lets it sail past into empty space instead of
+// connecting -- or, since the standard setup for a kill dash is attacking
+// from further out than the target (see updateCombatPhase), on into the sun
+// where this bot was standing, exactly like a player sidestepping to let an
+// attacker's own momentum finish the job.
+func (b *bot) dodgeAngle(x, y float32) (float64, bool) {
 	b.mu.RLock()
-	x, y := b.x, b.y
-	tx, ty := b.targetX, b.targetY
-	targetDist := b.targetDist
-	hasTarget := b.hasTarget
-	energy := b.energy
-	sunScale := b.sunScale
+	hasNearest := b.hasNearest
+	tx, ty := b.nearestX, b.nearestY
+	dist := b.nearestDist
+	dashed := b.nearestDashed
+	rotation := b.nearestRotation
 	b.mu.RUnlock()
 
-	// First priority: don't casually die to the expanding sun. Humans give themselves
-	// different safety margins and don't react at exactly the same radius.
+	// Roughly the distance a dash (DashForce 1200, decaying at KnockbackDecay
+	// 3/s) can still cover during the remainder of its cooldown window --
+	// outside this there's no realistic way the incoming burst still reaches
+	// this bot, so there's nothing to dodge yet.
+	const dodgeRange = 320
+	if !hasNearest || !dashed || dist > dodgeRange || dist == 0 {
+		return 0, false
+	}
+
+	// Is their current heading actually pointed at me, or are they dashing
+	// past in some unrelated direction? Nothing to dodge if it's the latter.
+	angleToMe := math.Atan2(float64(y-ty), float64(x-tx))
+	headingError := normalizeAngle(float64(rotation) - angleToMe)
+	const aimThreshold = 0.55 // ~31 degrees either side of dead-on
+	if math.Abs(headingError) > aimThreshold {
+		return 0, false
+	}
+
+	perp := float64(rotation) + b.orbitSign*math.Pi/2
+	noise := (b.rng.Float64()*2 - 1) * 0.1
+	return perp + noise, true
+}
+
+func (b *bot) chooseHumanTargetAngle() float64 {
+	b.mu.RLock()
+	x, y := b.x, b.y
+	sunScale := b.sunScale
+	phase := b.combatPhase
+	tx, ty := b.targetX, b.targetY
+	wx, wy := b.waypointX, b.waypointY
+	b.mu.RUnlock()
+
 	distFromCenter := math.Hypot(float64(x), float64(y))
-	sunRadius := float64(sunScale) * 300.0
-	personalMargin := b.cfg.ComfortMargin * (0.65 + 0.7*b.personality.Caution)
-	if sunRadius > 0 && distFromCenter-sunRadius < personalMargin {
-		outward := math.Atan2(float64(y), float64(x))
-		// Panic is not perfectly radial: keep some tangential motion.
-		return outward + b.orbitSign*(0.10+0.35*(1-b.personality.Caution)) + (b.rng.Float64()*2-1)*0.08
+	sunRadius := float64(sunScale) * sunStartRadius
+
+	switch phase {
+	case phaseEvade:
+		return b.evadeAngle(x, y, tx, ty)
+	case phasePosition:
+		return b.positionAngle(x, y, wx, wy)
+	case phaseStrike:
+		return b.strikeAngle(x, y, tx, ty)
+	default:
+		return b.farmAngle(x, y, distFromCenter, sunRadius)
+	}
+}
+
+// farmAngle orbits the sun at this bot's personal farmRadius (inside the gain
+// zone), with a proportional pull back toward that radius so it holds station
+// there instead of drifting -- the whole point being that a bot which doesn't
+// actively hold a gain-zone radius barely earns any energy at all.
+func (b *bot) farmAngle(x, y float32, distFromCenter, sunRadius float64) float64 {
+	if x == 0 && y == 0 {
+		return b.rng.Float64() * 2 * math.Pi
 	}
 
-	if hasTarget {
-		toTarget := math.Atan2(float64(ty-y), float64(tx-x))
-		if targetDist < b.cfg.PanicDistance && b.personality.Caution > b.personality.Aggression {
-			// Cautious players disengage rather than suiciding into a close collision.
-			return normalizeAngle(toTarget + math.Pi + b.orbitSign*0.28)
-		}
-		if targetDist <= b.cfg.ChaseDistance && b.personality.Aggression > 0.48 {
-			// Approach with a strafe offset instead of perfect homing.
-			strafe := b.orbitSign * (0.12 + 0.42*(1-b.personality.Aggression))
-			aimNoise := (b.rng.Float64()*2 - 1) * (0.06 + 0.22*(1-b.personality.TurnSkill))
-			return toTarget + strafe + aimNoise
-		}
+	radial := math.Atan2(float64(y), float64(x))
+	tangent := radial + b.orbitSign*math.Pi/2
+
+	band := distFromCenter - sunRadius
+	radialError := (band - b.farmRadius) / neutralEnergyDistance
+	radialError = clampAbs(radialError, 1)
+	absErr := math.Abs(radialError)
+
+	// Gentle station-keeping near the target radius, but a real excursion
+	// (e.g. dragged out of the gain zone by a chase) needs a much more direct
+	// line home instead of still mostly orbiting -- shrink the tangential
+	// component and sharpen the radial pull as the error grows.
+	tangentWeight := 1.0 - absErr*0.7
+	radialWeight := -radialError * (0.85 + absErr*0.7)
+
+	desired := blendDirections(
+		directionWeight{tangent, tangentWeight},
+		directionWeight{radial, radialWeight},
+	)
+	noise := (b.rng.Float64()*2 - 1) * (0.12 + 0.25*b.personality.Impulsivity)
+	return desired + noise
+}
+
+// evadeAngle runs from the threat while biasing away from the sun too, so
+// retreating doesn't trade one danger for a worse one, plus a little
+// tangential drift so it isn't a dead-straight, easy-to-intercept line.
+func (b *bot) evadeAngle(x, y, tx, ty float32) float64 {
+	awayFromThreat := math.Atan2(float64(y-ty), float64(x-tx))
+	outward := math.Atan2(float64(y), float64(x))
+
+	desired := blendDirections(
+		directionWeight{awayFromThreat, 1.0},
+		directionWeight{outward, 0.45},
+		directionWeight{outward + b.orbitSign*math.Pi/2, 0.25},
+	)
+	noise := (b.rng.Float64()*2 - 1) * (0.05 + 0.18*(1-b.personality.TurnSkill))
+	return desired + noise
+}
+
+// positionAngle heads for the flanking waypoint computed in updateCombatPhase.
+func (b *bot) positionAngle(x, y, wx, wy float32) float64 {
+	toWaypoint := math.Atan2(float64(wy-y), float64(wx-x))
+	strafe := b.orbitSign * (0.08 + 0.2*(1-b.personality.Aggression))
+	noise := (b.rng.Float64()*2 - 1) * (0.05 + 0.15*(1-b.personality.TurnSkill))
+	return toWaypoint + strafe + noise
+}
+
+// strikeAngle is the kill run: aim straight at the target.
+func (b *bot) strikeAngle(x, y, tx, ty float32) float64 {
+	toTarget := math.Atan2(float64(ty-y), float64(tx-x))
+	aimNoise := (b.rng.Float64()*2 - 1) * (0.03 + 0.08*(1-b.personality.TurnSkill))
+	return toTarget + aimNoise
+}
+
+type directionWeight struct {
+	angle  float64
+	weight float64
+}
+
+// blendDirections combines directions as vectors (not by averaging angles,
+// which breaks across the +-pi wraparound) and returns the resulting angle.
+func blendDirections(weights ...directionWeight) float64 {
+	var sx, sy float64
+	for _, w := range weights {
+		sx += math.Cos(w.angle) * w.weight
+		sy += math.Sin(w.angle) * w.weight
 	}
-
-	if x != 0 || y != 0 {
-		radial := math.Atan2(float64(y), float64(x))
-		tangent := radial + b.orbitSign*math.Pi/2
-
-		// Wander in broad arcs. Low-energy/cautious players favor safer outward lines;
-		// impulsive players cut across the arena more often.
-		radialMix := (b.rng.Float64()*2 - 1) * (0.18 + 0.48*b.personality.Impulsivity)
-		if energy > 0 && energy < 250 {
-			radialMix += b.orbitSign * 0.20 * b.personality.Caution
-		}
-		return tangent + radialMix
+	if sx == 0 && sy == 0 {
+		return 0
 	}
+	return math.Atan2(sy, sx)
+}
 
-	return current + (b.rng.Float64()*2-1)*0.55
+// personalSunMargin is how far outside the sun's actual surface this bot
+// starts to panic and override everything else to flee outward. Shared
+// between the panic check and farmRadius (see bot creation in main) so a
+// bot's own farming target can never land inside its own safety margin.
+func personalSunMargin(cfg config, p personality) float64 {
+	return cfg.ComfortMargin * (0.65 + 0.7*p.Caution)
+}
+
+func normalize(x, y float64) (float64, float64) {
+	d := math.Hypot(x, y)
+	if d == 0 {
+		return 1, 0
+	}
+	return x / d, y / d
+}
+
+func clampAbs(v, limit float64) float64 {
+	if v > limit {
+		return limit
+	}
+	if v < -limit {
+		return -limit
+	}
+	return v
 }
 
 func randomPersonality(r *rand.Rand, aggressiveRatio float64) personality {
@@ -744,23 +1142,31 @@ func (b *bot) writeBinary(ctx context.Context, conn *websocket.Conn, data []byte
 	return conn.Write(writeCtx, websocket.MessageBinary, data)
 }
 
-var botAdjectives = []string{
-	"Solar", "Swift", "Wild", "Lunar", "Neon", "Cosmic", "Frost", "Nova",
-	"Bright", "Shadow", "Turbo", "Lucky", "Blaze", "Storm", "Pixel", "Rapid",
-	"Silent", "Tiny", "Hyper", "Misty", "Amber", "Aqua", "Crimson", "Cloudy",
-}
-
-var botNouns = []string{
-	"Otter", "Fox", "Hawk", "Wolf", "Lynx", "Moth", "Ray", "Panda",
-	"Comet", "Orbit", "Flare", "Drift", "Viper", "Raven", "Gecko", "Crab",
-	"Koala", "Finch", "Mantis", "Kite", "Badger", "Newt", "Robin", "Mako",
+// A blend of plain first names and the kind of short, lowercase handles
+// people actually type into a name box (no adjective+noun+number template --
+// that pattern is the single most obvious tell of a generated name).
+// Deliberately inconsistent in style and capitalization, the same way a real
+// player base is.
+var botNames = []string{
+	"Alex", "Jordan", "Sam", "Casey", "Riley", "Morgan", "Taylor", "Jamie",
+	"Avery", "Quinn", "Skyler", "Reese", "Drew", "Kai", "Rowan", "Emerson",
+	"Blake", "Charlie", "Finley", "Hayden", "Peyton", "Sage", "Micah", "Dakota",
+	"Noah", "Liam", "Mia", "Zoe", "Leo", "Ivy", "Max", "Nina",
+	"Theo", "Luca", "Elin", "Otto", "Nico", "Vera", "Iris", "Milo",
+	"xX_shadow", "yeet", "lolzor", "sup", "gg", "noscope99", "idk", "ok",
+	"jenny", "mike88", "sara_x", "tom", "kevin", "amy", "chris_", "dani",
+	"guest1234", "player_one", "u2", "z", "bruh", "meep", "nova.", "ash",
 }
 
 func randomBotName(rng *rand.Rand) string {
-	adj := botAdjectives[rng.Intn(len(botAdjectives))]
-	noun := botNouns[rng.Intn(len(botNouns))]
-	num := rng.Intn(1000)
-	name := fmt.Sprintf("%s%s%03d", adj, noun, num)
+	name := botNames[rng.Intn(len(botNames))]
+	// Real players usually just type a bare name; only sometimes tack on a
+	// number, as if the exact one they wanted was already taken -- always
+	// appending one (the old adjective+noun+NNN scheme) is what made bot
+	// names read as generated in the first place.
+	if rng.Float64() < 0.3 {
+		name = fmt.Sprintf("%s%d", name, 1+rng.Intn(99))
+	}
 	runes := []rune(name)
 	if len(runes) > 16 {
 		name = string(runes[:16])

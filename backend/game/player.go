@@ -15,6 +15,15 @@ type Player struct {
 	SessionID string
 	ClientID  string
 
+	// IsBot marks a synthetic load/demo connection (see bot/main.go). Bots
+	// play by the same rules as everyone else, but must never be visible in
+	// analytics (Grafana) -- running with or without them connected should
+	// produce identical session/death/concurrency data. Checked at every
+	// analytics emission point instead of just skipping bot connections
+	// outright, since a human's death still needs to be recorded correctly
+	// even when a bot happens to be involved (see killPlayer).
+	IsBot bool
+
 	// PeakEnergy is a running high-water mark for analytics ("score reached")
 	// -- it only ever goes up, and isn't reset by a mid-session match restart.
 	PeakEnergy float32

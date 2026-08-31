@@ -9,6 +9,12 @@ interface DeathEvent {
     seq: number;
 }
 
+interface DeathStats {
+    reason: DeathReason;
+    peakEnergy: number;
+    survivedSeconds: number | null;
+}
+
 interface KillEvent {
     victimName: string;
     energyGained: number;
@@ -29,6 +35,21 @@ interface GameState {
     matchResetSeq: number;
     playerName: string;
     isDead: boolean;
+    // Set a beat after isDead, once the death animation has had time to play --
+    // see MainScreen.handleDeathState. Drives <DeathScreen>.
+    showDeathScreen: boolean;
+    deathStats: DeathStats | null;
+    peakEnergy: number;
+    joinedAt: number | null;
+    // Set by <DeathScreen>'s "Back to Title" button; MainScreen's store
+    // subscription picks it up and does the actual navigation/cleanup, since
+    // that needs the live MainScreen instance (see MainScreen.leaveMatch).
+    returnToTitleRequested: boolean;
+    // Set by <DeathScreen>'s "Respawn" button; MainScreen's store
+    // subscription picks it up and reconnects in place (see
+    // MainScreen.respawnLocal) -- there's only one game right now, so a
+    // fresh connection lands back in it.
+    respawnRequested: boolean;
     ping: number;
     showTutorial: boolean;
     onTitleScreen: boolean;
@@ -44,6 +65,9 @@ interface GameState {
     setShowTutorial: (value: boolean) => void;
     setOnTitleScreen: (value: boolean) => void;
     setTitleCardReserved: (top: number, bottom: number) => void;
+    revealDeathScreen: () => void;
+    requestReturnToTitle: () => void;
+    requestRespawn: () => void;
     resetGame: () => void;
     handleMessage: (message: DecodedMessage) => void;
 }
@@ -60,6 +84,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     matchResetSeq: 0,
     playerName: "",
     isDead: false,
+    showDeathScreen: false,
+    deathStats: null,
+    peakEnergy: 0,
+    joinedAt: null,
+    returnToTitleRequested: false,
+    respawnRequested: false,
     ping: 0,
     showTutorial: false,
     // Defaults false, not true: LoadScreen shows first and has no reason to
@@ -75,10 +105,19 @@ export const useGameStore = create<GameState>((set, get) => ({
     setShowTutorial: (value) => set({ showTutorial: value }),
     setOnTitleScreen: (value) => set({ onTitleScreen: value }),
     setTitleCardReserved: (top, bottom) => set({ titleCardReserved: { top, bottom } }),
+    revealDeathScreen: () => set({ showDeathScreen: true }),
+    requestReturnToTitle: () => set({ returnToTitleRequested: true }),
+    requestRespawn: () => set({ respawnRequested: true }),
     resetGame: () => set({
         players: {},
         localPlayerId: null,
         isDead: false,
+        showDeathScreen: false,
+        deathStats: null,
+        peakEnergy: 0,
+        joinedAt: null,
+        returnToTitleRequested: false,
+        respawnRequested: false,
         worldPhase: 0,
         matchTimer: 0,
         sunScale: 1,
@@ -89,9 +128,27 @@ export const useGameStore = create<GameState>((set, get) => ({
     }),
     handleMessage: (message: DecodedMessage) => {
         if (message.type === WebSocketTypes.CONNECTED) {
-            set({ localPlayerId: message.id, isDead: false, deathEvent: null });
+            // Deliberately NOT resetting deathEvent here: its seq counter (see the
+            // DEATH branch below) must keep incrementing monotonically across a
+            // respawn/reconnect. If it restarted from null, a death after
+            // reconnecting could land on the same seq MainScreen already saw from
+            // the previous life (lastDeathSeq), and the death animation would be
+            // silently skipped as a no-op "unchanged" event.
+            set({
+                localPlayerId: message.id,
+                isDead: false,
+                showDeathScreen: false,
+                deathStats: null,
+                peakEnergy: 0,
+                joinedAt: Date.now(),
+            });
         } else if (message.type === WebSocketTypes.WORLD_STATE) {
             set({ players: message.players });
+            const localId = get().localPlayerId;
+            const localPlayer = localId !== null ? message.players[localId] : undefined;
+            if (localPlayer && localPlayer.energy > get().peakEnergy) {
+                set({ peakEnergy: localPlayer.energy });
+            }
         } else if (message.type === WebSocketTypes.SCOREBOARD) {
             set({ scoreboard: message.entries });
         } else if (message.type === WebSocketTypes.MATCH_STATE) {
@@ -104,7 +161,15 @@ export const useGameStore = create<GameState>((set, get) => ({
             set({ deathEvent: { reason: message.reason!, seq: get().deathEvent ? get().deathEvent!.seq + 1 : 1 } });
             const localId = get().localPlayerId;
             if (message.deadId === undefined || message.deadId === localId) {
-                set({ isDead: true });
+                const joinedAt = get().joinedAt;
+                set({
+                    isDead: true,
+                    deathStats: {
+                        reason: message.reason!,
+                        peakEnergy: get().peakEnergy,
+                        survivedSeconds: joinedAt !== null ? Math.max(0, Math.round((Date.now() - joinedAt) / 1000)) : null,
+                    },
+                });
             }
         } else if (message.type === WebSocketTypes.MATCH_RESET) {
             set({ matchResetSeq: get().matchResetSeq + 1, isDead: false, deathEvent: null });
@@ -173,6 +238,12 @@ export const initNetwork = (playerName?: string) => {
             (latencyMs: number) => {
                 useGameStore.getState().setPing(Math.round(latencyMs));
             },
+            // A drop while dead has nothing live to resume -- auto-reconnecting
+            // anyway would silently hand the player a fresh life without their
+            // consent, which looks like an unrequested "auto respawn" on the
+            // death screen. Respawn/leaveMatch both reconnect explicitly, so
+            // this only suppresses the *unrequested* case.
+            () => !useGameStore.getState().isDead,
         );
     }
 

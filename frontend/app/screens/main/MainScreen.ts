@@ -15,7 +15,7 @@ import {Scoreboard} from "../../ui/game/Scoreboard";
 import {PingDisplay} from "../../ui/game/PingDisplay";
 import {playEnergyStealEffect} from "../../ui/game/EnergyStealEffect";
 import {BinaryCodec} from "@/app/lib/network/BinaryCodec";
-import {network, useGameStore} from "@/app/lib/store/gameStore";
+import {initNetwork, network, useGameStore} from "@/app/lib/store/gameStore";
 import {DeathReason} from "@/app/lib/models/WebSocketTypes";
 import {StartScreen} from "../StartScreen";
 
@@ -109,6 +109,16 @@ export class MainScreen extends Container {
             this.scoreboard?.setEntries(state.scoreboard, state.localPlayerId);
             this.pingDisplay.setPing(state.ping);
             this.handleLifecycleEvents(state);
+            // <DeathScreen>'s "Back to Title" button sets this -- the actual
+            // navigation/cleanup needs to run from here since it needs this
+            // live MainScreen instance (see leaveMatch).
+            if (state.returnToTitleRequested) {
+                void this.leaveMatch();
+            }
+            // <DeathScreen>'s "Respawn" button sets this -- see respawnLocal.
+            if (state.respawnRequested) {
+                this.respawnLocal();
+            }
         });
 
         this.on("pointermove", this.handlePointerMove, this);
@@ -191,19 +201,19 @@ export class MainScreen extends Container {
 
             if (this.deathTimeoutId === null) {
                 // A popup (e.g. Settings) left open would otherwise be orphaned on top of
-                // StartScreen once we navigate away below -- close it the same way its own
-                // button would, before the death transition starts.
+                // StartScreen once we navigate away later -- close it the same way its own
+                // button would, before the death screen takes over.
                 if (engine().navigation.currentPopup) {
                     void engine().navigation.dismissPopup();
                 }
 
-                this.deathTimeoutId = window.setTimeout(async () => {
+                // Give the death animation a beat to actually play before <DeathScreen>
+                // (a full-screen React overlay) covers it -- the player leaves whenever
+                // they click its button, not on a fixed timer.
+                this.deathTimeoutId = window.setTimeout(() => {
                     this.deathTimeoutId = null;
-                    network?.disconnect();
-                    useGameStore.getState().resetGame();
-                    this.reset();
-                    await engine().navigation.showScreen(StartScreen);
-                }, 3000);
+                    useGameStore.getState().revealDeathScreen();
+                }, 1200);
             }
         } else {
             if (this.deathTimeoutId !== null) {
@@ -213,6 +223,32 @@ export class MainScreen extends Container {
             if (this.rocket) {
                 this.rocket.visible = true;
             }
+        }
+    }
+
+    /** Triggered by <DeathScreen>'s "Back to Title" button via the store -- see the
+     * returnToTitleRequested check in the store subscription below. */
+    private async leaveMatch() {
+        network?.disconnect();
+        useGameStore.getState().resetGame();
+        this.reset();
+        await engine().navigation.showScreen(StartScreen);
+    }
+
+    /** Triggered by <DeathScreen>'s "Respawn" button. There's only one game
+     * right now (see the store comment on respawnRequested), so a fresh
+     * connection is all "rejoin the same game" needs -- the old player
+     * entity is already gone server-side (removed on death), so the server
+     * hands back a brand new one instead of resuming the dead one. Stays on
+     * MainScreen throughout: no navigation, the incoming CONNECTED message
+     * clears isDead/deathStats/showDeathScreen on its own (see
+     * gameStore.handleMessage). */
+    private respawnLocal() {
+        useGameStore.setState({respawnRequested: false});
+        network?.disconnect();
+        initNetwork();
+        if (this.rocket) {
+            void this.rocket.playRespawn();
         }
     }
 
@@ -230,7 +266,14 @@ export class MainScreen extends Container {
     /** Synchronize local and remote player entities with game store state */
     private syncPlayers(state: ReturnType<typeof useGameStore.getState>) {
         const localId = state.localPlayerId;
-        if (localId !== null && state.players[localId] && this.rocket) {
+        // Once dead, the death-fall/explosion animation (see playLocalDeath) owns
+        // the rocket's position/rotation exclusively -- applying server state here
+        // too would fight it. A WORLD_STATE for the local player can still arrive
+        // (or arrive stale) for a beat after death before the server's next
+        // broadcast drops them, and without this guard every one of those snaps
+        // the ship back mid-animation, which reads as "not falling into the sun,
+        // just spinning in place."
+        if (!state.isDead && localId !== null && state.players[localId] && this.rocket) {
             const player = state.players[localId];
             this.rocket.applyPlayerState(player);
             this.setEnergy(player.energy, player.size);
@@ -305,7 +348,12 @@ export class MainScreen extends Container {
         if (reason === DeathReason.SUN) {
             await this.rocket.playFallingIntoSun();
         }
-        if (this.rocket) {
+        // A stuck-then-resolved playFallingIntoSun (see its withTimeout safety
+        // net) can take long enough that the player has already clicked
+        // Respawn and is alive again by the time we get here -- don't start
+        // the explosion (or its sound/flash) on top of a life that's already
+        // back underway.
+        if (this.rocket && useGameStore.getState().isDead) {
             await this.rocket.playDyingExplosion();
         }
     }

@@ -1,5 +1,5 @@
 import {animate} from "motion";
-import {Container, type DestroyOptions, Graphics, Sprite, Texture, type Ticker} from "pixi.js";
+import {Container, type DestroyOptions, Graphics, Sprite, Texture, Ticker} from "pixi.js";
 import {engine} from "../../getEngine";
 import type {PlayerState} from "../../lib/models/PlayerState";
 
@@ -197,6 +197,11 @@ export class BaseRocket extends Container {
       this.x = this.targetX;
       this.y = this.targetY;
       this.rotation = this.targetRotation;
+      // Otherwise the engine trail draws its history as a solid line connecting
+      // the old and new positions -- a long streak from the sun (the default
+      // (0,0) origin a freshly-created ship renders at for a frame before its
+      // first real state arrives) all the way out to the actual spawn point.
+      this.trailPoints = this.engines.map(() => []);
     }
     this.hasServerState = true;
 
@@ -433,25 +438,97 @@ export class BaseRocket extends Container {
     );
   }
 
+  // ---- Animation stall safety net ----
+
+  /**
+   * Waits for `promise`, but never longer than `ms`. The "motion" tweens used
+   * throughout this class are requestAnimationFrame-driven, and rAF can stall
+   * indefinitely (a backgrounded/hidden tab freezes it outright rather than
+   * just throttling it) -- without this, a state-transition animation that
+   * stalls mid-flight leaves the ship stuck between visual states forever
+   * (e.g. faded out from a death and never faded back in by the respawn that
+   * follows). Callers pair this with forcing the definitive end state
+   * afterwards, so the outcome is correct whether the tween actually finished
+   * or the safety net cut it off.
+   */
+  private async withTimeout(promise: Promise<unknown>, ms: number): Promise<void> {
+    await Promise.race([promise, new Promise<void>((resolve) => setTimeout(resolve, ms))]);
+  }
+
+  // Bumped by each of playFallingIntoSun/playDyingExplosion/playRespawn, so a
+  // call that got stuck (e.g. behind the withTimeout fallback above, while
+  // backgrounded) can tell -- once it finally resolves -- whether a NEWER
+  // transition has since taken over. Without this, a death animation that
+  // resolves late (after the player already respawned) can force alpha back
+  // to 0 right after the respawn animation faded it back in, leaving the
+  // ship stuck invisible.
+  private animationGeneration = 0;
+
+  private beginAnimation(): number {
+    return ++this.animationGeneration;
+  }
+
+  private isCurrentAnimation(generation: number): boolean {
+    return generation === this.animationGeneration;
+  }
+
   // ---- Falling into Sun ----
   // Implemented, not wired this phase — needs a decoded DEATH reason.
 
   public async playFallingIntoSun(): Promise<void> {
+    const generation = this.beginAnimation();
     engine().audio.sfx.play(ACTION_SFX);
 
-    const currentRotation = this.image.rotation;
+    const startRotation = this.image.rotation;
+    const startScaleX = this.image.scale.x;
+    const startScaleY = this.image.scale.y;
+    const targetScale = BASE_SCALE * 0.6;
+    const startX = this.x;
+    const startY = this.y;
+    const durationMs = 600;
 
-    await Promise.all([
-      animate(
-        this.image.scale,
-        {x: BASE_SCALE * 0.6, y: BASE_SCALE * 0.6},
-        {duration: 0.6, ease: "easeIn"},
-      ).finished,
-      animate(this.image, {rotation: currentRotation + Math.PI * 2}, {duration: 0.6}).finished,
-      // The sun always sits at the world origin (see GameMap/backend gravity center) — pull the ship into it.
-      animate(this.position, {x: 0, y: 0}, {duration: 0.6, ease: "easeIn"}).finished,
-    ]);
+    // Driven by Pixi's own ticker (the same mechanism updateInterpolation uses
+    // for ordinary ship movement, proven reliable in practice) rather than the
+    // "motion" library -- animating this.position via "motion" was observed to
+    // just never progress and only ever reach the sun via the forced end-state
+    // write below, which reads as "spinning in place, then teleporting into
+    // the sun" instead of an actual fall. A ticker callback also self-heals
+    // from a stalled/backgrounded tab: deltaMS reflects the real elapsed time
+    // once ticking resumes, so a long gap just resolves as a big step forward
+    // instead of leaving the animation stuck.
+    let tick: ((ticker: Ticker) => void) | null = null;
+    await this.withTimeout(
+      new Promise<void>((resolve) => {
+        let elapsedMs = 0;
+        tick = (ticker: Ticker) => {
+          elapsedMs += ticker.deltaMS;
+          const t = Math.min(1, elapsedMs / durationMs);
+          const eased = t * t; // matches the original tweens' ease: "easeIn"
 
+          this.image.rotation = startRotation + Math.PI * 2 * t;
+          this.image.scale.set(
+            startScaleX + (targetScale - startScaleX) * eased,
+            startScaleY + (targetScale - startScaleY) * eased,
+          );
+          // The sun always sits at the world origin (see GameMap/backend gravity center) — pull the ship into it.
+          this.x = startX + (0 - startX) * eased;
+          this.y = startY + (0 - startY) * eased;
+
+          if (t >= 1) resolve();
+        };
+        Ticker.shared.add(tick);
+      }),
+      // If the ticker itself never fires again (not just a slow tween), this is
+      // the only thing standing between a genuine hang and playDyingExplosion
+      // (sequenced right after this in playLocalDeath) never running at all.
+      900,
+    );
+    if (tick) Ticker.shared.remove(tick);
+
+    if (!this.isCurrentAnimation(generation)) return;
+    // Belt-and-braces exact final position/rotation, in case float accumulation
+    // left it a hair off after the loop above, or the safety net above cut it short.
+    this.position.set(0, 0);
     this.image.rotation = 0;
   }
 
@@ -459,6 +536,7 @@ export class BaseRocket extends Container {
   // Implemented, not wired this phase — needs a decoded DEATH message.
 
   public async playDyingExplosion(): Promise<void> {
+    const generation = this.beginAnimation();
     engine().audio.sfx.play(ACTION_SFX);
 
     const width = this.baseWidth;
@@ -467,28 +545,40 @@ export class BaseRocket extends Container {
     flash.alpha = 0.9;
     this.effectsAbove.addChild(flash);
     const flashAnim = animate(flash, {alpha: 0}, {duration: 0.5});
-    flashAnim.finished.then(() => flash.destroy());
 
     const fadeAnim = animate(this.image, {alpha: 0}, {duration: 0.3});
 
+    const particles: Graphics[] = [];
     const particleAnims: Promise<unknown>[] = [];
     for (let i = 0; i < 8; i++) {
       const angle = (i / 8) * Math.PI * 2;
       const particle = new Graphics().circle(0, 0, 5).fill({color: 0xfb923c});
       this.effectsAbove.addChild(particle);
+      particles.push(particle);
 
       animate(particle.position, {x: Math.cos(angle) * 60, y: Math.sin(angle) * 60}, {duration: 0.7});
-      const p = animate(particle, {alpha: 0}, {duration: 0.7}).finished.then(() => particle.destroy());
-      particleAnims.push(p);
+      particleAnims.push(animate(particle, {alpha: 0}, {duration: 0.7}).finished);
     }
 
-    await Promise.all([fadeAnim.finished, flashAnim.finished, ...particleAnims]);
+    await this.withTimeout(Promise.all([fadeAnim.finished, flashAnim.finished, ...particleAnims]), 900);
+
+    // Effect objects are local to this call either way -- always clean them up.
+    flash.destroy();
+    for (const particle of particles) particle.destroy();
+
+    // But only force the shared alpha if nothing newer (a respawn) has taken
+    // over since -- otherwise a death animation that resolved late (see
+    // withTimeout) would fade the ship back out right after respawn faded it
+    // back in, leaving it stuck invisible.
+    if (!this.isCurrentAnimation(generation)) return;
+    this.image.alpha = 0;
   }
 
   // ---- Respawn ----
   // Implemented, not wired this phase — needs a decoded MATCH_RESET message.
 
   public async playRespawn(): Promise<void> {
+    const generation = this.beginAnimation();
     engine().audio.sfx.play(ACTION_SFX);
 
     const width = this.baseWidth;
@@ -500,7 +590,6 @@ export class BaseRocket extends Container {
     flash.alpha = 0.7;
     this.effectsAbove.addChild(flash);
     const flashAnim = animate(flash, {alpha: 0}, {duration: 0.4});
-    flashAnim.finished.then(() => flash.destroy());
 
     const fadeIn = animate(this.image, {alpha: 1}, {duration: 0.3});
     const scaleIn = animate(
@@ -512,7 +601,17 @@ export class BaseRocket extends Container {
       {duration: 0.45, ease: "easeOut"},
     );
 
-    await Promise.all([fadeIn.finished, scaleIn.finished, flashAnim.finished]);
+    await this.withTimeout(Promise.all([fadeIn.finished, scaleIn.finished, flashAnim.finished]), 900);
+
+    flash.destroy();
+
+    // Only force the shared alpha/scale if nothing newer has taken over since
+    // -- see the matching comment in playDyingExplosion. This is what
+    // guarantees the ship is visible again after a respawn, without risking
+    // a stale call fighting a more recent one.
+    if (!this.isCurrentAnimation(generation)) return;
+    this.image.alpha = 1;
+    this.image.scale.set(BASE_SCALE);
   }
 
   // ---- Engine trail ----

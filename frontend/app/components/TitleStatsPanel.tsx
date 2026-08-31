@@ -7,6 +7,7 @@ import {
   DESKTOP_COMPOSITION_WIDTH,
   DESKTOP_PADDING,
   DESKTOP_PANEL_WIDTH,
+  formatKD,
   formatStat,
   MOBILE_LEADERBOARD_SIZE,
 } from "../lib/layout/titleLayout";
@@ -52,11 +53,13 @@ function Stat({
   value,
   max,
   color,
+  format = formatStat,
 }: {
   label: string;
   value: number;
   max: number;
   color: "orange" | "sky";
+  format?: (value: number) => string;
 }) {
   const pct = Math.max(4, Math.min(100, (value / max) * 100));
   const textColor = color === "orange" ? "text-orange-500" : "text-sky-400";
@@ -65,7 +68,7 @@ function Stat({
   return (
     <div className="min-w-0 flex-1">
       <p className="truncate text-[11px] font-semibold tracking-wider text-zinc-400">{label}</p>
-      <p className={`truncate text-3xl font-bold tabular-nums ${textColor}`}>{formatStat(value)}</p>
+      <p className={`truncate text-3xl font-bold tabular-nums ${textColor}`}>{format(value)}</p>
       <div className="mt-2 h-1.5 w-full rounded-full bg-zinc-800">
         <div className={`h-full rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
@@ -87,7 +90,7 @@ function RecordsCard({ stats }: { stats: PlayerStats }) {
       </div>
       <div className="mt-4 flex gap-6">
         <Stat label="TOTAL ENERGY" value={stats.total_energy} max={energyMax} color="orange" />
-        <Stat label="K/D" value={stats.kd} max={3} color="sky" />
+        <Stat label="K/D" value={stats.kd} max={3} color="sky" format={formatKD} />
       </div>
     </div>
   );

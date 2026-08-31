@@ -51,3 +51,11 @@ export function formatStat(value: number): string {
   }
   return rounded.toLocaleString("en-US");
 }
+
+// K/D is a ratio, not a count -- rounding it to a whole number the way
+// formatStat does for energy collapses almost every real value (anything
+// under 1.5) down to a flat 0 or 1, which is most of the actual range this
+// stat covers. Two decimal places instead.
+export function formatKD(value: number): string {
+  return value.toFixed(2);
+}

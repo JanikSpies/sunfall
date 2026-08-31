@@ -50,6 +50,6 @@ def player_stats(request):
     )
     kills = DeathEvent.objects.filter(killer_session__client_id=client_id).count()
     deaths = DeathEvent.objects.filter(victim_session__client_id=client_id).count()
-    kd = round(kills / deaths, 1) if deaths else float(kills)
+    kd = round(kills / deaths, 2) if deaths else float(kills)
 
     return JsonResponse({"total_energy": total_energy, "kd": kd, "leaderboard": leaderboard})

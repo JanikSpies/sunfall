@@ -15,26 +15,25 @@ export const DESKTOP_PANEL_WIDTH = 380;
 export const DESKTOP_GAP = 56;
 export const DESKTOP_PADDING = 32;
 
-// Mobile: the game content (logo/name/play) needs to center in the band left
-// between the top records card and the bottom leaderboard card, not the full
-// viewport height -- otherwise it drifts toward whichever card is shorter,
-// and on a short viewport it can overlap them outright. TitleStatsPanel
-// measures the cards' real rendered height and reports it into the store;
-// these are just the pre-measurement defaults for the first paint.
-export const MOBILE_CARD_MARGIN = 16;
-export const MOBILE_DEFAULT_TOP_RESERVED = 190;
-export const MOBILE_DEFAULT_BOTTOM_RESERVED = 220;
+// Mobile: records/leaderboard live behind the "Stats" tab (see MobileTabBar)
+// instead of stacking cards above/below the title content, so the game
+// content (logo/name/play) only has to reserve room for the tab bar itself
+// at the bottom of the viewport.
+export const MOBILE_TAB_BAR_HEIGHT = 76;
+export const MOBILE_CONTENT_MARGIN = 24;
+export const MOBILE_CONTENT_SIDE_MARGIN = 24;
 export const MOBILE_MIN_AVAILABLE_HEIGHT = 160;
-// A big leaderboard (or a tall on-screen keyboard/browser chrome eating into
-// real viewport height) can push the available band down a lot -- shrinking
-// proportionally to that forever ends in an illegibly tiny logo/input/button.
-// Past this point it's better to let the panel crowd the title content a
-// little than to keep shrinking it into unreadability.
-export const MOBILE_MIN_COMPRESSION = 0.72;
+// The engine renders at a minimum internal resolution (see resizeOptions in
+// GameCanvas) and scales that down to fit the real screen -- on phones that
+// downscale is much more aggressive than on desktop, so a layout sized 1:1
+// like desktop's ends up tiny. This is a fixed target, not a "fill whatever
+// room is available" factor -- letting the logo/input/button balloon to fill
+// the whole freed-up mobile screen read as too big with no breathing room.
+export const MOBILE_BASE_SCALE = 1.7;
 // The leaderboard is capped shorter on mobile than desktop specifically to
-// keep the bottom card's natural height down -- less reserved space needed
-// means less compression needed in the first place.
-export const MOBILE_LEADERBOARD_SIZE = 4;
+// keep the "Stats" tab's list from needing its own internal scroll on small
+// screens.
+export const MOBILE_LEADERBOARD_SIZE = 6;
 
 // Large totals (this is meant to keep growing) would otherwise blow past
 // the width these cards are designed for -- compact notation past 100k

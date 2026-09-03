@@ -2,7 +2,7 @@ import {create} from 'zustand';
 import {NetworkTransport} from '../network/Transport';
 import {PlayerState} from '../models/PlayerState';
 import {DeathReason, DecodedMessage, ScoreboardEntry, WebSocketTypes} from '../models/WebSocketTypes';
-import {MOBILE_DEFAULT_BOTTOM_RESERVED, MOBILE_DEFAULT_TOP_RESERVED} from '../layout/titleLayout';
+import {MOBILE_TAB_BAR_HEIGHT} from '../layout/titleLayout';
 
 interface DeathEvent {
     reason: DeathReason;
@@ -53,10 +53,14 @@ interface GameState {
     ping: number;
     showTutorial: boolean;
     onTitleScreen: boolean;
-    // Real rendered height of the mobile title-stats cards (see
-    // TitleStatsPanel), reported in so StartScreen can center its content in
-    // the actual space left between them instead of guessing.
-    titleCardReserved: { top: number; bottom: number };
+    // Real rendered height of the mobile bottom tab bar (see MobileTabBar),
+    // reported in so StartScreen can reserve exactly that much space instead
+    // of guessing -- it varies with safe-area insets on notched phones.
+    titleCardReserved: { bottom: number };
+    // Which bottom tab is active on the mobile title screen (see
+    // MobileTabBar/TitleStatsPanel). Irrelevant on desktop, where both the
+    // play content and the stats panel are shown side by side at once.
+    activeMobileTab: 'play' | 'stats';
     setPlayerName: (name: string) => void;
     setLocalPlayerId: (id: number | null) => void;
     setPlayers: (players: Record<number, PlayerState>) => void;
@@ -64,7 +68,8 @@ interface GameState {
     setPing: (ms: number) => void;
     setShowTutorial: (value: boolean) => void;
     setOnTitleScreen: (value: boolean) => void;
-    setTitleCardReserved: (top: number, bottom: number) => void;
+    setTitleCardReserved: (bottom: number) => void;
+    setActiveMobileTab: (tab: 'play' | 'stats') => void;
     revealDeathScreen: () => void;
     requestReturnToTitle: () => void;
     requestRespawn: () => void;
@@ -96,7 +101,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     // know about this flag -- StartScreen.show() is what actually flips it
     // once the title screen (and its logo/name/play layout) is really up.
     onTitleScreen: false,
-    titleCardReserved: { top: MOBILE_DEFAULT_TOP_RESERVED, bottom: MOBILE_DEFAULT_BOTTOM_RESERVED },
+    titleCardReserved: { bottom: MOBILE_TAB_BAR_HEIGHT },
+    activeMobileTab: 'play',
     setPlayerName: (name) => set({ playerName: name }),
     setLocalPlayerId: (id) => set({ localPlayerId: id }),
     setPlayers: (players) => set({ players }),
@@ -104,7 +110,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     setPing: (ms) => set({ ping: ms }),
     setShowTutorial: (value) => set({ showTutorial: value }),
     setOnTitleScreen: (value) => set({ onTitleScreen: value }),
-    setTitleCardReserved: (top, bottom) => set({ titleCardReserved: { top, bottom } }),
+    setTitleCardReserved: (bottom) => set({ titleCardReserved: { bottom } }),
+    setActiveMobileTab: (tab) => set({ activeMobileTab: tab }),
     revealDeathScreen: () => set({ showDeathScreen: true }),
     requestReturnToTitle: () => set({ returnToTitleRequested: true }),
     requestRespawn: () => set({ respawnRequested: true }),

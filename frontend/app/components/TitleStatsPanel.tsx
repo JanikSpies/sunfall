@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { engine } from "../getEngine";
+import { useEffect, useState } from "react";
 import { getClientId, useGameStore } from "../lib/store/gameStore";
 import {
   DESKTOP_COMPOSITION_WIDTH,
@@ -10,6 +9,7 @@ import {
   formatKD,
   formatStat,
   MOBILE_LEADERBOARD_SIZE,
+  MOBILE_TAB_BAR_HEIGHT,
 } from "../lib/layout/titleLayout";
 
 interface LeaderboardEntry {
@@ -136,24 +136,21 @@ function LeaderboardCard({ leaderboard }: { leaderboard: LeaderboardEntry[] }) {
  * uses -- no account needed. Plain React/CSS over the Pixi canvas, same
  * pattern as HowToPlayOverlay.
  *
- * Desktop and mobile both need to agree with StartScreen.ts (the Pixi title
- * content) about how much space this panel takes up, or the two layers drift
- * apart / overlap:
- *  - Desktop: positioned using the exact same capped-composition-width math
- *    as StartScreen's resize(), from the shared titleLayout constants, so
- *    the gap between the game content and this panel never grows past a
- *    fixed point no matter how wide the window gets.
- *  - Mobile: this panel's own cards' *real* rendered height is measured via
- *    ResizeObserver and reported into titleCardReserved so StartScreen can
- *    center its content in the band actually left between them, then forces
- *    a Pixi resize so that takes effect immediately instead of waiting for
- *    the next window resize.
+ * Desktop and mobile show this completely differently:
+ *  - Desktop: a fixed side panel, positioned using the exact same
+ *    capped-composition-width math as StartScreen's resize(), from the
+ *    shared titleLayout constants, so the gap between the game content and
+ *    this panel never grows past a fixed point no matter how wide the
+ *    window gets.
+ *  - Mobile: there's no room to show this alongside the play content, so
+ *    it lives behind the "Stats" tab (see <MobileTabBar>) instead -- a
+ *    full-screen view that slides in/out based on activeMobileTab, above
+ *    the tab bar itself.
  */
 export default function TitleStatsPanel() {
   const onTitleScreen = useGameStore((state) => state.onTitleScreen);
+  const activeMobileTab = useGameStore((state) => state.activeMobileTab);
   const [stats, setStats] = useState<PlayerStats | null>(null);
-  const topRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!onTitleScreen) return;
@@ -173,28 +170,9 @@ export default function TitleStatsPanel() {
     };
   }, [onTitleScreen]);
 
-  useEffect(() => {
-    if (!stats || !topRef.current || !bottomRef.current) return;
-
-    const report = () => {
-      useGameStore.getState().setTitleCardReserved(topRef.current?.offsetHeight ?? 0, bottomRef.current?.offsetHeight ?? 0);
-      try {
-        engine().resize();
-      } catch {
-        // Engine not mounted yet -- the next natural window resize (or the
-        // next time this effect re-runs) will pick up the real measurement.
-      }
-    };
-
-    const observer = new ResizeObserver(report);
-    observer.observe(topRef.current);
-    observer.observe(bottomRef.current);
-    report();
-
-    return () => observer.disconnect();
-  }, [stats]);
-
   if (!onTitleScreen || !stats) return null;
+
+  const mobileVisible = activeMobileTab === "stats";
 
   return (
     <>
@@ -209,13 +187,14 @@ export default function TitleStatsPanel() {
         <LeaderboardCard leaderboard={stats.leaderboard} />
       </div>
 
-      <div ref={topRef} className="pointer-events-none fixed inset-x-0 top-4 z-10 mx-auto max-w-sm px-4 md:hidden">
+      <div
+        className={`fixed inset-x-0 top-0 z-10 flex flex-col gap-4 overflow-y-auto bg-zinc-950 px-4 pt-6 transition-all duration-300 ease-out md:hidden ${
+          mobileVisible ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0"
+        }`}
+        style={{ bottom: MOBILE_TAB_BAR_HEIGHT }}
+        aria-hidden={!mobileVisible}
+      >
         <RecordsCard stats={stats} />
-      </div>
-      <div ref={bottomRef} className="pointer-events-none fixed inset-x-0 bottom-4 z-10 mx-auto max-w-sm px-4 md:hidden">
-        {/* Shorter than the desktop panel's list on purpose -- keeps this
-            card's natural height down so the title content above doesn't
-            need to compress as much to fit in the space left for it. */}
         <LeaderboardCard leaderboard={stats.leaderboard.slice(0, MOBILE_LEADERBOARD_SIZE)} />
       </div>
     </>

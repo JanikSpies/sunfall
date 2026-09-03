@@ -1,6 +1,6 @@
 import {animate} from "motion";
 import type {ObjectTarget} from "motion/react";
-import {Container, Graphics, isMobile, Sprite, Texture} from "pixi.js";
+import {Container, Graphics, Sprite, Texture} from "pixi.js";
 import {Input} from "@pixi/ui";
 
 import {engine} from "../getEngine";
@@ -11,9 +11,10 @@ import {
     DESKTOP_GAP,
     DESKTOP_PADDING,
     DESKTOP_PANEL_WIDTH,
-    MOBILE_CARD_MARGIN,
+    MOBILE_BASE_SCALE,
+    MOBILE_CONTENT_MARGIN,
+    MOBILE_CONTENT_SIDE_MARGIN,
     MOBILE_MIN_AVAILABLE_HEIGHT,
-    MOBILE_MIN_COMPRESSION,
 } from "../lib/layout/titleLayout";
 import {Button} from "../ui/menu/Button";
 import {MainScreen} from "./main/MainScreen";
@@ -27,13 +28,6 @@ export class StartScreen extends Container {
     private nameInput: Input;
     private playButton: Button;
     private contentContainer: Container;
-
-    // The engine renders at a minimum internal resolution (see resizeOptions in
-    // GameCanvas) and scales that down to fit the real screen -- on phones that
-    // downscale is much more aggressive than on desktop, so a layout sized for
-    // desktop ends up tiny. Same problem the energy bar and enemy name labels
-    // needed a touch-device scale bump for.
-    private readonly isTouchDevice = isMobile.phone;
 
     constructor() {
         super();
@@ -153,29 +147,35 @@ export class StartScreen extends Container {
             cssCenterY = cssHeight * 0.5;
             scale = 1;
         } else {
-            // The stats panel stacks a records card above and a leaderboard
-            // card below instead (see TitleStatsPanel.tsx), which measures
-            // their real rendered height into titleCardReserved -- center in
-            // the band actually left between them, and shrink instead of
-            // overlapping if that band gets too short. "Natural" (uncompressed)
-            // height comes from the real measured bounds rather than a
-            // guessed constant, converted out of Pixi's (possibly upscaled,
-            // see toPixiScale above) space into real CSS pixels.
-            const { top, bottom } = useGameStore.getState().titleCardReserved;
-            const topReserved = top + MOBILE_CARD_MARGIN;
-            const bottomReserved = bottom + MOBILE_CARD_MARGIN;
-            const available = Math.max(cssHeight - topReserved - bottomReserved, MOBILE_MIN_AVAILABLE_HEIGHT);
+            // The records/leaderboard stats live behind the "Stats" tab now
+            // (see MobileTabBar/TitleStatsPanel), not stacked above/below the
+            // title content -- the only thing this content needs to leave
+            // room for is the tab bar itself at the bottom. MobileTabBar
+            // measures its own real rendered height (which varies with the
+            // safe-area inset on notched phones) into titleCardReserved.
+            const { bottom } = useGameStore.getState().titleCardReserved;
+            const availableHeight = Math.max(
+                cssHeight - bottom - MOBILE_CONTENT_MARGIN * 2,
+                MOBILE_MIN_AVAILABLE_HEIGHT
+            );
+            const availableWidth = Math.max(cssWidth - MOBILE_CONTENT_SIDE_MARGIN * 2, MOBILE_MIN_AVAILABLE_HEIGHT);
 
-            const baseScale = this.isTouchDevice ? 1.6 : 1;
-            const naturalHeightPx = (bounds.height * baseScale) / toPixiScale;
-            const compression =
-                naturalHeightPx > 0
-                    ? Math.max(MOBILE_MIN_COMPRESSION, Math.min(1, available / naturalHeightPx))
-                    : 1;
+            // A fixed target size rather than "fill whatever room is left" --
+            // the latter reliably read as too big (edge-to-edge, no
+            // breathing room) once the stats cards stopped eating into the
+            // available space. This only shrinks below MOBILE_BASE_SCALE as
+            // a safety net for unusually small/short viewports; it never
+            // grows past it just because more room opened up.
+            const naturalHeightPx = bounds.height / toPixiScale;
+            const naturalWidthPx = bounds.width / toPixiScale;
+            const shrinkForHeight =
+                naturalHeightPx > 0 ? Math.min(1, availableHeight / (naturalHeightPx * MOBILE_BASE_SCALE)) : 1;
+            const shrinkForWidth =
+                naturalWidthPx > 0 ? Math.min(1, availableWidth / (naturalWidthPx * MOBILE_BASE_SCALE)) : 1;
 
             cssCenterX = cssWidth * 0.5;
-            cssCenterY = topReserved + available * 0.5;
-            scale = baseScale * compression;
+            cssCenterY = MOBILE_CONTENT_MARGIN + availableHeight * 0.5;
+            scale = MOBILE_BASE_SCALE * Math.min(shrinkForHeight, shrinkForWidth);
         }
 
         this.contentContainer.scale.set(scale);
